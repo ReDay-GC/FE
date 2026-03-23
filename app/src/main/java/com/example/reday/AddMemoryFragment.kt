@@ -4,10 +4,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.reday.data.local.AppDatabase
+import com.example.reday.data.repository.RecordFragmentRepository
+import kotlinx.coroutines.launch
 
 class AddMemoryFragment : Fragment() {
 
@@ -31,8 +37,9 @@ class AddMemoryFragment : Fragment() {
     private var selectedMonth = 0
     private var selectedDay = 0
 
-    // 기록 유형 선택 상태 (기본: 텍스트)
     private var selectedType: RecordType = RecordType.TEXT
+
+    private lateinit var repository: RecordFragmentRepository
 
     enum class RecordType { PHOTO, TEXT, VOICE }
 
@@ -54,6 +61,9 @@ class AddMemoryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val db = AppDatabase.getInstance(requireContext())
+        repository = RecordFragmentRepository(db.recordFragmentDao())
+
         // 날짜 텍스트 (요일 포함)
         val tvDate = view.findViewById<TextView>(R.id.tv_selected_date)
         val dateCal = java.util.Calendar.getInstance()
@@ -64,9 +74,9 @@ class AddMemoryFragment : Fragment() {
         // 현재 시간
         val tvTime = view.findViewById<TextView>(R.id.tv_time)
         val cal = java.util.Calendar.getInstance()
-        val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
-        val minute = cal.get(java.util.Calendar.MINUTE)
-        tvTime.text = String.format("%02d:%02d", hour, minute)
+        val recordHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        val recordMinute = cal.get(java.util.Calendar.MINUTE)
+        tvTime.text = String.format("%02d:%02d", recordHour, recordMinute)
 
         // 오늘 추가된 기록 토글
         val layoutRecordsEmpty = view.findViewById<View>(R.id.layout_records_empty)
@@ -120,8 +130,41 @@ class AddMemoryFragment : Fragment() {
         updateCardVisibility(cardPhoto, cardMemo, cardVoice)
 
         // 저장 버튼
+        val etMemo = view.findViewById<EditText>(R.id.et_memo)
+        val etLocation = view.findViewById<EditText>(R.id.et_location)
+
         view.findViewById<View>(R.id.btn_save).setOnClickListener {
-            // 추후 저장 로직 연결
+            val date = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
+            val createdAt = String.format(
+                "%04d-%02d-%02dT%02d:%02d:00",
+                selectedYear, selectedMonth, selectedDay, recordHour, recordMinute
+            )
+            val locationName = etLocation.text.toString().takeIf { it.isNotBlank() }
+
+            lifecycleScope.launch {
+                when (selectedType) {
+                    RecordType.TEXT -> {
+                        val text = etMemo.text.toString().trim()
+                        if (text.isEmpty()) {
+                            Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        repository.saveTextFragment(text, createdAt, date, locationName)
+                    }
+                    RecordType.PHOTO -> {
+                        // 갤러리 연동 후 photoUrl 전달 예정
+                        val memo = etMemo.text.toString().trim()
+                        Toast.makeText(requireContext(), "사진 기능은 준비 중입니다", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                    RecordType.VOICE -> {
+                        // 녹음 연동 후 voiceUrl 전달 예정
+                        Toast.makeText(requireContext(), "음성 기능은 준비 중입니다", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                }
+                requireActivity().supportFragmentManager.popBackStack()
+            }
         }
     }
 
