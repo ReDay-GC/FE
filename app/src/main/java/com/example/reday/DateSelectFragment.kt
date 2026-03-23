@@ -48,18 +48,6 @@ class DateSelectFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_date_select, container, false)
     }
 
-    override fun onStart() {
-        super.onStart()
-        requireActivity().findViewById<View>(R.id.bottom_nav)?.visibility = View.GONE
-        requireActivity().findViewById<View>(R.id.bottom_nav_divider)?.visibility = View.GONE
-    }
-
-    override fun onStop() {
-        super.onStop()
-        requireActivity().findViewById<View>(R.id.bottom_nav)?.visibility = View.VISIBLE
-        requireActivity().findViewById<View>(R.id.bottom_nav_divider)?.visibility = View.VISIBLE
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -211,8 +199,10 @@ class DateSelectFragment : Fragment() {
         cell.addView(wrapper)
 
         cell.setOnClickListener {
-            selectedDay = day
-            renderCalendar()
+            if (!isFutureDay) {
+                selectedDay = day
+                renderCalendar()
+            }
         }
 
         return cell
