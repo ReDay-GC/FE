@@ -289,6 +289,39 @@ Re:Day의 기능을 해석할 때 다음 관점을 유지한다.
 
 ---
 
+## 색상 사용 규칙
+UI 구현 시 색상은 반드시 `res/values/colors.xml`에 정의된 색상만 사용한다.
+임의의 하드코딩 색상값(#XXXXXX)을 직접 사용하지 않는다.
+어떤 색상을 써야 할지 불명확한 경우 사용자에게 먼저 확인한다.
+
+현재 정의된 색상 목록:
+
+| 이름 | 값 | 분류 |
+|---|---|---|
+| blue | #2B7FFF | Semantic |
+| red | #FB2C36 | Semantic |
+| inactive | #E0DBD3 | Semantic |
+| pink | #D0998E | Semantic |
+| main_200 | #AA7B72 | Main |
+| main_105 | #FFE8E0 | Main |
+| main_100 | #FFF3EF | Main |
+| sub_200 | #6F8063 | Sub |
+| sub_105 | #95A889 | Sub |
+| sub_100 | #E9EFE4 | Sub |
+| brown_950 | #1F1A17 | Monotone Brown |
+| brown_900 | #2B2420 | Monotone Brown |
+| brown_800 | #4A4038 | Monotone Brown |
+| brown_700 | #685E52 | Monotone Brown |
+| brown_600 | #7A6061 | Monotone Brown |
+| brown_500 | #8B7E6E | Monotone Brown |
+| brown_400 | #A89C90 | Monotone Brown |
+| brown_300 | #C9BEB1 | Monotone Brown |
+| brown_200 | #E5D4C1 | Monotone Brown |
+| brown_100 | #F5F3EE | Monotone Brown |
+| brown_50 | #FAF8F5 | Monotone Brown |
+
+---
+
 ## Claude가 우선 기억해야 할 점
 1. Re:Day는 AI 기반 기억 생성 앱이다.
 2. 입력은 기록 조각이고 출력은 기억이다.
