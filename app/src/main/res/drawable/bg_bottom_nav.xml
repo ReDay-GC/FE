@@ -11,7 +11,7 @@
     <!-- 배경 (1dp 아래로 inset, 나머지 0) -->
     <item android:top="1dp">
         <shape android:shape="rectangle">
-            <solid android:color="@color/nav_background" />
+            <solid android:color="@color/brown_100" />
         </shape>
     </item>
 
