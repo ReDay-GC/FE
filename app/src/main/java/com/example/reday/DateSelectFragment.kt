@@ -10,6 +10,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import android.os.Handler
+import android.os.Looper
 import java.util.Calendar
 
 class DateSelectFragment : Fragment() {
@@ -202,6 +204,15 @@ class DateSelectFragment : Fragment() {
             if (!isFutureDay) {
                 selectedDay = day
                 renderCalendar()
+                Handler(Looper.getMainLooper()).postDelayed({
+                    if (isAdded) {
+                        val fragment = AddMemoryFragment.newInstance(currentYear, currentMonth + 1, day)
+                        requireActivity().supportFragmentManager.beginTransaction()
+                            .replace(R.id.content_container, fragment)
+                            .addToBackStack(null)
+                            .commit()
+                    }
+                }, 200)
             }
         }
 
