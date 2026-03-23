@@ -17,17 +17,27 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <!-- 바텀 내비 상단 구분선 -->
+    <View
+        android:id="@+id/bottom_nav_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/brown_950"
+        app:layout_constraintBottom_toTopOf="@id/bottom_nav"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_bottom_nav"
+        android:background="@color/brown_100"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"
         app:itemBackground="@drawable/bg_nav_item"
         app:labelVisibilityMode="labeled"
-app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
