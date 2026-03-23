@@ -6,93 +6,102 @@
     android:orientation="vertical"
     android:background="@color/main_100">
 
-    <!-- 헤더 -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="20dp"
-        android:paddingBottom="16dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="날짜 선택"
-            android:textColor="@color/brown_900"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <ImageButton
-            android:id="@+id/btn_close"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="@drawable/bg_icon_button"
-            android:src="@drawable/ic_close"
-            android:padding="8dp"
-            android:contentDescription="닫기"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- 스텝 인디케이터 -->
+    <!-- 헤더 + 스텝 인디케이터 (그라데이션 배경) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="16dp">
+        android:orientation="vertical"
+        android:background="@drawable/bg_header_gradient">
 
-        <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:background="@drawable/bg_step_active"
-            android:text="1"
-            android:textColor="@color/brown_50"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:gravity="center" />
-
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- 헤더 -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="날짜 선택"
-            android:textColor="@color/brown_800"
-            android:textSize="13sp"
-            android:layout_marginStart="6dp" />
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="20dp">
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"
-            android:background="@color/inactive"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="날짜 선택"
+                android:textColor="@color/brown_700"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
 
-        <TextView
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:background="@drawable/bg_step_inactive"
-            android:text="2"
-            android:textColor="@color/brown_400"
-            android:textSize="13sp"
-            android:gravity="center" />
+            <ImageButton
+                android:id="@+id/btn_close"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_btn_close"
+                android:src="@drawable/ic_close"
+                android:padding="8dp"
+                android:contentDescription="닫기"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
 
-        <TextView
-            android:layout_width="wrap_content"
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- 스텝 인디케이터 -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="기억 추가"
-            android:textColor="@color/brown_400"
-            android:textSize="13sp"
-            android:layout_marginStart="6dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp">
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_step_active"
+                android:text="1"
+                android:textColor="@color/brown_50"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="날짜 선택"
+                android:textColor="@color/brown_700"
+                android:textSize="13sp"
+                android:layout_marginStart="6dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="@color/inactive"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp" />
+
+            <TextView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_step_inactive"
+                android:text="2"
+                android:textColor="@color/brown_300"
+                android:textSize="13sp"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="기억 추가"
+                android:textColor="@color/brown_300"
+                android:textSize="13sp"
+                android:layout_marginStart="6dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -100,7 +109,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/brown_200" />
+        android:background="@color/inactive" />
 
     <!-- 캘린더 영역 -->
     <LinearLayout
@@ -109,9 +118,9 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:background="@color/brown_50"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="20dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="28dp"
         android:paddingBottom="20dp">
 
         <!-- 월 이동 네비게이션 -->
@@ -135,7 +144,7 @@
                 android:id="@+id/tv_month_year"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/brown_900"
+                android:textColor="@color/brown_700"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
@@ -223,18 +232,12 @@
         </GridLayout>
 
         <!-- 날짜 그리드 (동적 생성) -->
-        <GridLayout
+        <LinearLayout
             android:id="@+id/grid_calendar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:columnCount="7"
-            android:useDefaultMargins="false" />
-
-        <!-- 여백 -->
-        <View
-            android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:orientation="vertical" />
 
         <!-- 범례 -->
         <LinearLayout
@@ -252,7 +255,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="오늘"
-                android:textColor="@color/brown_600"
+                android:textColor="@color/brown_700"
                 android:textSize="12sp"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="14dp" />
@@ -266,7 +269,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="기록 있음"
-                android:textColor="@color/brown_600"
+                android:textColor="@color/brown_700"
                 android:textSize="12sp"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="14dp" />
@@ -280,7 +283,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="기록 중"
-                android:textColor="@color/brown_600"
+                android:textColor="@color/brown_700"
                 android:textSize="12sp"
                 android:layout_marginStart="4dp" />
 

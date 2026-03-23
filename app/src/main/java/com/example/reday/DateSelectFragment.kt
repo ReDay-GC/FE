@@ -5,7 +5,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -19,12 +18,20 @@ class DateSelectFragment : Fragment() {
     private var currentMonth = 0
     private var selectedDay = -1
 
-    // 더미데이터 (추후 repository에서 공급 예정)
-    private val hasRecordDays = setOf(3, 5, 8)
-    private val recordingDays = setOf(10)
+    // 더미데이터 (추후 repository에서 공급 예정) - key: Pair(year, month 0-based)
+    private val hasRecordMap = mapOf(
+        Pair(2026, 2) to setOf(3, 5, 8),
+        Pair(2026, 3) to setOf(1, 7, 15),
+        Pair(2026, 4) to setOf(5, 20)
+    )
+    private val recordingMap = mapOf(
+        Pair(2026, 2) to setOf(10),
+        Pair(2026, 3) to setOf(22),
+        Pair(2026, 4) to setOf(3)
+    )
 
     private lateinit var tvMonthYear: TextView
-    private lateinit var gridCalendar: GridLayout
+    private lateinit var gridCalendar: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,23 +59,13 @@ class DateSelectFragment : Fragment() {
         }
 
         view.findViewById<ImageButton>(R.id.btn_prev_month).setOnClickListener {
-            if (currentMonth == 0) {
-                currentMonth = 11
-                currentYear--
-            } else {
-                currentMonth--
-            }
+            if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth--
             selectedDay = -1
             renderCalendar()
         }
 
         view.findViewById<ImageButton>(R.id.btn_next_month).setOnClickListener {
-            if (currentMonth == 11) {
-                currentMonth = 0
-                currentYear++
-            } else {
-                currentMonth++
-            }
+            if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++
             selectedDay = -1
             renderCalendar()
         }
@@ -87,36 +84,64 @@ class DateSelectFragment : Fragment() {
         val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         val todayCal = Calendar.getInstance()
-        val isCurrentMonth = todayCal.get(Calendar.YEAR) == currentYear
-                && todayCal.get(Calendar.MONTH) == currentMonth
-        val todayDay = if (isCurrentMonth) todayCal.get(Calendar.DAY_OF_MONTH) else -1
+        val todayYear = todayCal.get(Calendar.YEAR)
+        val todayMonth = todayCal.get(Calendar.MONTH)
+        val todayDayOfMonth = todayCal.get(Calendar.DAY_OF_MONTH)
+        val isCurrentMonth = currentYear == todayYear && currentMonth == todayMonth
+        val isFutureMonth = currentYear > todayYear
+                || (currentYear == todayYear && currentMonth > todayMonth)
+        val todayDay = if (isCurrentMonth) todayDayOfMonth else -1
 
-        repeat(firstDayOfWeek) {
-            gridCalendar.addView(createEmptyCell())
-        }
+        val key = Pair(currentYear, currentMonth)
+        val hasRecordDays = hasRecordMap[key] ?: emptySet()
+        val recordingDays = recordingMap[key] ?: emptySet()
 
-        for (day in 1..daysInMonth) {
-            gridCalendar.addView(createDayCell(day, todayDay))
+        // 항상 6행으로 고정 → 높이 안정적, 범례 항상 표시됨
+        for (row in 0 until 6) {
+            val weekRow = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+            }
+            for (col in 0 until 7) {
+                val cellIndex = row * 7 + col
+                val day = cellIndex - firstDayOfWeek + 1
+                if (day < 1 || day > daysInMonth) {
+                    weekRow.addView(createEmptyCell())
+                } else {
+                    val isFutureDay = isFutureMonth || (isCurrentMonth && day > todayDayOfMonth)
+                    weekRow.addView(createDayCell(day, todayDay, hasRecordDays, recordingDays, isFutureDay))
+                }
+            }
+            gridCalendar.addView(weekRow)
         }
     }
 
     private fun createEmptyCell(): View {
         val cell = View(requireContext())
-        cell.layoutParams = createCellParams()
+        cell.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
         return cell
     }
 
-    private fun createDayCell(day: Int, todayDay: Int): LinearLayout {
+    private fun createDayCell(
+        day: Int,
+        todayDay: Int,
+        hasRecordDays: Set<Int>,
+        recordingDays: Set<Int>,
+        isFutureDay: Boolean
+    ): LinearLayout {
         val cell = LinearLayout(requireContext())
         cell.orientation = LinearLayout.VERTICAL
         cell.gravity = Gravity.CENTER_HORIZONTAL
-        cell.layoutParams = createCellParams()
+        cell.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
         cell.setPadding(0, 4.dp, 0, 4.dp)
 
         val tvDay = TextView(requireContext())
         val circleSize = 36.dp
-        val tvParams = LinearLayout.LayoutParams(circleSize, circleSize)
-        tvDay.layoutParams = tvParams
+        tvDay.layoutParams = LinearLayout.LayoutParams(circleSize, circleSize)
         tvDay.text = day.toString()
         tvDay.gravity = Gravity.CENTER
         tvDay.textSize = 14f
@@ -132,10 +157,7 @@ class DateSelectFragment : Fragment() {
             day == selectedDay -> {
                 tvDay.setBackgroundResource(R.drawable.bg_calendar_selected)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
-                if (day in recordingDays) {
-                    dot.setBackgroundResource(R.drawable.bg_dot_light)
-                    dot.visibility = View.VISIBLE
-                } else if (day in hasRecordDays) {
+                if (day in recordingDays || day in hasRecordDays) {
                     dot.setBackgroundResource(R.drawable.bg_dot_light)
                     dot.visibility = View.VISIBLE
                 }
@@ -157,7 +179,8 @@ class DateSelectFragment : Fragment() {
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_800))
             }
             else -> {
-                tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_800))
+                val color = if (isFutureDay) R.color.brown_300 else R.color.brown_800
+                tvDay.setTextColor(ContextCompat.getColor(requireContext(), color))
             }
         }
 
@@ -170,16 +193,6 @@ class DateSelectFragment : Fragment() {
         }
 
         return cell
-    }
-
-    private fun createCellParams(): GridLayout.LayoutParams {
-        val params = GridLayout.LayoutParams(
-            GridLayout.spec(GridLayout.UNDEFINED, 1f),
-            GridLayout.spec(GridLayout.UNDEFINED, 1f)
-        )
-        params.width = 0
-        params.height = GridLayout.LayoutParams.WRAP_CONTENT
-        return params
     }
 
     private val Int.dp: Int
