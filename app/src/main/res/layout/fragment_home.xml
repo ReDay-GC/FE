@@ -117,8 +117,9 @@
                     android:layout_marginTop="16dp"
                     app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="3dp"
-                    app:strokeWidth="0dp">
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/brown_200"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -135,7 +136,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="오늘의 기억"
-                                android:textColor="@color/brown_900"
+                                android:textColor="@color/brown_700"
                                 android:textSize="15sp"
                                 android:textStyle="bold"
                                 app:layout_constraintStart_toStartOf="parent"
@@ -183,8 +184,9 @@
                     android:foreground="?attr/selectableItemBackground"
                     app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="12dp"
-                    app:cardElevation="3dp"
-                    app:strokeWidth="0dp">
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/brown_200"
+                    app:strokeWidth="1dp">
 
                     <TextView
                         android:layout_width="match_parent"
@@ -221,8 +223,9 @@
             android:layout_marginBottom="16dp"
             app:cardBackgroundColor="@color/white"
             app:cardCornerRadius="12dp"
-            app:cardElevation="3dp"
-            app:strokeWidth="0dp">
+            app:cardElevation="0dp"
+            app:strokeColor="@color/brown_200"
+            app:strokeWidth="1dp">
 
             <TextView
                 android:layout_width="match_parent"
