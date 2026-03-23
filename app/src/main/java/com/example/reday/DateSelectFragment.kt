@@ -133,11 +133,21 @@ class DateSelectFragment : Fragment() {
         recordingDays: Set<Int>,
         isFutureDay: Boolean
     ): LinearLayout {
+        // cell: 셀 전체 공간 차지, wrapper를 가운데 정렬
         val cell = LinearLayout(requireContext())
         cell.orientation = LinearLayout.VERTICAL
-        cell.gravity = Gravity.CENTER_HORIZONTAL
+        cell.gravity = Gravity.CENTER
         cell.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
-        cell.setPadding(0, 4.dp, 0, 4.dp)
+
+        // wrapper: 배경(색칠 영역) + tvDay + dot 포함
+        val wrapper = LinearLayout(requireContext())
+        wrapper.orientation = LinearLayout.VERTICAL
+        wrapper.gravity = Gravity.CENTER_HORIZONTAL
+        wrapper.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        wrapper.setPadding(0, 4.dp, 0, 6.dp)
 
         val tvDay = TextView(requireContext())
         val circleSize = 36.dp
@@ -155,37 +165,38 @@ class DateSelectFragment : Fragment() {
 
         when {
             day == selectedDay -> {
-                tvDay.setBackgroundResource(R.drawable.bg_calendar_selected)
+                wrapper.setBackgroundResource(R.drawable.bg_calendar_selected)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
                 if (day in recordingDays || day in hasRecordDays) {
-                    dot.setBackgroundResource(R.drawable.bg_dot_light)
+                    dot.setBackgroundResource(R.drawable.bg_dot_brown)
                     dot.visibility = View.VISIBLE
                 }
             }
             day in recordingDays -> {
-                tvDay.setBackgroundResource(R.drawable.bg_calendar_recording)
+                wrapper.setBackgroundResource(R.drawable.bg_calendar_recording)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
-                dot.setBackgroundResource(R.drawable.bg_dot_light)
+                dot.setBackgroundResource(R.drawable.bg_dot_brown)
                 dot.visibility = View.VISIBLE
             }
             day in hasRecordDays -> {
-                tvDay.setBackgroundResource(R.drawable.bg_calendar_has_record)
+                wrapper.setBackgroundResource(R.drawable.bg_calendar_has_record)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_800))
-                dot.setBackgroundResource(R.drawable.bg_dot_pink)
+                dot.setBackgroundResource(R.drawable.bg_dot_brown)
                 dot.visibility = View.VISIBLE
             }
             day == todayDay -> {
-                tvDay.setBackgroundResource(R.drawable.bg_calendar_today)
+                wrapper.setBackgroundResource(R.drawable.bg_calendar_today)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_800))
             }
             else -> {
-                val color = if (isFutureDay) R.color.brown_300 else R.color.brown_800
+                val color = if (isFutureDay) R.color.brown_300 else R.color.brown_500
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), color))
             }
         }
 
-        cell.addView(tvDay)
-        cell.addView(dot)
+        wrapper.addView(tvDay)
+        wrapper.addView(dot)
+        cell.addView(wrapper)
 
         cell.setOnClickListener {
             selectedDay = day

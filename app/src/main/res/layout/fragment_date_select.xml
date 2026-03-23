@@ -249,7 +249,7 @@
             <View
                 android:layout_width="14dp"
                 android:layout_height="14dp"
-                android:background="@drawable/bg_calendar_today" />
+                android:background="@drawable/bg_legend_today" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -263,7 +263,7 @@
             <View
                 android:layout_width="10dp"
                 android:layout_height="10dp"
-                android:background="@drawable/bg_calendar_has_record" />
+                android:background="@drawable/bg_legend_has_record" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -277,7 +277,7 @@
             <View
                 android:layout_width="10dp"
                 android:layout_height="10dp"
-                android:background="@drawable/bg_calendar_recording" />
+                android:background="@drawable/bg_legend_recording" />
 
             <TextView
                 android:layout_width="wrap_content"
