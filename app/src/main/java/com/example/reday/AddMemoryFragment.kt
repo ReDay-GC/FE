@@ -68,6 +68,17 @@ class AddMemoryFragment : Fragment() {
         val minute = cal.get(java.util.Calendar.MINUTE)
         tvTime.text = String.format("%02d:%02d", hour, minute)
 
+        // 오늘 추가된 기록 토글
+        val layoutRecordsEmpty = view.findViewById<View>(R.id.layout_records_empty)
+        val icToggle = view.findViewById<android.widget.ImageView>(R.id.ic_toggle_records)
+        var isRecordsExpanded = false
+
+        view.findViewById<View>(R.id.card_today_records).setOnClickListener {
+            isRecordsExpanded = !isRecordsExpanded
+            layoutRecordsEmpty.visibility = if (isRecordsExpanded) View.VISIBLE else View.GONE
+            icToggle.rotation = if (isRecordsExpanded) 180f else 0f
+        }
+
         // 뒤로 버튼
         view.findViewById<View>(R.id.btn_back).setOnClickListener {
             requireActivity().supportFragmentManager.popBackStack()
@@ -124,10 +135,20 @@ class AddMemoryFragment : Fragment() {
                 2 -> selectedType == RecordType.VOICE
                 else -> false
             }
+            val textColor = ContextCompat.getColor(
+                requireContext(),
+                if (isSelected) R.color.sub_200 else R.color.brown_500
+            )
+            val iconTint = android.content.res.ColorStateList.valueOf(textColor)
+
             btn.setBackgroundResource(
                 if (isSelected) R.drawable.bg_record_type_btn_selected
                 else R.drawable.bg_record_type_btn
             )
+            // 아이콘 tint
+            (btn.getChildAt(0) as? android.widget.ImageView)?.imageTintList = iconTint
+            // 텍스트 색
+            (btn.getChildAt(1) as? android.widget.TextView)?.setTextColor(textColor)
         }
     }
 }
