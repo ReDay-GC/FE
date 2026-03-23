@@ -2,4 +2,33 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Bottom Navigation -->
+    <color name="nav_background">#FFFFFF</color>
+    <color name="nav_active">#C4745A</color>
+    <color name="nav_inactive">#9A8C87</color>
+    <color name="nav_indicator">#00000000</color>
+
+    <!-- Main Color -->
+    <color name="main_200">#F5B1A4</color>
+    <color name="main_105">#FFD8CE</color>
+    <color name="main_100">#FFF3EF</color>
+
+    <!-- Sub Color -->
+    <color name="sub_200">#6F8063</color>
+    <color name="sub_105">#95A889</color>
+    <color name="sub_100">#E9EFE4</color>
+
+    <!-- Monotone Brown -->
+    <color name="brown_950">#1F1A17</color>
+    <color name="brown_900">#2B2420</color>
+    <color name="brown_800">#4A4038</color>
+    <color name="brown_700">#685E52</color>
+    <color name="brown_600">#7A6061</color>
+    <color name="brown_500">#8B7E6E</color>
+    <color name="brown_400">#A89C90</color>
+    <color name="brown_300">#C9BEB1</color>
+    <color name="brown_200">#E5D4C1</color>
+    <color name="brown_100">#F5F3EE</color>
+    <color name="brown_50">#FAF8F5</color>
 </resources>
