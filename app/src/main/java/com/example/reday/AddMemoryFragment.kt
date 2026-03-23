@@ -93,34 +93,42 @@ class AddMemoryFragment : Fragment() {
         val btnPhoto = view.findViewById<LinearLayout>(R.id.btn_type_photo)
         val btnText = view.findViewById<LinearLayout>(R.id.btn_type_text)
         val btnVoice = view.findViewById<LinearLayout>(R.id.btn_type_voice)
+        val cardPhoto = view.findViewById<View>(R.id.card_photo)
         val cardMemo = view.findViewById<View>(R.id.card_memo)
+        val cardVoice = view.findViewById<View>(R.id.card_voice)
 
         btnPhoto.setOnClickListener {
             selectedType = RecordType.PHOTO
             updateTypeButtons(btnPhoto, btnText, btnVoice)
-            cardMemo.visibility = View.GONE
+            updateCardVisibility(cardPhoto, cardMemo, cardVoice)
         }
 
         btnText.setOnClickListener {
             selectedType = RecordType.TEXT
             updateTypeButtons(btnPhoto, btnText, btnVoice)
-            cardMemo.visibility = View.VISIBLE
+            updateCardVisibility(cardPhoto, cardMemo, cardVoice)
         }
 
         btnVoice.setOnClickListener {
             selectedType = RecordType.VOICE
             updateTypeButtons(btnPhoto, btnText, btnVoice)
-            cardMemo.visibility = View.GONE
+            updateCardVisibility(cardPhoto, cardMemo, cardVoice)
         }
 
-        // 초기 상태 적용 (텍스트 선택 → 메모 카드 표시)
-        cardMemo.visibility = View.VISIBLE
+        // 초기 상태 적용 (텍스트 선택)
         updateTypeButtons(btnPhoto, btnText, btnVoice)
+        updateCardVisibility(cardPhoto, cardMemo, cardVoice)
 
         // 저장 버튼
         view.findViewById<View>(R.id.btn_save).setOnClickListener {
             // 추후 저장 로직 연결
         }
+    }
+
+    private fun updateCardVisibility(cardPhoto: View, cardMemo: View, cardVoice: View) {
+        cardPhoto.visibility = if (selectedType == RecordType.PHOTO) View.VISIBLE else View.GONE
+        cardMemo.visibility = View.VISIBLE
+        cardVoice.visibility = if (selectedType == RecordType.VOICE) View.VISIBLE else View.GONE
     }
 
     private fun updateTypeButtons(
