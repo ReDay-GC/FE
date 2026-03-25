@@ -1,5 +1,6 @@
 package com.example.reday
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +17,23 @@ import com.example.reday.data.repository.RecordFragmentRepository
 import kotlinx.coroutines.launch
 
 class AddMemoryFragment : Fragment() {
+
+    interface AddMemoryListener {
+        fun onBack()
+        fun onSaved()
+    }
+
+    private var listener: AddMemoryListener? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        listener = context as? AddMemoryListener
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        listener = null
+    }
 
     companion object {
         private const val ARG_YEAR = "year"
@@ -64,13 +82,6 @@ class AddMemoryFragment : Fragment() {
         val db = AppDatabase.getInstance(requireContext())
         repository = RecordFragmentRepository(db.recordFragmentDao())
 
-        // 날짜 텍스트 (요일 포함)
-        val tvDate = view.findViewById<TextView>(R.id.tv_selected_date)
-        val dateCal = java.util.Calendar.getInstance()
-        dateCal.set(selectedYear, selectedMonth - 1, selectedDay)
-        val dayOfWeekStr = arrayOf("일", "월", "화", "수", "목", "금", "토")[dateCal.get(java.util.Calendar.DAY_OF_WEEK) - 1]
-        tvDate.text = "${selectedYear}년 ${selectedMonth}월 ${selectedDay}일 ${dayOfWeekStr}요일"
-
         // 현재 시간
         val tvTime = view.findViewById<TextView>(R.id.tv_time)
         val cal = java.util.Calendar.getInstance()
@@ -89,20 +100,17 @@ class AddMemoryFragment : Fragment() {
             icToggle.rotation = if (isRecordsExpanded) 180f else 0f
         }
 
-        // 뒤로 버튼
-        view.findViewById<View>(R.id.btn_back).setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack()
-        }
-
-        // 닫기 버튼 (홈으로)
-        view.findViewById<View>(R.id.btn_close).setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
-        }
-
         // 기록 유형 버튼
         val btnPhoto = view.findViewById<LinearLayout>(R.id.btn_type_photo)
         val btnText = view.findViewById<LinearLayout>(R.id.btn_type_text)
         val btnVoice = view.findViewById<LinearLayout>(R.id.btn_type_voice)
+
+        // 버튼을 정사각형으로 (너비 = 높이)
+        listOf(btnPhoto, btnText, btnVoice).forEach { btn ->
+            btn.post {
+                btn.layoutParams = btn.layoutParams.also { it.height = btn.width }
+            }
+        }
         val cardPhoto = view.findViewById<View>(R.id.card_photo)
         val cardMemo = view.findViewById<View>(R.id.card_memo)
         val cardVoice = view.findViewById<View>(R.id.card_voice)
@@ -163,7 +171,7 @@ class AddMemoryFragment : Fragment() {
                         return@launch
                     }
                 }
-                requireActivity().supportFragmentManager.popBackStack()
+                listener?.onSaved()
             }
         }
     }
