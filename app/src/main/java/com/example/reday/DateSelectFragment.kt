@@ -104,8 +104,7 @@ class DateSelectFragment : Fragment() {
                 orientation = LinearLayout.HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    0,
-                    1f
+                    52.dp
                 )
             }
             for (col in 0 until 7) {
@@ -141,27 +140,28 @@ class DateSelectFragment : Fragment() {
         cell.gravity = Gravity.CENTER
         cell.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
 
-        // wrapper: 배경(색칠 영역) + tvDay + dot 포함
+        // wrapper: 고정 크기 정사각형 배경 영역 (tvDay + dot 포함)
         val wrapper = LinearLayout(requireContext())
         wrapper.orientation = LinearLayout.VERTICAL
         wrapper.gravity = Gravity.CENTER_HORIZONTAL
-        wrapper.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        wrapper.setPadding(0, 4.dp, 0, 6.dp)
+        wrapper.layoutParams = LinearLayout.LayoutParams(42.dp, 42.dp)
+        wrapper.setPadding(0, 3.dp, 0, 3.dp)
 
         val tvDay = TextView(requireContext())
-        val circleSize = 36.dp
-        tvDay.layoutParams = LinearLayout.LayoutParams(circleSize, circleSize)
+        tvDay.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            28.dp
+        )
         tvDay.text = day.toString()
         tvDay.gravity = Gravity.CENTER
         tvDay.textSize = 14f
 
+        // dot: wrapper 안 tvDay 아래
         val dot = View(requireContext())
         val dotSize = 5.dp
         val dotParams = LinearLayout.LayoutParams(dotSize, dotSize)
-        dotParams.topMargin = 2.dp
+        dotParams.topMargin = 1.dp
+        dotParams.gravity = Gravity.CENTER_HORIZONTAL
         dot.layoutParams = dotParams
         dot.visibility = View.INVISIBLE
 
