@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import android.view.View
 import android.widget.TextView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -23,6 +24,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupBottomNavigation()
+
+        // 백스택 변화에 따라 바텀 네비 표시/숨김
+        supportFragmentManager.addOnBackStackChangedListener {
+            val shouldHideNav = supportFragmentManager.backStackEntryCount > 0
+            val bottomNav = findViewById<View>(R.id.bottom_nav)
+            val divider = findViewById<View>(R.id.bottom_nav_divider)
+            bottomNav?.visibility = if (shouldHideNav) View.GONE else View.VISIBLE
+            divider?.visibility = if (shouldHideNav) View.GONE else View.VISIBLE
+        }
     }
 
     private fun setupBottomNavigation() {

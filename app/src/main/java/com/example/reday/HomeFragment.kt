@@ -21,6 +21,16 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setTodayDate(view)
+        setupAddMemoryButton(view)
+    }
+
+    private fun setupAddMemoryButton(view: View) {
+        view.findViewById<View>(R.id.btn_add_memory).setOnClickListener {
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.content_container, DateSelectFragment())
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     private fun setTodayDate(view: View) {
