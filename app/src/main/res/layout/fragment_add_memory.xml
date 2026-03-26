@@ -590,6 +590,7 @@
 
                 <!-- 시간 입력 필드 -->
                 <LinearLayout
+                    android:id="@+id/layout_time_input"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -599,7 +600,9 @@
                     android:paddingEnd="12dp"
                     android:paddingTop="10dp"
                     android:paddingBottom="10dp"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         android:layout_width="18dp"
@@ -612,7 +615,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="@color/brown_300"
+                        android:textColor="@color/brown_800"
                         android:textSize="14sp" />
 
                 </LinearLayout>
