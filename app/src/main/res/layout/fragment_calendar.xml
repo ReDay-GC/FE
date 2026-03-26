@@ -246,6 +246,108 @@
 
             </LinearLayout>
 
+            <!-- 기록중 날 선택 시 카드 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_recording_day"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/brown_50"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/brown_300"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- 헤더: 날짜 + 기록중 배지 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_recording_day_date"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="3월 5일"
+                            android:textColor="@color/brown_600"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_recording_badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="● 기록 중"
+                            android:textColor="@color/brown_600"
+                            android:textSize="12sp"
+                            android:background="@drawable/bg_badge_recording"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp" />
+
+                    </LinearLayout>
+
+                    <!-- 안내 문구 -->
+                    <TextView
+                        android:id="@+id/tv_recording_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0개의 기억 조각이 저장되어 있습니다\nAI를 생성하면 하나의 완성된 기억이 됩니다"
+                        android:textColor="@color/brown_500"
+                        android:textSize="13sp"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- 기록 조각 목록 (동적 생성) -->
+                    <LinearLayout
+                        android:id="@+id/ll_recording_fragments"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- AI 생성하러가기 버튼 -->
+                    <LinearLayout
+                        android:id="@+id/btn_generate_ai"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_btn_ai_generate">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_star_ai"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AI 생성하러가기"
+                            android:textColor="@color/brown_50"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="8dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- 선택된 날짜 기억 상세 카드 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_memory_detail"
