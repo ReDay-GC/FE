@@ -1,6 +1,7 @@
 package com.example.reday.data.mapper
 
 import com.example.reday.data.model.FragmentType
+import com.example.reday.data.model.MapLocationGroup
 import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.model.RecordFragmentUiModel
 
@@ -45,6 +46,18 @@ object MemoryMapper {
             locationName = locationName,
             previewText = previewText
         )
+    }
+
+    fun groupByLocation(fragments: List<RecordFragmentUiModel>): List<MapLocationGroup> {
+        return fragments
+            .filter { it.locationName != null && it.latitude != null && it.longitude != null }
+            .groupBy { it.locationName!! }
+            .map { (locationName, group) ->
+                val lat = group.first().latitude!!
+                val lng = group.first().longitude!!
+                val memories = fromFragmentList(group)
+                MapLocationGroup(locationName, lat, lng, group.size, memories)
+            }
     }
 
     private fun formatTitle(date: String): String {
