@@ -12,6 +12,9 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
     fun getFragmentsByDate(date: String): Flow<List<RecordFragmentUiModel>> =
         dao.getByDate(date).map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }
 
+    fun getAllFragments(): Flow<List<RecordFragmentUiModel>> =
+        dao.getAll().map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }
+
     suspend fun saveTextFragment(
         contentText: String,
         createdAt: String,
@@ -73,6 +76,14 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
             longitude = longitude
         )
         return dao.insert(entity)
+    }
+
+    suspend fun getRecordDatesByMonth(year: Int, month: Int): Set<Int> {
+        val yearMonth = "%04d-%02d".format(year, month)
+        return dao.getDistinctDatesByMonth(yearMonth)
+            .mapNotNull { dateStr ->
+                dateStr.split("-").getOrNull(2)?.toIntOrNull()
+            }.toSet()
     }
 
     suspend fun deleteFragment(model: RecordFragmentUiModel) {

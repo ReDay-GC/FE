@@ -21,4 +21,10 @@ interface RecordFragmentDao {
 
     @Query("SELECT * FROM record_fragments WHERE localId = :localId")
     suspend fun getById(localId: Long): RecordFragmentEntity?
+
+    @Query("SELECT DISTINCT date FROM record_fragments WHERE date LIKE :yearMonth || '%'")
+    suspend fun getDistinctDatesByMonth(yearMonth: String): List<String>
+
+    @Query("SELECT * FROM record_fragments ORDER BY date DESC, createdAt ASC")
+    fun getAll(): kotlinx.coroutines.flow.Flow<List<RecordFragmentEntity>>
 }

@@ -1,62 +1,39 @@
 package com.example.reday
 
-import android.content.Context
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.reday.data.local.AppDatabase
+import com.example.reday.data.repository.RecordFragmentRepository
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class DateSelectFragment : Fragment() {
-
-    interface DateSelectListener {
-        fun onDateSelected(year: Int, month: Int, day: Int)
-    }
-
-    private var listener: DateSelectListener? = null
+class CalendarFragment : Fragment() {
 
     private var currentYear = 0
     private var currentMonth = 0
-    private var selectedDay = -1
 
-    // 더미데이터 (추후 repository에서 공급 예정) - key: Pair(year, month 0-based)
-    private val hasRecordMap = mapOf(
-        Pair(2026, 2) to setOf(3, 5, 8),
-        Pair(2026, 3) to setOf(1, 7, 15),
-        Pair(2026, 4) to setOf(5, 20)
-    )
-    private val recordingMap = mapOf(
-        Pair(2026, 2) to setOf(10),
-        Pair(2026, 3) to setOf(22),
-        Pair(2026, 4) to setOf(3)
-    )
-
-    private lateinit var tvMonthYear: TextView
+    private lateinit var tvCalendarTitle: TextView
     private lateinit var gridCalendar: LinearLayout
+    private lateinit var repository: RecordFragmentRepository
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        listener = context as? DateSelectListener
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        listener = null
-    }
+    private var hasRecordDays: Set<Int> = emptySet()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val cal = Calendar.getInstance()
         currentYear = cal.get(Calendar.YEAR)
         currentMonth = cal.get(Calendar.MONTH)
+
+        val db = AppDatabase.getInstance(requireContext())
+        repository = RecordFragmentRepository(db.recordFragmentDao())
     }
 
     override fun onCreateView(
@@ -64,30 +41,37 @@ class DateSelectFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.fragment_date_select, container, false)
+        return inflater.inflate(R.layout.fragment_calendar, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        tvMonthYear = view.findViewById(R.id.tv_month_year)
+        tvCalendarTitle = view.findViewById(R.id.tv_calendar_title)
         gridCalendar = view.findViewById(R.id.grid_calendar)
 
-        view.findViewById<ImageButton>(R.id.btn_prev_month).setOnClickListener {
+        view.findViewById<android.widget.ImageButton>(R.id.btn_prev_month).setOnClickListener {
             if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth--
-            renderCalendar()
+            loadAndRender()
         }
 
-        view.findViewById<ImageButton>(R.id.btn_next_month).setOnClickListener {
+        view.findViewById<android.widget.ImageButton>(R.id.btn_next_month).setOnClickListener {
             if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++
-            renderCalendar()
+            loadAndRender()
         }
 
-        renderCalendar()
+        loadAndRender()
+    }
+
+    private fun loadAndRender() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            hasRecordDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
+            renderCalendar()
+        }
     }
 
     private fun renderCalendar() {
-        tvMonthYear.text = "${currentYear}년 ${currentMonth + 1}월"
+        tvCalendarTitle.text = "${currentMonth + 1}월 캘린더"
         gridCalendar.removeAllViews()
 
         val cal = Calendar.getInstance()
@@ -105,10 +89,6 @@ class DateSelectFragment : Fragment() {
                 || (currentYear == todayYear && currentMonth > todayMonth)
         val todayDay = if (isCurrentMonth) todayDayOfMonth else -1
 
-        val key = Pair(currentYear, currentMonth)
-        val hasRecordDays = hasRecordMap[key] ?: emptySet()
-        val recordingDays = recordingMap[key] ?: emptySet()
-
         val totalRows = Math.ceil((firstDayOfWeek + daysInMonth) / 7.0).toInt()
         for (row in 0 until totalRows) {
             val weekRow = LinearLayout(requireContext()).apply {
@@ -125,7 +105,7 @@ class DateSelectFragment : Fragment() {
                     weekRow.addView(createEmptyCell())
                 } else {
                     val isFutureDay = isFutureMonth || (isCurrentMonth && day > todayDayOfMonth)
-                    weekRow.addView(createDayCell(day, todayDay, hasRecordDays, recordingDays, isFutureDay))
+                    weekRow.addView(createDayCell(day, todayDay, hasRecordDays, isFutureDay))
                 }
             }
             gridCalendar.addView(weekRow)
@@ -142,7 +122,6 @@ class DateSelectFragment : Fragment() {
         day: Int,
         todayDay: Int,
         hasRecordDays: Set<Int>,
-        recordingDays: Set<Int>,
         isFutureDay: Boolean
     ): LinearLayout {
         val cell = LinearLayout(requireContext())
@@ -150,7 +129,6 @@ class DateSelectFragment : Fragment() {
         cell.gravity = Gravity.CENTER
         cell.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
 
-        // wrapper: 고정 크기 정사각형 배경 영역 (tvDay + dot 포함)
         val wrapper = LinearLayout(requireContext())
         wrapper.orientation = LinearLayout.VERTICAL
         wrapper.gravity = Gravity.CENTER_HORIZONTAL
@@ -175,20 +153,6 @@ class DateSelectFragment : Fragment() {
         dot.visibility = View.INVISIBLE
 
         when {
-            day == selectedDay -> {
-                wrapper.setBackgroundResource(R.drawable.bg_calendar_selected)
-                tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
-                if (day in recordingDays || day in hasRecordDays) {
-                    dot.setBackgroundResource(R.drawable.bg_dot_brown)
-                    dot.visibility = View.VISIBLE
-                }
-            }
-            day in recordingDays -> {
-                wrapper.setBackgroundResource(R.drawable.bg_calendar_recording)
-                tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
-                dot.setBackgroundResource(R.drawable.bg_dot_brown)
-                dot.visibility = View.VISIBLE
-            }
             day in hasRecordDays -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_has_record)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
@@ -208,16 +172,6 @@ class DateSelectFragment : Fragment() {
         wrapper.addView(tvDay)
         wrapper.addView(dot)
         cell.addView(wrapper)
-
-        cell.setOnClickListener {
-            if (!isFutureDay) {
-                selectedDay = day
-                renderCalendar()
-                Handler(Looper.getMainLooper()).postDelayed({
-                    listener?.onDateSelected(currentYear, currentMonth + 1, day)
-                }, 150)
-            }
-        }
 
         return cell
     }

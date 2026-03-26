@@ -162,12 +162,15 @@
                         </androidx.constraintlayout.widget.ConstraintLayout>
 
                         <TextView
+                            android:id="@+id/tv_add_record_hint"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="10dp"
                             android:text="+ 첫 기록을 추가해보세요"
                             android:textColor="@color/brown_400"
-                            android:textSize="13sp" />
+                            android:textSize="13sp"
+                            android:clickable="true"
+                            android:focusable="true" />
 
                     </LinearLayout>
 
@@ -215,12 +218,15 @@
             android:textSize="17sp"
             android:textStyle="bold" />
 
+        <!-- 기억 없을 때 빈 상태 -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_empty_memories"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="16dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/brown_50"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
@@ -237,6 +243,15 @@
                 android:textSize="14sp" />
 
         </com.google.android.material.card.MaterialCardView>
+
+        <!-- 최근 기억 목록 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_memories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:nestedScrollingEnabled="false"
+            android:visibility="gone" />
 
     </LinearLayout>
 

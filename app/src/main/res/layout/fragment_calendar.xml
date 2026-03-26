@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/brown_100">
+
+    <!-- 헤더 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_header_gradient"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Re:Day"
+            android:textColor="@color/brown_700"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btn_profile"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_button"
+            android:src="@drawable/ic_person"
+            app:tint="@color/brown_700"
+            android:scaleType="fitCenter"
+            android:padding="8dp"
+            android:contentDescription="프로필"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btn_notification"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_button"
+            android:src="@drawable/ic_bell"
+            app:tint="@color/brown_700"
+            android:scaleType="fitCenter"
+            android:padding="8dp"
+            android:contentDescription="알림"
+            android:layout_marginEnd="6dp"
+            app:layout_constraintEnd_toStartOf="@id/btn_profile"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 캘린더 카드 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@color/brown_50"
+                android:padding="20dp">
+
+                <!-- 캘린더 카드 타이틀 + 월 이동 -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp">
+
+                    <ImageView
+                        android:id="@+id/iv_calendar_icon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_nav_calendar"
+                        app:tint="@color/brown_700"
+                        android:contentDescription="캘린더"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_calendar_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="3월 캘린더"
+                        android:textColor="@color/brown_700"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginStart="8dp"
+                        app:layout_constraintStart_toEndOf="@id/iv_calendar_icon"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                    <ImageButton
+                        android:id="@+id/btn_next_month"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="다음 달"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                    <ImageButton
+                        android:id="@+id/btn_prev_month"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_chevron_left"
+                        android:contentDescription="이전 달"
+                        android:layout_marginEnd="4dp"
+                        app:layout_constraintEnd_toStartOf="@id/btn_next_month"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- 요일 헤더 -->
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="7"
+                    android:layout_marginBottom="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="일"
+                        android:textColor="@color/red"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="월"
+                        android:textColor="@color/brown_600"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="화"
+                        android:textColor="@color/brown_600"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="수"
+                        android:textColor="@color/brown_600"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="목"
+                        android:textColor="@color/brown_600"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="금"
+                        android:textColor="@color/brown_600"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_columnWeight="1"
+                        android:layout_height="32dp"
+                        android:text="토"
+                        android:textColor="@color/blue"
+                        android:textSize="13sp"
+                        android:gravity="center" />
+
+                </GridLayout>
+
+                <!-- 날짜 그리드 (동적 생성) -->
+                <LinearLayout
+                    android:id="@+id/grid_calendar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <!-- 범례 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <View
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:background="@drawable/bg_legend_today" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="오늘"
+                        android:textColor="@color/brown_700"
+                        android:textSize="12sp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="14dp" />
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="@drawable/bg_legend_has_record" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="기록 있음"
+                        android:textColor="@color/brown_700"
+                        android:textSize="12sp"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="14dp" />
+
+                    <View
+                        android:layout_width="10dp"
+                        android:layout_height="10dp"
+                        android:background="@drawable/bg_legend_recording" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="기록 중"
+                        android:textColor="@color/brown_700"
+                        android:textSize="12sp"
+                        android:layout_marginStart="4dp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>
