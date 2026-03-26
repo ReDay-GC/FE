@@ -1,6 +1,7 @@
 package com.example.reday
 
 import android.graphics.BitmapFactory
+import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -253,7 +254,7 @@ class CalendarFragment : Fragment() {
 
                 // 썸네일
                 if (!memory.thumbnailPath.isNullOrBlank()) {
-                    val bitmap = BitmapFactory.decodeFile(memory.thumbnailPath)
+                    val bitmap = loadBitmapWithCorrectOrientation(memory.thumbnailPath!!)
                     if (bitmap != null) {
                         ivDetailThumbnail.setImageBitmap(bitmap)
                         ImageViewCompat.setImageTintList(ivDetailThumbnail, null)

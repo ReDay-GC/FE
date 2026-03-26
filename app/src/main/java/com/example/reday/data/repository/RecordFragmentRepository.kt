@@ -15,6 +15,9 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
     fun getAllFragments(): Flow<List<RecordFragmentUiModel>> =
         dao.getAll().map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }
 
+    suspend fun getFragmentsWithLocation(): List<RecordFragmentUiModel> =
+        dao.getAllWithLocation().map { RecordFragmentMapper.entityToUiModel(it) }
+
     suspend fun saveTextFragment(
         contentText: String,
         createdAt: String,

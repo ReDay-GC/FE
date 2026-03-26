@@ -1,6 +1,7 @@
 package com.example.reday
 
 import android.graphics.BitmapFactory
+import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -52,7 +53,7 @@ class MemoryCardAdapter(
         }
 
         if (!item.thumbnailPath.isNullOrBlank()) {
-            val bitmap = BitmapFactory.decodeFile(item.thumbnailPath)
+            val bitmap = loadBitmapWithCorrectOrientation(item.thumbnailPath!!)
             if (bitmap != null) {
                 holder.ivThumbnail.setImageBitmap(bitmap)
                 ImageViewCompat.setImageTintList(holder.ivThumbnail, null)

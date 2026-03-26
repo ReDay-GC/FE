@@ -2,6 +2,7 @@ package com.example.reday
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
@@ -10,6 +11,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
+import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.view.LayoutInflater
@@ -29,10 +31,14 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.RecordFragmentRepository
 import android.graphics.BitmapFactory
+import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
 class AddMemoryFragment : Fragment() {
 
@@ -99,6 +105,19 @@ class AddMemoryFragment : Fragment() {
 
     private lateinit var repository: RecordFragmentRepository
 
+    private var currentLatitude: Double? = null
+    private var currentLongitude: Double? = null
+
+    private val requestLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) fetchCurrentLocation()
+        else {
+            view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+            Toast.makeText(requireContext(), "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -143,6 +162,24 @@ class AddMemoryFragment : Fragment() {
 
         val db = AppDatabase.getInstance(requireContext())
         repository = RecordFragmentRepository(db.recordFragmentDao())
+
+        // 현재 위치 체크박스
+        view.findViewById<CheckBox>(R.id.cb_current_location).setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    fetchCurrentLocation()
+                } else {
+                    requestLocationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+            } else {
+                currentLatitude = null
+                currentLongitude = null
+                view.findViewById<EditText>(R.id.et_location).setText("")
+            }
+        }
 
         // 현재 시간
         val tvTime = view.findViewById<TextView>(R.id.tv_time)
@@ -256,7 +293,10 @@ class AddMemoryFragment : Fragment() {
                             Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
                             return@launch
                         }
-                        repository.saveTextFragment(text, createdAt, date, locationName)
+                        repository.saveTextFragment(
+                            text, createdAt, date, locationName,
+                            latitude = currentLatitude, longitude = currentLongitude
+                        )
                     }
                     RecordType.PHOTO -> {
                         val uri = selectedPhotoUri
@@ -277,7 +317,9 @@ class AddMemoryFragment : Fragment() {
                             createdAt = createdAt,
                             date = date,
                             contentText = memo,
-                            locationName = locationName
+                            locationName = locationName,
+                            latitude = currentLatitude,
+                            longitude = currentLongitude
                         )
                     }
                     RecordType.VOICE -> {
@@ -290,7 +332,9 @@ class AddMemoryFragment : Fragment() {
                             voiceUrl = file.absolutePath,
                             durationSec = elapsedSec,
                             date = date,
-                            locationName = locationName
+                            locationName = locationName,
+                            latitude = currentLatitude,
+                            longitude = currentLongitude
                         )
                     }
                 }
@@ -523,6 +567,43 @@ class AddMemoryFragment : Fragment() {
         }
     }
 
+    private fun fetchCurrentLocation() {
+        val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        try {
+            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { location ->
+                    if (location != null) {
+                        currentLatitude = location.latitude
+                        currentLongitude = location.longitude
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val geocoder = Geocoder(requireContext(), Locale.KOREA)
+                            val address = try {
+                                geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                                    ?.firstOrNull()
+                            } catch (e: Exception) { null }
+                            val addressText = address?.let {
+                                it.getAddressLine(0)
+                                    ?.removePrefix("대한민국 ")
+                                    ?: "${location.latitude}, ${location.longitude}"
+                            } ?: "${location.latitude}, ${location.longitude}"
+                            withContext(Dispatchers.Main) {
+                                view?.findViewById<EditText>(R.id.et_location)?.setText(addressText)
+                            }
+                        }
+                    } else {
+                        view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+                        Toast.makeText(requireContext(), "위치를 가져올 수 없습니다", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .addOnFailureListener {
+                    view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+                    Toast.makeText(requireContext(), "위치 오류: ${it.message}", Toast.LENGTH_SHORT).show()
+                }
+        } catch (e: SecurityException) {
+            view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+        }
+    }
+
     fun hasUnsavedContent(): Boolean {
         val etMemo = view?.findViewById<EditText>(R.id.et_memo)
         val etLocation = view?.findViewById<EditText>(R.id.et_location)
@@ -586,7 +667,7 @@ class AddMemoryFragment : Fragment() {
         val tvFullContent = itemView.findViewById<TextView>(R.id.tv_full_content)
 
         if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
-            val bitmap = BitmapFactory.decodeFile(record.photoUrl)
+            val bitmap = loadBitmapWithCorrectOrientation(record.photoUrl!!)
             if (bitmap != null) {
                 ivPhotoDetail.setImageBitmap(bitmap)
                 ivPhotoDetail.visibility = View.VISIBLE

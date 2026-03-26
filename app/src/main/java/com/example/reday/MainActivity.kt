@@ -52,6 +52,10 @@ class MainActivity : AppCompatActivity() {
                     showFragment(CalendarFragment())
                     true
                 }
+                R.id.nav_map -> {
+                    showFragment(MapFragment())
+                    true
+                }
                 else -> false
             }
         }
