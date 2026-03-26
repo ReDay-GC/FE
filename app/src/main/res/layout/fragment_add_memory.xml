@@ -74,32 +74,53 @@
 
                 </LinearLayout>
 
-                <!-- 펼쳐지는 빈 상태 영역 -->
+                <!-- 펼쳐지는 콘텐츠 -->
                 <LinearLayout
-                    android:id="@+id/layout_records_empty"
+                    android:id="@+id/layout_records_expanded"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="20dp"
                     android:visibility="gone">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- 기록 목록 (동적 생성) -->
+                    <LinearLayout
+                        android:id="@+id/layout_records_list"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="아직 추가된 기록이 없어요"
-                        android:textColor="@color/brown_500"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="8dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- 빈 상태 -->
+                    <LinearLayout
+                        android:id="@+id/layout_records_empty"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="아래에서 첫 기록을 추가해보세요"
-                        android:textColor="@color/brown_400"
-                        android:textSize="13sp"
-                        android:layout_marginTop="4dp" />
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="20dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="아직 추가된 기록이 없어요"
+                            android:textColor="@color/brown_500"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="아래에서 첫 기록을 추가해보세요"
+                            android:textColor="@color/brown_400"
+                            android:textSize="13sp"
+                            android:layout_marginTop="4dp" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -111,7 +132,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:background="@drawable/bg_card_section"
-                android:padding="16dp"
+                android:padding="12dp"
                 android:layout_marginBottom="12dp">
 
                 <TextView
@@ -119,14 +140,16 @@
                     android:layout_height="wrap_content"
                     android:text="기록 방식 선택"
                     android:textColor="@color/brown_700"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold"
-                    android:layout_marginBottom="14dp" />
+                    android:layout_marginBottom="10dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
 
                     <!-- 사진 버튼 -->
                     <LinearLayout
@@ -139,17 +162,17 @@
                         android:background="@drawable/bg_record_type_btn">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@drawable/ic_camera"
-                            android:layout_marginBottom="6dp" />
+                            android:layout_marginBottom="4dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="사진"
                             android:textColor="@color/brown_500"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
 
                     </LinearLayout>
 
@@ -166,17 +189,17 @@
                         android:layout_marginEnd="8dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@drawable/ic_text_type"
-                            android:layout_marginBottom="6dp" />
+                            android:layout_marginBottom="4dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="텍스트"
                             android:textColor="@color/brown_700"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
 
                     </LinearLayout>
 
@@ -191,17 +214,17 @@
                         android:background="@drawable/bg_record_type_btn">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@drawable/ic_mic"
-                            android:layout_marginBottom="6dp" />
+                            android:layout_marginBottom="4dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="음성"
                             android:textColor="@color/brown_500"
-                            android:textSize="13sp" />
+                            android:textSize="12sp" />
 
                     </LinearLayout>
 

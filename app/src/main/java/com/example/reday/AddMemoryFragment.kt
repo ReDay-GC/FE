@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -13,6 +14,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.reday.data.local.AppDatabase
+import com.example.reday.data.model.FragmentType
+import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.RecordFragmentRepository
 import kotlinx.coroutines.launch
 
@@ -90,14 +93,22 @@ class AddMemoryFragment : Fragment() {
         tvTime.text = String.format("%02d:%02d", recordHour, recordMinute)
 
         // 오늘 추가된 기록 토글
-        val layoutRecordsEmpty = view.findViewById<View>(R.id.layout_records_empty)
-        val icToggle = view.findViewById<android.widget.ImageView>(R.id.ic_toggle_records)
+        val layoutExpanded = view.findViewById<View>(R.id.layout_records_expanded)
+        val icToggle = view.findViewById<ImageView>(R.id.ic_toggle_records)
         var isRecordsExpanded = false
 
         view.findViewById<View>(R.id.card_today_records).setOnClickListener {
             isRecordsExpanded = !isRecordsExpanded
-            layoutRecordsEmpty.visibility = if (isRecordsExpanded) View.VISIBLE else View.GONE
+            layoutExpanded.visibility = if (isRecordsExpanded) View.VISIBLE else View.GONE
             icToggle.rotation = if (isRecordsExpanded) 180f else 0f
+        }
+
+        // DB에서 기록 목록 실시간 구독
+        val date = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
+        viewLifecycleOwner.lifecycleScope.launch {
+            repository.getFragmentsByDate(date).collect { records ->
+                updateRecordsList(view, records)
+            }
         }
 
         // 기록 유형 버튼
@@ -180,6 +191,96 @@ class AddMemoryFragment : Fragment() {
         cardPhoto.visibility = if (selectedType == RecordType.PHOTO) View.VISIBLE else View.GONE
         cardMemo.visibility = View.VISIBLE
         cardVoice.visibility = if (selectedType == RecordType.VOICE) View.VISIBLE else View.GONE
+    }
+
+    private fun updateRecordsList(view: View, records: List<RecordFragmentUiModel>) {
+        val tvCount = view.findViewById<TextView>(R.id.tv_record_count)
+        val layoutList = view.findViewById<LinearLayout>(R.id.layout_records_list)
+        val layoutEmpty = view.findViewById<View>(R.id.layout_records_empty)
+
+        tvCount.text = "${records.size}개"
+        layoutList.removeAllViews()
+
+        if (records.isEmpty()) {
+            layoutList.visibility = View.GONE
+            layoutEmpty.visibility = View.VISIBLE
+        } else {
+            layoutEmpty.visibility = View.GONE
+            layoutList.visibility = View.VISIBLE
+            records.forEach { record ->
+                layoutList.addView(buildRecordItemView(record))
+            }
+        }
+    }
+
+    private fun buildRecordItemView(record: RecordFragmentUiModel): View {
+        val itemView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.item_record_fragment, null)
+
+        // 아이콘
+        val ivIcon = itemView.findViewById<ImageView>(R.id.iv_type_icon)
+        ivIcon.setImageResource(when (record.fragmentType) {
+            FragmentType.PHOTO -> R.drawable.ic_camera
+            FragmentType.TEXT  -> R.drawable.ic_text_type
+            FragmentType.VOICE -> R.drawable.ic_mic
+        })
+
+        // 미리보기 텍스트
+        val tvPreview = itemView.findViewById<TextView>(R.id.tv_preview)
+        tvPreview.text = when (record.fragmentType) {
+            FragmentType.TEXT  -> record.contentText ?: ""
+            FragmentType.PHOTO -> "사진"
+            FragmentType.VOICE -> "음성 기록"
+        }
+
+        // 시간
+        itemView.findViewById<TextView>(R.id.tv_time).text = formatTime(record.createdAt)
+
+        // 상세 내용
+        itemView.findViewById<TextView>(R.id.tv_full_content).text = when (record.fragmentType) {
+            FragmentType.TEXT  -> record.contentText ?: ""
+            FragmentType.PHOTO -> "사진 기록"
+            FragmentType.VOICE -> "음성 기록"
+        }
+        itemView.findViewById<TextView>(R.id.tv_full_datetime).text =
+            formatFullDatetime(record.createdAt)
+
+        // 개별 아이템 펼치기/접기
+        val layoutDetail = itemView.findViewById<View>(R.id.layout_detail)
+        val ivToggle = itemView.findViewById<ImageView>(R.id.iv_toggle)
+        var isExpanded = false
+
+        itemView.findViewById<View>(R.id.row_summary).setOnClickListener {
+            isExpanded = !isExpanded
+            layoutDetail.visibility = if (isExpanded) View.VISIBLE else View.GONE
+            ivToggle.rotation = if (isExpanded) 180f else 0f
+        }
+
+        return itemView
+    }
+
+    private fun formatTime(createdAt: String): String {
+        val time = createdAt.split("T").getOrNull(1) ?: return ""
+        val parts = time.split(":")
+        val hour = parts.getOrNull(0)?.toIntOrNull() ?: return ""
+        val minute = parts.getOrNull(1)?.toIntOrNull() ?: return ""
+        val ampm = if (hour < 12) "오전" else "오후"
+        val h = when {
+            hour == 0 -> 12
+            hour > 12 -> hour - 12
+            else -> hour
+        }
+        return "$ampm ${String.format("%02d:%02d", h, minute)}"
+    }
+
+    private fun formatFullDatetime(createdAt: String): String {
+        val parts = createdAt.split("T")
+        val datePart = parts.getOrNull(0) ?: return ""
+        val datePieces = datePart.split("-")
+        val year = datePieces.getOrNull(0) ?: return ""
+        val month = datePieces.getOrNull(1)?.toIntOrNull() ?: return ""
+        val day = datePieces.getOrNull(2)?.toIntOrNull() ?: return ""
+        return "${year}년 ${month}월 ${day}일 ${formatTime(createdAt)}"
     }
 
     private fun updateTypeButtons(
