@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -23,8 +25,12 @@ class AddMemoryActivity : AppCompatActivity(),
             insets
         }
 
-        findViewById<ImageButton>(R.id.btn_close).setOnClickListener { finish() }
-        findViewById<ImageButton>(R.id.btn_back).setOnClickListener { onBack() }
+        findViewById<ImageButton>(R.id.btn_close).setOnClickListener { handleExit() }
+        findViewById<ImageButton>(R.id.btn_back).setOnClickListener { handleExit() }
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { handleExit() }
+        })
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
@@ -49,6 +55,28 @@ class AddMemoryActivity : AppCompatActivity(),
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, AddMemoryFragment.newInstance(year, month, day))
             .commit()
+    }
+
+    private fun handleExit() {
+        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (fragment is AddMemoryFragment && fragment.hasUnsavedContent()) {
+            showExitConfirmDialog()
+        } else {
+            finish()
+        }
+    }
+
+    private fun showExitConfirmDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_exit_confirm, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialogView.findViewById<android.widget.TextView>(R.id.btn_dialog_cancel)
+            .setOnClickListener { dialog.dismiss() }
+        dialogView.findViewById<android.widget.TextView>(R.id.btn_dialog_leave)
+            .setOnClickListener { dialog.dismiss(); finish() }
+        dialog.show()
     }
 
     // AddMemoryFragment → 뒤로 (step 1으로)

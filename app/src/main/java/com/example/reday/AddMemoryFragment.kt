@@ -1,7 +1,17 @@
 package com.example.reday
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
+import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +20,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -17,7 +28,11 @@ import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.RecordFragmentRepository
+import android.graphics.BitmapFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 class AddMemoryFragment : Fragment() {
 
@@ -59,8 +74,52 @@ class AddMemoryFragment : Fragment() {
     private var selectedDay = 0
 
     private var selectedType: RecordType = RecordType.TEXT
+    private var selectedPhotoUri: Uri? = null
+
+    private enum class VoiceUiState { IDLE, RECORDING, PAUSED, COMPLETED, PLAYING }
+    private var voiceState = VoiceUiState.IDLE
+
+    private var mediaRecorder: MediaRecorder? = null
+    private var voiceFile: File? = null
+    private var recordingTimer: CountDownTimer? = null
+    private var elapsedSec = 0
+
+    private var mediaPlayer: MediaPlayer? = null
+    private val playbackHandler = Handler(Looper.getMainLooper())
+    private val playbackRunnable: Runnable = object : Runnable {
+        override fun run() {
+            val mp = mediaPlayer ?: return
+            if (mp.isPlaying) {
+                val progress = if (mp.duration > 0) (mp.currentPosition * 100) / mp.duration else 0
+                view?.findViewById<ProgressBar>(R.id.pb_playback)?.progress = progress
+                playbackHandler.postDelayed(this, 100)
+            }
+        }
+    }
 
     private lateinit var repository: RecordFragmentRepository
+
+    private val requestAudioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startRecording()
+        else Toast.makeText(requireContext(), "마이크 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+    }
+
+    private val pickImageLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            selectedPhotoUri = uri
+            view?.let { v ->
+                v.findViewById<ImageView>(R.id.iv_photo_preview).apply {
+                    setImageURI(uri)
+                    visibility = View.VISIBLE
+                }
+                v.findViewById<View>(R.id.layout_photo_placeholder).visibility = View.GONE
+            }
+        }
+    }
 
     enum class RecordType { PHOTO, TEXT, VOICE }
 
@@ -122,6 +181,35 @@ class AddMemoryFragment : Fragment() {
                 btn.layoutParams = btn.layoutParams.also { it.height = btn.width }
             }
         }
+        view.findViewById<View>(R.id.area_photo_upload).setOnClickListener {
+            pickImageLauncher.launch("image/*")
+        }
+
+        view.findViewById<View>(R.id.fl_voice_icon).setOnClickListener {
+            if (voiceState == VoiceUiState.IDLE) {
+                if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED) {
+                    startRecording()
+                } else {
+                    requestAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                }
+            }
+        }
+        view.findViewById<View>(R.id.btn_pause_resume).setOnClickListener {
+            if (voiceState == VoiceUiState.RECORDING) pauseRecording()
+            else if (voiceState == VoiceUiState.PAUSED) resumeRecording()
+        }
+        view.findViewById<View>(R.id.btn_record_done).setOnClickListener {
+            completeRecording()
+        }
+        view.findViewById<View>(R.id.btn_play_pause_voice).setOnClickListener {
+            if (voiceState == VoiceUiState.COMPLETED) startPlayback()
+            else if (voiceState == VoiceUiState.PLAYING) pausePlayback()
+        }
+        view.findViewById<View>(R.id.tv_re_record).setOnClickListener {
+            resetRecording()
+        }
+
         val cardPhoto = view.findViewById<View>(R.id.card_photo)
         val cardMemo = view.findViewById<View>(R.id.card_memo)
         val cardVoice = view.findViewById<View>(R.id.card_voice)
@@ -171,20 +259,277 @@ class AddMemoryFragment : Fragment() {
                         repository.saveTextFragment(text, createdAt, date, locationName)
                     }
                     RecordType.PHOTO -> {
-                        // 갤러리 연동 후 photoUrl 전달 예정
-                        val memo = etMemo.text.toString().trim()
-                        Toast.makeText(requireContext(), "사진 기능은 준비 중입니다", Toast.LENGTH_SHORT).show()
-                        return@launch
+                        val uri = selectedPhotoUri
+                        if (uri == null) {
+                            Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        val path = withContext(Dispatchers.IO) {
+                            copyImageToInternalStorage(uri)
+                        }
+                        if (path == null) {
+                            Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        val memo = etMemo.text.toString().trim().takeIf { it.isNotBlank() }
+                        repository.savePhotoFragment(
+                            photoUrl = path,
+                            createdAt = createdAt,
+                            date = date,
+                            contentText = memo,
+                            locationName = locationName
+                        )
                     }
                     RecordType.VOICE -> {
-                        // 녹음 연동 후 voiceUrl 전달 예정
-                        Toast.makeText(requireContext(), "음성 기능은 준비 중입니다", Toast.LENGTH_SHORT).show()
-                        return@launch
+                        if (voiceState != VoiceUiState.COMPLETED && voiceState != VoiceUiState.PLAYING) {
+                            Toast.makeText(requireContext(), "먼저 녹음을 완료해주세요", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        val file = voiceFile ?: return@launch
+                        repository.saveVoiceFragment(
+                            voiceUrl = file.absolutePath,
+                            durationSec = elapsedSec,
+                            date = date,
+                            locationName = locationName
+                        )
                     }
                 }
                 listener?.onSaved()
             }
         }
+    }
+
+    private fun startRecording() {
+        val file = File(requireContext().filesDir, "voice_${System.currentTimeMillis()}.m4a")
+        voiceFile = file
+        elapsedSec = 0
+
+        mediaRecorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(requireContext())
+        } else {
+            @Suppress("DEPRECATION")
+            MediaRecorder()
+        }).apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setOutputFile(file.absolutePath)
+            setMaxDuration(10_000)
+            setOnInfoListener { _, what, _ ->
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+                    elapsedSec = 10
+                    completeRecording()
+                }
+            }
+            prepare()
+            start()
+        }
+        voiceState = VoiceUiState.RECORDING
+        updateVoiceUI(VoiceUiState.RECORDING)
+
+        recordingTimer = object : CountDownTimer(10_000, 1_000) {
+            override fun onTick(millisUntilFinished: Long) {
+                elapsedSec = ((10_000 - millisUntilFinished) / 1_000).toInt() + 1
+                view?.findViewById<TextView>(R.id.tv_voice_timer)?.text =
+                    String.format("%d:%02d", elapsedSec / 60, elapsedSec % 60)
+            }
+            override fun onFinish() {
+                elapsedSec = 10
+                completeRecording()
+            }
+        }.start()
+    }
+
+    private fun pauseRecording() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            mediaRecorder?.pause()
+            recordingTimer?.cancel()
+            voiceState = VoiceUiState.PAUSED
+            updateVoiceUI(VoiceUiState.PAUSED)
+        }
+    }
+
+    private fun resumeRecording() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            mediaRecorder?.resume()
+            val remaining = (10 - elapsedSec) * 1_000L
+            recordingTimer = object : CountDownTimer(remaining, 1_000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    elapsedSec++
+                    view?.findViewById<TextView>(R.id.tv_voice_timer)?.text =
+                        String.format("%d:%02d", elapsedSec / 60, elapsedSec % 60)
+                }
+                override fun onFinish() {
+                    elapsedSec = 10
+                    completeRecording()
+                }
+            }.start()
+            voiceState = VoiceUiState.RECORDING
+            updateVoiceUI(VoiceUiState.RECORDING)
+        }
+    }
+
+    private fun completeRecording() {
+        recordingTimer?.cancel()
+        recordingTimer = null
+        try {
+            mediaRecorder?.apply { stop(); release() }
+        } catch (e: Exception) {
+            voiceFile?.delete()
+            voiceFile = null
+        } finally {
+            mediaRecorder = null
+        }
+        voiceState = VoiceUiState.COMPLETED
+        updateVoiceUI(VoiceUiState.COMPLETED)
+    }
+
+    private fun startPlayback() {
+        val file = voiceFile ?: return
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(file.absolutePath)
+            prepare()
+            setOnCompletionListener {
+                playbackHandler.removeCallbacks(playbackRunnable)
+                view?.findViewById<ProgressBar>(R.id.pb_playback)?.progress = 0
+                voiceState = VoiceUiState.COMPLETED
+                updateVoiceUI(VoiceUiState.COMPLETED)
+            }
+            start()
+        }
+        voiceState = VoiceUiState.PLAYING
+        updateVoiceUI(VoiceUiState.PLAYING)
+        playbackHandler.post(playbackRunnable)
+    }
+
+    private fun pausePlayback() {
+        mediaPlayer?.pause()
+        playbackHandler.removeCallbacks(playbackRunnable)
+        voiceState = VoiceUiState.COMPLETED
+        updateVoiceUI(VoiceUiState.COMPLETED)
+    }
+
+    private fun resetRecording() {
+        mediaPlayer?.apply { if (isPlaying) stop(); release() }
+        mediaPlayer = null
+        playbackHandler.removeCallbacks(playbackRunnable)
+        recordingTimer?.cancel()
+        recordingTimer = null
+        try { mediaRecorder?.apply { stop(); release() } } catch (e: Exception) {}
+        mediaRecorder = null
+        voiceFile?.delete()
+        voiceFile = null
+        elapsedSec = 0
+        voiceState = VoiceUiState.IDLE
+        updateVoiceUI(VoiceUiState.IDLE)
+        view?.findViewById<TextView>(R.id.tv_voice_timer)?.text = "0:00"
+    }
+
+    private fun updateVoiceUI(state: VoiceUiState) {
+        val v = view ?: return
+        val tvWaveform = v.findViewById<View>(R.id.tv_waveform)
+        val tvStatus = v.findViewById<TextView>(R.id.tv_voice_status)
+        val tvTimer = v.findViewById<TextView>(R.id.tv_voice_timer)
+        val layoutRecordControls = v.findViewById<View>(R.id.layout_record_controls)
+        val btnPauseResume = v.findViewById<TextView>(R.id.btn_pause_resume)
+        val layoutPlaybackControls = v.findViewById<View>(R.id.layout_playback_controls)
+        val btnPlayPause = v.findViewById<ImageButton>(R.id.btn_play_pause_voice)
+        val tvReRecord = v.findViewById<View>(R.id.tv_re_record)
+        val tvHint = v.findViewById<View>(R.id.tv_voice_hint)
+
+        when (state) {
+            VoiceUiState.IDLE -> {
+                tvWaveform.visibility = View.GONE
+                tvStatus.text = "녹음 버튼을 눌러 시작하세요"
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
+                tvTimer.visibility = View.GONE
+                layoutRecordControls.visibility = View.GONE
+                layoutPlaybackControls.visibility = View.GONE
+                tvReRecord.visibility = View.GONE
+                tvHint.visibility = View.VISIBLE
+            }
+            VoiceUiState.RECORDING -> {
+                tvWaveform.visibility = View.VISIBLE
+                tvStatus.text = "녹음 중..."
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.main_200))
+                tvTimer.visibility = View.VISIBLE
+                tvTimer.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_800))
+                layoutRecordControls.visibility = View.VISIBLE
+                btnPauseResume.text = "일시정지"
+                layoutPlaybackControls.visibility = View.GONE
+                tvReRecord.visibility = View.GONE
+                tvHint.visibility = View.GONE
+            }
+            VoiceUiState.PAUSED -> {
+                tvWaveform.visibility = View.GONE
+                tvStatus.text = "일시정됨"
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
+                tvTimer.visibility = View.VISIBLE
+                tvTimer.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_800))
+                layoutRecordControls.visibility = View.VISIBLE
+                btnPauseResume.text = "재개"
+                layoutPlaybackControls.visibility = View.GONE
+                tvReRecord.visibility = View.GONE
+                tvHint.visibility = View.GONE
+            }
+            VoiceUiState.COMPLETED -> {
+                tvWaveform.visibility = View.GONE
+                tvStatus.text = "녹음 완료!"
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.sub_200))
+                tvTimer.visibility = View.VISIBLE
+                tvTimer.setTextColor(ContextCompat.getColor(requireContext(), R.color.sub_200))
+                layoutRecordControls.visibility = View.GONE
+                layoutPlaybackControls.visibility = View.VISIBLE
+                btnPlayPause.setImageResource(R.drawable.ic_play)
+                tvReRecord.visibility = View.VISIBLE
+                tvHint.visibility = View.GONE
+            }
+            VoiceUiState.PLAYING -> {
+                tvWaveform.visibility = View.GONE
+                tvStatus.text = "재생 중..."
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
+                tvTimer.visibility = View.VISIBLE
+                tvTimer.setTextColor(ContextCompat.getColor(requireContext(), R.color.sub_200))
+                layoutRecordControls.visibility = View.GONE
+                layoutPlaybackControls.visibility = View.VISIBLE
+                btnPlayPause.setImageResource(R.drawable.ic_pause_bars)
+                tvReRecord.visibility = View.VISIBLE
+                tvHint.visibility = View.GONE
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (voiceState == VoiceUiState.RECORDING || voiceState == VoiceUiState.PAUSED) {
+            recordingTimer?.cancel()
+            try { mediaRecorder?.apply { stop(); release() } } catch (e: Exception) {}
+            mediaRecorder = null
+        }
+        mediaPlayer?.apply { if (isPlaying) stop(); release() }
+        mediaPlayer = null
+        playbackHandler.removeCallbacks(playbackRunnable)
+    }
+
+    private fun copyImageToInternalStorage(uri: Uri): String? {
+        return try {
+            val input = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val fileName = "photo_${System.currentTimeMillis()}.jpg"
+            val file = File(requireContext().filesDir, fileName)
+            file.outputStream().use { output -> input.copyTo(output) }
+            file.absolutePath
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun hasUnsavedContent(): Boolean {
+        val etMemo = view?.findViewById<EditText>(R.id.et_memo)
+        val etLocation = view?.findViewById<EditText>(R.id.et_location)
+        return selectedPhotoUri != null ||
+               voiceState == VoiceUiState.COMPLETED || voiceState == VoiceUiState.PLAYING ||
+               etMemo?.text?.isNotBlank() == true ||
+               etLocation?.text?.isNotBlank() == true
     }
 
     private fun updateCardVisibility(cardPhoto: View, cardMemo: View, cardVoice: View) {
@@ -230,18 +575,55 @@ class AddMemoryFragment : Fragment() {
         tvPreview.text = when (record.fragmentType) {
             FragmentType.TEXT  -> record.contentText ?: ""
             FragmentType.PHOTO -> "사진"
-            FragmentType.VOICE -> "음성 기록"
+            FragmentType.VOICE -> "음성 녹음"
         }
 
         // 시간
         itemView.findViewById<TextView>(R.id.tv_time).text = formatTime(record.createdAt)
 
-        // 상세 내용
-        itemView.findViewById<TextView>(R.id.tv_full_content).text = when (record.fragmentType) {
-            FragmentType.TEXT  -> record.contentText ?: ""
-            FragmentType.PHOTO -> "사진 기록"
-            FragmentType.VOICE -> "음성 기록"
+        // 상세 내용 — PHOTO: 이미지 표시 / TEXT·VOICE: 텍스트 표시
+        val ivPhotoDetail = itemView.findViewById<ImageView>(R.id.iv_photo_detail)
+        val tvFullContent = itemView.findViewById<TextView>(R.id.tv_full_content)
+
+        if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
+            val bitmap = BitmapFactory.decodeFile(record.photoUrl)
+            if (bitmap != null) {
+                ivPhotoDetail.setImageBitmap(bitmap)
+                ivPhotoDetail.visibility = View.VISIBLE
+            } else {
+                ivPhotoDetail.visibility = View.GONE
+            }
+            if (!record.contentText.isNullOrBlank()) {
+                tvFullContent.text = record.contentText
+                tvFullContent.visibility = View.VISIBLE
+            } else {
+                tvFullContent.visibility = View.GONE
+            }
+        } else if (record.fragmentType == FragmentType.VOICE) {
+            ivPhotoDetail.visibility = View.GONE
+            tvFullContent.visibility = View.GONE
+            val layoutVoice = itemView.findViewById<View>(R.id.layout_voice_player)
+            val tvDuration = itemView.findViewById<TextView>(R.id.tv_voice_duration)
+            val sec = record.durationSec ?: 0
+            tvDuration.text = String.format("%d:%02d", sec / 60, sec % 60)
+            layoutVoice.visibility = View.VISIBLE
+        } else {
+            ivPhotoDetail.visibility = View.GONE
+            itemView.findViewById<View>(R.id.layout_voice_player).visibility = View.GONE
+            tvFullContent.visibility = View.VISIBLE
+            tvFullContent.text = record.contentText ?: ""
         }
+
+        // 위치
+        val rowLocation = itemView.findViewById<View>(R.id.row_location)
+        val tvLocation = itemView.findViewById<TextView>(R.id.tv_location)
+        if (record.locationName != null) {
+            tvLocation.text = record.locationName
+            rowLocation.visibility = View.VISIBLE
+        } else {
+            rowLocation.visibility = View.GONE
+        }
+
         itemView.findViewById<TextView>(R.id.tv_full_datetime).text =
             formatFullDatetime(record.createdAt)
 

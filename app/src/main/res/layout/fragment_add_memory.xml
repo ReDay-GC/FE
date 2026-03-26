@@ -252,36 +252,53 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <LinearLayout
+                <FrameLayout
                     android:id="@+id/area_photo_upload"
                     android:layout_width="match_parent"
-                    android:layout_height="160dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
+                    android:layout_height="wrap_content"
                     android:background="@drawable/bg_photo_upload_area">
 
+                    <!-- 플레이스홀더 -->
+                    <LinearLayout
+                        android:id="@+id/layout_photo_placeholder"
+                        android:layout_width="match_parent"
+                        android:layout_height="160dp"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:src="@drawable/ic_image"
+                            android:layout_marginBottom="10dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="사진을 업로드하세요"
+                            android:textColor="@color/brown_500"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="JPG, PNG, GIF (최대 10MB)"
+                            android:textColor="@color/brown_300"
+                            android:textSize="12sp"
+                            android:layout_marginTop="4dp" />
+
+                    </LinearLayout>
+
+                    <!-- 선택된 사진 미리보기 -->
                     <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@drawable/ic_image"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
+                        android:id="@+id/iv_photo_preview"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="사진을 업로드하세요"
-                        android:textColor="@color/brown_500"
-                        android:textSize="14sp" />
+                        android:scaleType="fitCenter"
+                        android:adjustViewBounds="true"
+                        android:visibility="gone" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="JPG, PNG, GIF (최대 10MB)"
-                        android:textColor="@color/brown_300"
-                        android:textSize="12sp"
-                        android:layout_marginTop="4dp" />
-
-                </LinearLayout>
+                </FrameLayout>
 
             </LinearLayout>
 
@@ -305,25 +322,49 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="20dp" />
 
+                <!-- 녹음 상태 영역 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="20dp">
+                    android:background="@drawable/bg_input_memo"
+                    android:paddingTop="24dp"
+                    android:paddingBottom="24dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp">
 
-                    <ImageButton
-                        android:id="@+id/btn_mic_record"
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:background="@drawable/bg_mic_button"
-                        android:src="@drawable/ic_mic_button"
-                        android:padding="20dp"
-                        android:contentDescription="녹음 시작"
-                        android:layout_marginBottom="16dp" />
+                    <!-- 마이크 아이콘 원 (IDLE일 때 탭하면 녹음 시작) -->
+                    <FrameLayout
+                        android:id="@+id/fl_voice_icon"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:background="@drawable/bg_voice_btn_circle"
+                        android:layout_marginBottom="12dp">
 
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_mic_button"
+                            android:tint="@android:color/white" />
+
+                    </FrameLayout>
+
+                    <!-- 파형 (녹음 중만 표시) -->
                     <TextView
+                        android:id="@+id/tv_waveform"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▌  ▌  ▌  ▌  ▌"
+                        android:textColor="@color/sub_200"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="4dp"
+                        android:visibility="gone" />
+
+                    <!-- 상태 텍스트 -->
+                    <TextView
+                        android:id="@+id/tv_voice_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="녹음 버튼을 눌러 시작하세요"
@@ -331,12 +372,101 @@
                         android:textSize="14sp"
                         android:layout_marginBottom="4dp" />
 
+                    <!-- 타이머 -->
                     <TextView
+                        android:id="@+id/tv_voice_timer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0:00"
+                        android:textColor="@color/brown_800"
+                        android:textSize="32sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp"
+                        android:visibility="gone" />
+
+                    <!-- 녹음 제어 버튼 (녹음 중 / 일시정지 상태) -->
+                    <LinearLayout
+                        android:id="@+id/layout_record_controls"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/btn_pause_resume"
+                            android:layout_width="100dp"
+                            android:layout_height="44dp"
+                            android:gravity="center"
+                            android:text="일시정지"
+                            android:textColor="@color/brown_700"
+                            android:textSize="14sp"
+                            android:background="@drawable/bg_record_type_btn"
+                            android:layout_marginEnd="12dp" />
+
+                        <TextView
+                            android:id="@+id/btn_record_done"
+                            android:layout_width="100dp"
+                            android:layout_height="44dp"
+                            android:gravity="center"
+                            android:text="완료"
+                            android:textColor="@color/brown_50"
+                            android:textSize="14sp"
+                            android:background="@drawable/bg_btn_voice_done" />
+
+                    </LinearLayout>
+
+                    <!-- 재생 컨트롤 (녹음 완료 / 재생 상태) -->
+                    <LinearLayout
+                        android:id="@+id/layout_playback_controls"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp"
+                        android:visibility="gone">
+
+                        <ImageButton
+                            android:id="@+id/btn_play_pause_voice"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/bg_voice_btn_circle"
+                            android:src="@drawable/ic_play"
+                            android:padding="10dp"
+                            android:contentDescription="재생"
+                            android:layout_marginEnd="12dp" />
+
+                        <ProgressBar
+                            android:id="@+id/pb_playback"
+                            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="4dp"
+                            android:layout_weight="1"
+                            android:progress="0"
+                            android:progressTint="@color/sub_200"
+                            android:progressBackgroundTint="@color/brown_200" />
+
+                    </LinearLayout>
+
+                    <!-- 다시 녹음하기 -->
+                    <TextView
+                        android:id="@+id/tv_re_record"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="다시 녹음하기"
+                        android:textColor="@color/brown_400"
+                        android:textSize="13sp"
+                        android:layout_marginTop="4dp"
+                        android:visibility="gone" />
+
+                    <!-- 힌트 (IDLE만 표시) -->
+                    <TextView
+                        android:id="@+id/tv_voice_hint"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="최대 10초까지 녹음 가능"
                         android:textColor="@color/brown_300"
-                        android:textSize="12sp" />
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp" />
 
                 </LinearLayout>
 

@@ -36,6 +36,7 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
         photoUrl: String,
         createdAt: String,
         date: String,
+        contentText: String? = null,
         locationName: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
@@ -43,6 +44,7 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
         val entity = RecordFragmentEntity(
             fragmentType = "PHOTO",
             photoUrl = photoUrl,
+            contentText = contentText,
             createdAt = createdAt,
             date = date,
             locationName = locationName,
