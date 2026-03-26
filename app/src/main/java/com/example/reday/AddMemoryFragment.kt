@@ -238,7 +238,7 @@ class AddMemoryFragment : Fragment() {
         }
 
         // 현재 시간 (클래스 변수 초기화 - EXIF로 나중에 덮어쓸 수 있음)
-        val tvTime = view.findViewById<TextView>(R.id.tv_time)
+        val tvTime = view.findViewById<TextView>(R.id.tv_time_input)
         val cal = java.util.Calendar.getInstance()
         recordHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
         recordMinute = cal.get(java.util.Calendar.MINUTE)
@@ -744,9 +744,14 @@ class AddMemoryFragment : Fragment() {
                     recordHour = parsedTime.first
                     recordMinute = parsedTime.second
                     Log.d("EXIF", "시간 UI 업데이트: $recordHour:$recordMinute")
-                    v.findViewById<TextView>(R.id.tv_time)?.text =
-                        String.format("%02d:%02d", recordHour, recordMinute)
+                    val tvTimeView = v.findViewById<TextView>(R.id.tv_time_input)
+                    tvTimeView?.text = String.format("%02d:%02d", recordHour, recordMinute)
+                    Log.d("EXIF", "설정 직후 tv_time: ${tvTimeView?.text}")
                     v.findViewById<CheckBox>(R.id.cb_current_time)?.isChecked = false
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        val t = view?.findViewById<TextView>(R.id.tv_time_input)
+                        Log.d("EXIF", "0.5초 후 tv_time: ${t?.text}")
+                    }, 500)
                 } else {
                     Log.d("EXIF", "TAG_DATETIME 없음 또는 파싱 실패 → 시간 유지")
                 }
