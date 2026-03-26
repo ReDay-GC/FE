@@ -37,7 +37,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.exifinterface.media.ExifInterface
 import android.content.ContentUris
 import android.provider.MediaStore
-import android.util.Log
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -123,7 +122,6 @@ class AddMemoryFragment : Fragment() {
     private val requestMediaLocationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        Log.d("EXIF", "ACCESS_MEDIA_LOCATION 런타임 요청 결과: $granted")
         val uri = pendingExifUri ?: return@registerForActivityResult
         pendingExifUri = null
         lifecycleScope.launch(Dispatchers.IO) {
@@ -161,11 +159,8 @@ class AddMemoryFragment : Fragment() {
                 v.findViewById<View>(R.id.layout_photo_placeholder).visibility = View.GONE
             }
             // 선택 즉시 내부 저장소로 복사 + 원본 URI에서 EXIF 읽기
-            Log.d("EXIF", "사진 선택됨: $uri")
             lifecycleScope.launch(Dispatchers.IO) {
-                Log.d("EXIF", "코루틴 시작")
                 val path = copyImageToInternalStorage(uri)
-                Log.d("EXIF", "파일 복사 완료: $path")
                 selectedPhotoPath = path
 
                 val hasMediaLocation = ContextCompat.checkSelfPermission(
@@ -173,7 +168,6 @@ class AddMemoryFragment : Fragment() {
                 ) == PackageManager.PERMISSION_GRANTED
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasMediaLocation) {
-                    Log.d("EXIF", "ACCESS_MEDIA_LOCATION 권한 없음 → 런타임 요청")
                     withContext(Dispatchers.Main) {
                         pendingExifUri = uri
                         requestMediaLocationPermissionLauncher.launch(
@@ -721,39 +715,21 @@ class AddMemoryFragment : Fragment() {
 
     private suspend fun readExifFromUri(uri: Uri) {
         try {
-            Log.d("EXIF", "readExifFromUri 시작: $uri")
-
-            // Android 10+: setRequireOriginal로 GPS EXIF 보존된 스트림 요청
-            val exif = createExifInterface(uri)
-                ?: run { Log.e("EXIF", "ExifInterface 생성 실패"); return }
+            val exif = createExifInterface(uri) ?: return
 
             val parsedTime = parseExifDatetime(exif.getAttribute(ExifInterface.TAG_DATETIME))
             val latLong = FloatArray(2)
             val hasGps = exif.getLatLong(latLong)
 
-            Log.d("EXIF", "TAG_DATETIME: ${exif.getAttribute(ExifInterface.TAG_DATETIME)}")
-            Log.d("EXIF", "hasGps: $hasGps, latLong: ${latLong[0]}, ${latLong[1]}")
-            Log.d("EXIF", "TAG_GPS_LATITUDE: ${exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE)}")
-            Log.d("EXIF", "TAG_GPS_LONGITUDE: ${exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE)}")
-
             withContext(Dispatchers.Main) {
                 val v = view ?: return@withContext
 
-                Log.d("EXIF", "parsedTime: $parsedTime")
                 if (parsedTime != null) {
                     recordHour = parsedTime.first
                     recordMinute = parsedTime.second
-                    Log.d("EXIF", "시간 UI 업데이트: $recordHour:$recordMinute")
-                    val tvTimeView = v.findViewById<TextView>(R.id.tv_time_input)
-                    tvTimeView?.text = String.format("%02d:%02d", recordHour, recordMinute)
-                    Log.d("EXIF", "설정 직후 tv_time: ${tvTimeView?.text}")
+                    v.findViewById<TextView>(R.id.tv_time_input)?.text =
+                        String.format("%02d:%02d", recordHour, recordMinute)
                     v.findViewById<CheckBox>(R.id.cb_current_time)?.isChecked = false
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        val t = view?.findViewById<TextView>(R.id.tv_time_input)
-                        Log.d("EXIF", "0.5초 후 tv_time: ${t?.text}")
-                    }, 500)
-                } else {
-                    Log.d("EXIF", "TAG_DATETIME 없음 또는 파싱 실패 → 시간 유지")
                 }
 
                 if (hasGps) {
@@ -777,9 +753,7 @@ class AddMemoryFragment : Fragment() {
                     }
                 }
             }
-        } catch (e: Exception) {
-            Log.e("EXIF", "예외 발생: ${e.javaClass.simpleName}: ${e.message}")
-        }
+        } catch (e: Exception) { }
     }
 
     private fun createExifInterface(uri: Uri): ExifInterface? {
@@ -790,14 +764,8 @@ class AddMemoryFragment : Fragment() {
         val hasMediaLocation = ContextCompat.checkSelfPermission(
             requireContext(), android.Manifest.permission.ACCESS_MEDIA_LOCATION
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        Log.d("EXIF", "ACCESS_MEDIA_LOCATION granted: $hasMediaLocation")
-        Log.d("EXIF", "URI 전체: $uri")
-        Log.d("EXIF", "URI authority: ${uri.authority}")
-        Log.d("EXIF", "URI pathSegments: ${uri.pathSegments}")
 
         val mediaId = uri.lastPathSegment?.toLongOrNull()
-        Log.d("EXIF", "mediaId: $mediaId")
-
         if (mediaId != null) {
             val mediaUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, mediaId)
 
@@ -808,40 +776,28 @@ class AddMemoryFragment : Fragment() {
                 )?.use { cursor ->
                     if (cursor.moveToFirst()) {
                         val path = cursor.getString(0)
-                        Log.d("EXIF", "DATA 컬럼 경로: $path")
-                        if (!path.isNullOrEmpty()) {
-                            return ExifInterface(path)
-                        }
+                        if (!path.isNullOrEmpty()) return ExifInterface(path)
                     }
                 }
-            } catch (e: Exception) {
-                Log.d("EXIF", "DATA 컬럼 실패: ${e.message}")
-            }
+            } catch (e: Exception) { }
 
             // 2. FileDescriptor + setRequireOriginal
             try {
                 val originalUri = MediaStore.setRequireOriginal(mediaUri)
                 requireContext().contentResolver.openFileDescriptor(originalUri, "r")?.use { pfd ->
-                    Log.d("EXIF", "FileDescriptor 성공")
                     return ExifInterface(pfd.fileDescriptor)
-                } ?: Log.d("EXIF", "FileDescriptor null 반환")
-            } catch (e: Exception) {
-                Log.d("EXIF", "FileDescriptor 실패: ${e.message}")
-            }
+                }
+            } catch (e: Exception) { }
 
             // 3. InputStream + setRequireOriginal
             try {
                 val originalUri = MediaStore.setRequireOriginal(mediaUri)
                 requireContext().contentResolver.openInputStream(originalUri)?.use { stream ->
-                    Log.d("EXIF", "InputStream setRequireOriginal 성공")
                     return ExifInterface(stream)
-                } ?: Log.d("EXIF", "InputStream setRequireOriginal null 반환")
-            } catch (e: Exception) {
-                Log.d("EXIF", "InputStream setRequireOriginal 실패: ${e.message}")
-            }
+                }
+            } catch (e: Exception) { }
         }
 
-        Log.d("EXIF", "fallback: 일반 스트림")
         return requireContext().contentResolver.openInputStream(uri)?.use { ExifInterface(it) }
     }
 
