@@ -296,6 +296,13 @@ class CalendarFragment : Fragment() {
                 }
 
                 cardRecordingDay.visibility = View.VISIBLE
+
+                val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
+                btnGenerateAi.setOnClickListener {
+                    val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
+                    intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
+                    startActivity(intent)
+                }
             }
         }
     }
@@ -316,15 +323,22 @@ class CalendarFragment : Fragment() {
         val leftView: View = when (fragment.fragmentType) {
             FragmentType.PHOTO -> ImageView(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(48.dp, 48.dp)
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                setBackgroundResource(R.drawable.bg_photo_preview_rounded)
-                clipToOutline = true
                 if (!fragment.photoUrl.isNullOrBlank()) {
                     val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                    if (bm != null) setImageBitmap(bm)
-                    else setImageResource(R.drawable.ic_photo_fragment)
+                    if (bm != null) {
+                        setImageBitmap(bm)
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                        setBackgroundResource(R.drawable.bg_photo_preview_rounded)
+                        clipToOutline = true
+                    } else {
+                        setImageResource(R.drawable.ic_photo_fragment)
+                        setBackgroundResource(R.drawable.bg_record_icon_photo)
+                        setPadding(12.dp, 12.dp, 12.dp, 12.dp)
+                    }
                 } else {
                     setImageResource(R.drawable.ic_photo_fragment)
+                    setBackgroundResource(R.drawable.bg_record_icon_photo)
+                    setPadding(12.dp, 12.dp, 12.dp, 12.dp)
                 }
             }
             FragmentType.TEXT -> ImageView(requireContext()).apply {

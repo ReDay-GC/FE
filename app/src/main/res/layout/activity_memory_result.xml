@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/brown_100">
+
+    <!-- 스크롤 영역 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- 상단 헤더 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="16dp"
+                android:paddingBottom="24dp">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_star_ai"
+                    android:background="@drawable/bg_circle_sub200"
+                    android:padding="14dp"
+                    android:contentDescription="@null"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="기억이 생성되었어요"
+                    android:textColor="@color/brown_800"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI가 하루의 조각들을 분석했습니다"
+                    android:textColor="@color/brown_500"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
+
+            <!-- 기억 카드 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_outline"
+                android:padding="20dp"
+                android:layout_marginBottom="12dp">
+
+                <!-- 날짜 + 수정 버튼 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:id="@+id/tv_result_date"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="2026년 3월 23일 월요일"
+                        android:textColor="@color/brown_600"
+                        android:textSize="13sp" />
+
+                    <ImageButton
+                        android:id="@+id/btn_edit"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@android:color/transparent"
+                        android:src="@drawable/ic_edit"
+                        android:contentDescription="수정" />
+
+                </LinearLayout>
+
+                <!-- AI 생성 텍스트 -->
+                <EditText
+                    android:id="@+id/et_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/brown_700"
+                    android:textSize="14sp"
+                    android:lineSpacingMultiplier="1.6"
+                    android:background="@android:color/transparent"
+                    android:enabled="false"
+                    android:gravity="top"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- 태그 라벨 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="태그"
+                    android:textColor="@color/brown_600"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- 보기모드: 선택된 태그만 표시 -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_tags_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    app:chipSpacingHorizontal="6dp"
+                    app:chipSpacingVertical="4dp" />
+
+                <!-- 수정모드: 전체 태그 표시 (선택/해제 가능) -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_tags_edit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    app:chipSpacingHorizontal="6dp"
+                    app:chipSpacingVertical="4dp"
+                    android:visibility="gone" />
+
+                <!-- 위치 라벨 -->
+                <TextView
+                    android:id="@+id/tv_location_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="위치"
+                    android:textColor="@color/brown_600"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+
+                <!-- 위치 칩 영역 (보기모드) -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_locations_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    app:chipSpacingHorizontal="6dp"
+                    app:chipSpacingVertical="4dp"
+                    android:visibility="gone" />
+
+                <!-- 위치 수정 영역 -->
+                <LinearLayout
+                    android:id="@+id/layout_locations_edit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_locations_edit"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        app:chipSpacingHorizontal="6dp"
+                        app:chipSpacingVertical="4dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <EditText
+                            android:id="@+id/et_add_location"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:hint="위치 추가"
+                            android:textSize="13sp"
+                            android:textColor="@color/brown_700"
+                            android:textColorHint="@color/brown_300"
+                            android:background="@drawable/bg_card_outline"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:imeOptions="actionDone"
+                            android:inputType="text"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:id="@+id/btn_add_location"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:text="+"
+                            android:textColor="@color/brown_50"
+                            android:textSize="20sp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_circle_sub200" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- 함께한 사람 라벨 -->
+                <TextView
+                    android:id="@+id/tv_people_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="함께한 사람"
+                    android:textColor="@color/brown_600"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+
+                <!-- 사람 칩 영역 (보기모드) -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_people_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    app:chipSpacingHorizontal="6dp"
+                    app:chipSpacingVertical="4dp"
+                    android:visibility="gone" />
+
+                <!-- 사람 수정 영역 -->
+                <LinearLayout
+                    android:id="@+id/layout_people_edit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_people_edit"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="6dp"
+                        app:chipSpacingHorizontal="6dp"
+                        app:chipSpacingVertical="4dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <EditText
+                            android:id="@+id/et_add_person"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_weight="1"
+                            android:hint="이름 추가"
+                            android:textSize="13sp"
+                            android:textColor="@color/brown_700"
+                            android:textColorHint="@color/brown_300"
+                            android:background="@drawable/bg_card_outline"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:imeOptions="actionDone"
+                            android:inputType="text"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:id="@+id/btn_add_person"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:text="+"
+                            android:textColor="@color/brown_50"
+                            android:textSize="20sp"
+                            android:gravity="center"
+                            android:background="@drawable/bg_circle_sub200" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- 조각 수 -->
+                <TextView
+                    android:id="@+id/tv_fragment_count"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="0개의 기억 조각으로 만들어졌어요"
+                    android:textColor="@color/brown_400"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:paddingTop="16dp" />
+
+            </LinearLayout>
+
+            <!-- 안내 바 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_banner_info"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💡"
+                    android:textSize="14sp"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="AI가 생성한 내용이 마음에 들지 않으면 수정 버튼을 눌러 편집하세요. 저장 후에도 다시 수정할 수 있어요!"
+                    android:textColor="@color/brown_600"
+                    android:textSize="12sp"
+                    android:lineSpacingMultiplier="1.4" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- 하단 버튼 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/btn_cancel"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="취소"
+            android:textColor="@color/brown_600"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:background="@drawable/bg_card_outline"
+            android:layout_marginEnd="8dp" />
+
+        <LinearLayout
+            android:id="@+id/btn_save"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/bg_btn_ai_generate">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_star_ai"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="저장하기"
+                android:textColor="@color/brown_50"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginStart="6dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
