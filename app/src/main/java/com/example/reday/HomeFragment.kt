@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
+import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -19,13 +20,15 @@ import java.util.Calendar
 
 class HomeFragment : Fragment() {
 
-    private lateinit var repository: RecordFragmentRepository
+    private lateinit var fragmentRepository: RecordFragmentRepository
+    private lateinit var memoryRepository: MemoryRepository
     private lateinit var adapter: MemoryCardAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val db = AppDatabase.getInstance(requireContext())
-        repository = RecordFragmentRepository(db.recordFragmentDao())
+        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository(db.memoryDao())
     }
 
     override fun onCreateView(
@@ -87,20 +90,21 @@ class HomeFragment : Fragment() {
             )
         }
 
+        // 오늘의 기록 조각 수 (기록 추가 여부 표시용)
         viewLifecycleOwner.lifecycleScope.launch {
-            repository.getAllFragments().collectLatest { allFragments ->
-                val memories = MemoryMapper.fromFragmentList(allFragments, limit = 3)
-
-                // 오늘의 기억 기록 수
+            fragmentRepository.getAllFragments().collectLatest { allFragments ->
                 val todayCount = allFragments.count { it.date == today }
                 view.findViewById<TextView>(R.id.tv_record_count).text = "${todayCount}개 기록"
-
-                // 오늘 기록 유무에 따라 힌트 텍스트 변경
                 val tvHint = view.findViewById<TextView>(R.id.tv_add_record_hint)
                 tvHint.text = if (todayCount > 0) "+ 이어서 기록을 추가해보세요" else "+ 첫 기록을 추가해보세요"
                 tvHint.setOnClickListener { startAddMemoryForToday() }
+            }
+        }
 
-                // 최근 기억 목록
+        // 최근 기억 목록 (AI 생성 후 저장된 기억만)
+        viewLifecycleOwner.lifecycleScope.launch {
+            memoryRepository.getAllMemories().collectLatest { entities ->
+                val memories = MemoryMapper.fromMemoryEntityList(entities, limit = 3)
                 val emptyCard = view.findViewById<View>(R.id.card_empty_memories)
                 val recyclerView = view.findViewById<RecyclerView>(R.id.rv_memories)
                 if (memories.isEmpty()) {

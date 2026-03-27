@@ -1,21 +1,37 @@
 package com.example.reday
 
+import android.app.Dialog
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.reday.data.local.AppDatabase
+import com.example.reday.data.local.entity.MemoryEntity
+import com.example.reday.data.model.FragmentType
+import com.example.reday.data.model.RecordFragmentUiModel
+import com.example.reday.data.repository.MemoryRepository
+import com.example.reday.data.repository.RecordFragmentRepository
+import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.gson.Gson
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
+import kotlinx.coroutines.launch
 
 class MemoryResultActivity : AppCompatActivity() {
 
@@ -38,17 +54,30 @@ class MemoryResultActivity : AppCompatActivity() {
     private lateinit var layoutPeopleEdit: LinearLayout
     private lateinit var chipGroupPeopleEdit: ChipGroup
     private lateinit var etAddPerson: EditText
+    private lateinit var etSummary: EditText
+
+    private var currentDate: String = ""
+    private var currentTitle: String = ""
+    private var currentFragmentCount: Int = 0
+    private var photoFragments: List<RecordFragmentUiModel> = emptyList()
+    private lateinit var fragmentRepository: RecordFragmentRepository
+    private lateinit var memoryRepository: MemoryRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_memory_result)
 
         val date = intent.getStringExtra(EXTRA_DATE) ?: ""
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: ""
         val summary = intent.getStringExtra(EXTRA_SUMMARY) ?: ""
         val tags = intent.getStringArrayListExtra(EXTRA_TAGS) ?: arrayListOf()
         val locations = intent.getStringArrayListExtra(EXTRA_LOCATIONS) ?: arrayListOf()
         val people = intent.getStringArrayListExtra(EXTRA_PEOPLE) ?: arrayListOf()
         val fragmentCount = intent.getIntExtra(EXTRA_FRAGMENT_COUNT, 0)
+
+        currentDate = date
+        currentTitle = title
+        currentFragmentCount = fragmentCount
 
         selectedTags.addAll(tags.filter { it in ALL_TAGS })
         locationList.addAll(locations.distinct().filter { it.isNotBlank() })
@@ -66,50 +95,150 @@ class MemoryResultActivity : AppCompatActivity() {
         layoutPeopleEdit = findViewById(R.id.layout_people_edit)
         chipGroupPeopleEdit = findViewById(R.id.chip_group_people_edit)
         etAddPerson = findViewById(R.id.et_add_person)
+        etSummary = findViewById(R.id.et_summary)
 
-        // 날짜
         findViewById<TextView>(R.id.tv_result_date).text = formatDateLabel(date)
-
-        // AI 생성 텍스트
-        val etSummary = findViewById<EditText>(R.id.et_summary)
         etSummary.setText(summary)
-
-        // 조각 수
         findViewById<TextView>(R.id.tv_fragment_count).text = "${fragmentCount}개의 기억 조각으로 만들어졌어요"
 
-        // 수정 버튼
         val btnEdit = findViewById<ImageButton>(R.id.btn_edit)
         btnEdit.setOnClickListener {
             isEditMode = !isEditMode
-            updateEditMode(etSummary, btnEdit)
+            updateEditMode(btnEdit)
         }
 
-        // 취소 버튼
         findViewById<View>(R.id.btn_cancel).setOnClickListener { finish() }
 
-        // 저장 버튼
         findViewById<LinearLayout>(R.id.btn_save).setOnClickListener {
-            Toast.makeText(this, "기억이 저장되었습니다", Toast.LENGTH_SHORT).show()
-            // TODO: 실제 저장 로직 연결
-            finish()
+            if (photoFragments.isEmpty()) {
+                saveMemory(null, null)
+            } else {
+                showThumbnailSelectDialog()
+            }
         }
 
-        // 위치 추가
         etAddLocation.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) { addLocation(); true } else false
         }
         findViewById<View>(R.id.btn_add_location).setOnClickListener { addLocation() }
 
-        // 사람 추가
         etAddPerson.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) { addPerson(); true } else false
         }
         findViewById<View>(R.id.btn_add_person).setOnClickListener { addPerson() }
 
+        val db = AppDatabase.getInstance(this)
+        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository(db.memoryDao())
+
+        lifecycleScope.launch {
+            fragmentRepository.getFragmentsByDate(date).collect { frags ->
+                photoFragments = frags.filter { it.fragmentType == FragmentType.PHOTO }
+            }
+        }
+
         renderAll()
     }
 
-    private fun updateEditMode(etSummary: EditText, btnEdit: ImageButton) {
+    private fun showThumbnailSelectDialog() {
+        var selectedFragment: RecordFragmentUiModel? = null
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_thumbnail_select, null)
+        val dialog = Dialog(this).apply {
+            setContentView(dialogView)
+            window?.setBackgroundDrawableResource(android.R.color.transparent)
+            window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.9).toInt(),
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+            )
+            setCanceledOnTouchOutside(false)
+        }
+
+        val rv = dialogView.findViewById<RecyclerView>(R.id.rv_thumbnails)
+        rv.layoutManager = GridLayoutManager(this, 2)
+        val adapter = ThumbnailAdapter(photoFragments) { fragment ->
+            selectedFragment = fragment
+        }
+        rv.adapter = adapter
+
+        dialogView.findViewById<View>(R.id.btn_thumbnail_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<View>(R.id.btn_thumbnail_confirm).setOnClickListener {
+            dialog.dismiss()
+            saveMemory(selectedFragment?.localId, selectedFragment?.photoUrl, selectedFragment?.locationName)
+        }
+
+        dialog.show()
+    }
+
+    private fun saveMemory(representativeFragmentId: Long?, representativePhotoUrl: String?, representativeLocationName: String? = null) {
+        lifecycleScope.launch {
+            val gson = Gson()
+            val entity = MemoryEntity(
+                date = currentDate,
+                title = currentTitle.ifBlank { etSummary.text.toString().take(30) },
+                summary = etSummary.text.toString(),
+                tags = gson.toJson(selectedTags.toList()),
+                locations = gson.toJson(locationList),
+                people = gson.toJson(peopleList),
+                fragmentCount = currentFragmentCount,
+                representativeFragmentId = representativeFragmentId,
+                representativePhotoUrl = representativePhotoUrl,
+                representativeLocationName = representativeLocationName,
+                createdAt = LocalDateTime.now().toString()
+            )
+            memoryRepository.saveMemory(entity)
+            Toast.makeText(this@MemoryResultActivity, "기억이 저장되었습니다", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+    }
+
+    private inner class ThumbnailAdapter(
+        private val items: List<RecordFragmentUiModel>,
+        private val onSelected: (RecordFragmentUiModel) -> Unit
+    ) : RecyclerView.Adapter<ThumbnailAdapter.ViewHolder>() {
+
+        private var selectedPosition = -1
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val ivThumbnail: ImageView = view.findViewById(R.id.iv_thumbnail)
+            val vSelectedOverlay: View = view.findViewById(R.id.v_selected_overlay)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = layoutInflater.inflate(R.layout.item_thumbnail_select, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val fragment = items[position]
+
+            holder.ivThumbnail.setImageDrawable(null)
+            fragment.photoUrl?.let { url ->
+                lifecycleScope.launch {
+                    val bm = loadBitmapWithCorrectOrientation(url)
+                    if (bm != null) holder.ivThumbnail.setImageBitmap(bm)
+                }
+            }
+
+            val isSelected = position == selectedPosition
+            holder.vSelectedOverlay.visibility = if (isSelected) View.VISIBLE else View.GONE
+
+            holder.itemView.setOnClickListener {
+                val prev = selectedPosition
+                selectedPosition = holder.adapterPosition
+                notifyItemChanged(prev)
+                notifyItemChanged(selectedPosition)
+                onSelected(fragment)
+            }
+        }
+
+        override fun getItemCount() = items.size
+    }
+
+    private fun updateEditMode(btnEdit: ImageButton) {
         etSummary.isEnabled = isEditMode
         if (isEditMode) {
             etSummary.requestFocus()
@@ -304,6 +433,7 @@ class MemoryResultActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_DATE = "extra_date"
+        const val EXTRA_TITLE = "extra_title"
         const val EXTRA_SUMMARY = "extra_summary"
         const val EXTRA_TAGS = "extra_tags"
         const val EXTRA_LOCATIONS = "extra_locations"

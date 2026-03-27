@@ -14,10 +14,17 @@ import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.reday.data.local.AppDatabase
+import com.example.reday.data.local.entity.MemoryEntity
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
+import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
@@ -32,19 +39,20 @@ class CalendarFragment : Fragment() {
     private lateinit var tvCalendarTitle: TextView
     private lateinit var gridCalendar: LinearLayout
     private lateinit var repository: RecordFragmentRepository
+    private lateinit var memoryRepository: MemoryRepository
 
-    // 기록 조각만 있는 날 (AI 생성 전)
     private var recordingDays: Set<Int> = emptySet()
-    // AI 기억 생성 완료된 날
     private var memoryDays: Set<Int> = emptySet()
 
     // 기억 상세 카드 뷰
     private lateinit var cardMemoryDetail: View
     private lateinit var ivDetailThumbnail: ImageView
     private lateinit var tvDetailTitle: TextView
-    private lateinit var tvDetailLocationOnImage: TextView
-    private lateinit var tvDetailCount: TextView
-    private lateinit var tvDetailPreview: TextView
+    private lateinit var tvDetailDateLocation: TextView
+    private lateinit var tvDetailSummary: TextView
+    private lateinit var llDetailMeta: LinearLayout
+    private lateinit var llDetailFragments: LinearLayout
+    private lateinit var chipGroupDetailTags: ChipGroup
 
     // 기록중 카드 뷰
     private lateinit var cardRecordingDay: View
@@ -65,6 +73,7 @@ class CalendarFragment : Fragment() {
 
         val db = AppDatabase.getInstance(requireContext())
         repository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository(db.memoryDao())
     }
 
     override fun onCreateView(
@@ -84,9 +93,11 @@ class CalendarFragment : Fragment() {
         cardMemoryDetail = view.findViewById(R.id.card_memory_detail)
         ivDetailThumbnail = view.findViewById(R.id.iv_detail_thumbnail)
         tvDetailTitle = view.findViewById(R.id.tv_detail_title)
-        tvDetailLocationOnImage = view.findViewById(R.id.tv_detail_location_on_image)
-        tvDetailCount = view.findViewById(R.id.tv_detail_count)
-        tvDetailPreview = view.findViewById(R.id.tv_detail_preview)
+        tvDetailDateLocation = view.findViewById(R.id.tv_detail_date_location)
+        tvDetailSummary = view.findViewById(R.id.tv_detail_summary)
+        llDetailMeta = view.findViewById(R.id.ll_detail_meta)
+        llDetailFragments = view.findViewById(R.id.ll_detail_fragments)
+        chipGroupDetailTags = view.findViewById(R.id.chip_group_detail_tags)
 
         cardRecordingDay = view.findViewById(R.id.card_recording_day)
         tvRecordingDayDate = view.findViewById(R.id.tv_recording_day_date)
@@ -116,9 +127,9 @@ class CalendarFragment : Fragment() {
 
     private fun loadAndRender() {
         viewLifecycleOwner.lifecycleScope.launch {
-            recordingDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
-            // memoryDays는 AI 기억 생성 완료된 날 — 추후 연동
-            memoryDays = emptySet()
+            val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
+            memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
+            recordingDays = fragmentDays - memoryDays
             renderCalendar()
         }
     }
@@ -171,11 +182,7 @@ class CalendarFragment : Fragment() {
         return cell
     }
 
-    private fun createDayCell(
-        day: Int,
-        todayDay: Int,
-        isFutureDay: Boolean
-    ): LinearLayout {
+    private fun createDayCell(day: Int, todayDay: Int, isFutureDay: Boolean): LinearLayout {
         val cell = LinearLayout(requireContext())
         cell.orientation = LinearLayout.VERTICAL
         cell.gravity = Gravity.CENTER
@@ -188,10 +195,7 @@ class CalendarFragment : Fragment() {
         wrapper.setPadding(0, 3.dp, 0, 3.dp)
 
         val tvDay = TextView(requireContext())
-        tvDay.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            28.dp
-        )
+        tvDay.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 28.dp)
         tvDay.text = day.toString()
         tvDay.gravity = Gravity.CENTER
         tvDay.textSize = 14f
@@ -297,7 +301,6 @@ class CalendarFragment : Fragment() {
 
                 cardRecordingDay.visibility = View.VISIBLE
 
-                val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
                 btnGenerateAi.setOnClickListener {
                     val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
                     intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
@@ -307,19 +310,246 @@ class CalendarFragment : Fragment() {
         }
     }
 
+    private fun loadMemoryDetail(day: Int) {
+        val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val entity = memoryRepository.getMemoryByDate(dateStr) ?: run {
+                hideAllDetailCards()
+                return@launch
+            }
+
+            cardEmptyDay.visibility = View.GONE
+            cardRecordingDay.visibility = View.GONE
+
+            // 썸네일
+            if (!entity.representativePhotoUrl.isNullOrBlank()) {
+                val bitmap = loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
+                if (bitmap != null) {
+                    ivDetailThumbnail.setImageBitmap(bitmap)
+                    ImageViewCompat.setImageTintList(ivDetailThumbnail, null)
+                } else {
+                    showDefaultThumbnail()
+                }
+            } else {
+                showDefaultThumbnail()
+            }
+
+            // 날짜 + 첫 번째 위치
+            val memory = MemoryMapper.fromMemoryEntity(entity)
+
+            // 제목 (날짜 기반 형식)
+            tvDetailTitle.text = memory.title
+            tvDetailDateLocation.text = buildString {
+                append(entity.date)
+                if (!memory.locationName.isNullOrBlank()) {
+                    append(" • ")
+                    append(memory.locationName)
+                }
+            }
+
+            // AI 요약
+            tvDetailSummary.text = entity.summary
+
+            // 위치 + 사람 메타 행
+            buildMetaRow(entity)
+
+            // 기록 조각 목록
+            val fragments = repository.getFragmentsByDate(dateStr).first()
+            llDetailFragments.removeAllViews()
+            fragments.forEach { fragment ->
+                llDetailFragments.addView(createDetailFragmentItem(fragment))
+            }
+
+            // 태그
+            val tagType = object : TypeToken<List<String>>() {}.type
+            val tags = try { Gson().fromJson<List<String>>(entity.tags, tagType) } catch (e: Exception) { emptyList() }
+            chipGroupDetailTags.removeAllViews()
+            tags.forEach { tag ->
+                chipGroupDetailTags.addView(createTagChip(tag))
+            }
+
+            cardMemoryDetail.visibility = View.VISIBLE
+        }
+    }
+
+    private fun buildMetaRow(entity: MemoryEntity) {
+        llDetailMeta.removeAllViews()
+        val listType = object : TypeToken<List<String>>() {}.type
+        val locations = try { Gson().fromJson<List<String>>(entity.locations, listType) } catch (e: Exception) { emptyList() }
+        val people = try { Gson().fromJson<List<String>>(entity.people, listType) } catch (e: Exception) { emptyList() }
+
+        var hasItem = false
+
+        if (locations.isNotEmpty()) {
+            llDetailMeta.addView(ImageView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(14.dp, 14.dp).also { it.marginEnd = 4.dp }
+                setImageResource(R.drawable.ic_location)
+                ImageViewCompat.setImageTintList(this, android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.brown_400)))
+            })
+            llDetailMeta.addView(TextView(requireContext()).apply {
+                text = locations.first()
+                textSize = 12f
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                ).also { it.marginEnd = 10.dp }
+            })
+            hasItem = true
+        }
+
+        if (people.isNotEmpty()) {
+            if (hasItem) {
+                llDetailMeta.addView(TextView(requireContext()).apply {
+                    text = "•"
+                    textSize = 12f
+                    setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_300))
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).also { it.marginEnd = 10.dp }
+                })
+            }
+            llDetailMeta.addView(ImageView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(14.dp, 14.dp).also { it.marginEnd = 4.dp }
+                setImageResource(R.drawable.ic_person)
+                ImageViewCompat.setImageTintList(this, android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.brown_400)))
+            })
+            llDetailMeta.addView(TextView(requireContext()).apply {
+                text = people.joinToString(", ")
+                textSize = 12f
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
+            })
+        }
+
+        llDetailMeta.visibility = if (locations.isNotEmpty() || people.isNotEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun createDetailFragmentItem(fragment: RecordFragmentUiModel): View {
+        val card = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.bottomMargin = 8.dp }
+            setBackgroundResource(R.drawable.bg_card_section)
+            setPadding(14.dp, 12.dp, 14.dp, 12.dp)
+        }
+
+        when (fragment.fragmentType) {
+            FragmentType.PHOTO -> {
+                // 텍스트(왼쪽) + 작은 썸네일(오른쪽)
+                val row = LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                }
+                val textCol = LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        .also { it.marginEnd = 10.dp }
+                }
+                val displayText = fragment.contentText?.takeIf { it.isNotBlank() } ?: "사진 기록"
+                textCol.addView(createRecordTextView(displayText))
+                textCol.addView(TextView(requireContext()).apply {
+                    text = formatTime(fragment.createdAt)
+                    textSize = 11f
+                    setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_400))
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).also { it.topMargin = 4.dp }
+                })
+                row.addView(textCol)
+                if (!fragment.photoUrl.isNullOrBlank()) {
+                    row.addView(ImageView(requireContext()).apply {
+                        layoutParams = LinearLayout.LayoutParams(64.dp, 64.dp)
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                        setBackgroundResource(R.drawable.bg_photo_preview_rounded)
+                        clipToOutline = true
+                        val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        if (bm != null) setImageBitmap(bm)
+                    })
+                }
+                card.addView(row)
+                return card
+            }
+            FragmentType.TEXT -> {
+                if (!fragment.contentText.isNullOrBlank()) {
+                    card.addView(createRecordTextView(fragment.contentText!!))
+                }
+            }
+            FragmentType.VOICE -> {
+                val row = LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).also { it.bottomMargin = 4.dp }
+                }
+                row.addView(ImageView(requireContext()).apply {
+                    layoutParams = LinearLayout.LayoutParams(18.dp, 18.dp).also { it.marginEnd = 6.dp }
+                    setImageResource(R.drawable.ic_mic)
+                    ImageViewCompat.setImageTintList(this, android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(requireContext(), R.color.main_200)))
+                })
+                row.addView(TextView(requireContext()).apply {
+                    text = "${fragment.durationSec ?: 0}초 음성 메모"
+                    textSize = 13f
+                    setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_600))
+                })
+                card.addView(row)
+            }
+        }
+
+        // 시간 (TEXT, VOICE 공통)
+        card.addView(TextView(requireContext()).apply {
+            text = formatTime(fragment.createdAt)
+            textSize = 11f
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_400))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.topMargin = 4.dp }
+        })
+
+        return card
+    }
+
+    private fun createRecordTextView(text: String): TextView {
+        return TextView(requireContext()).apply {
+            this.text = text
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_700))
+            setLineSpacing(0f, 1.4f)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
+    private fun createTagChip(tag: String): Chip {
+        return Chip(requireContext()).apply {
+            text = "#$tag"
+            chipBackgroundColor = android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.sub_100))
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.sub_200))
+            chipStrokeWidth = 0f
+            isClickable = false
+            isCheckable = false
+            textSize = 12f
+        }
+    }
+
     private fun createFragmentItemView(fragment: RecordFragmentUiModel): View {
         val row = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             ).also { it.bottomMargin = 8.dp }
             setBackgroundResource(R.drawable.bg_card_section)
             setPadding(12.dp, 10.dp, 12.dp, 10.dp)
         }
 
-        // 좌측 아이콘 / 썸네일
         val leftView: View = when (fragment.fragmentType) {
             FragmentType.PHOTO -> ImageView(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(48.dp, 48.dp)
@@ -352,32 +582,23 @@ class CalendarFragment : Fragment() {
                 setImageResource(R.drawable.ic_mic)
                 setBackgroundResource(R.drawable.bg_record_icon_circle)
                 setPadding(12.dp, 12.dp, 12.dp, 12.dp)
-                ImageViewCompat.setImageTintList(
-                    this,
-                    android.content.res.ColorStateList.valueOf(
-                        ContextCompat.getColor(requireContext(), R.color.main_200)
-                    )
-                )
+                ImageViewCompat.setImageTintList(this, android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.main_200)))
             }
         }
         row.addView(leftView)
 
-        // 우측 콘텐츠
         val rightLayout = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-            ).also { it.marginStart = 12.dp }
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                .also { it.marginStart = 12.dp }
         }
 
-        // 상단: 타입 라벨 + 시간
         val topRow = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         }
 
         val typeLabel = TextView(requireContext()).apply {
@@ -390,12 +611,6 @@ class CalendarFragment : Fragment() {
             setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_700))
             setTypeface(null, android.graphics.Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            if (fragment.fragmentType == FragmentType.PHOTO) {
-                androidx.core.widget.TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    this, R.drawable.ic_photo_fragment, 0, 0, 0
-                )
-                compoundDrawablePadding = 4.dp
-            }
         }
         topRow.addView(typeLabel)
 
@@ -407,38 +622,40 @@ class CalendarFragment : Fragment() {
         topRow.addView(timeText)
         rightLayout.addView(topRow)
 
-        // 하단: 위치 / 내용
         val bottomLines: List<String> = when (fragment.fragmentType) {
             FragmentType.PHOTO -> listOfNotNull(fragment.locationName, fragment.contentText)
             FragmentType.TEXT -> listOfNotNull(fragment.contentText)
             FragmentType.VOICE -> listOfNotNull(
-                if (fragment.durationSec != null) "${fragment.durationSec}초 음성" else null
-            )
+                if (fragment.durationSec != null) "${fragment.durationSec}초 음성" else null)
         }
         bottomLines.forEachIndexed { index, line ->
             val isLocation = fragment.fragmentType == FragmentType.PHOTO && index == 0
                     && !fragment.locationName.isNullOrBlank()
-            val bottomTv = TextView(requireContext()).apply {
+            rightLayout.addView(TextView(requireContext()).apply {
                 text = line
                 textSize = if (isLocation) 11f else 13f
-                setTextColor(
-                    ContextCompat.getColor(
-                        requireContext(),
-                        if (isLocation) R.color.brown_400 else R.color.brown_500
-                    )
-                )
+                setTextColor(ContextCompat.getColor(requireContext(),
+                    if (isLocation) R.color.brown_400 else R.color.brown_500))
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
                 ).also { it.topMargin = if (index == 0) 2.dp else 1.dp }
-            }
-            rightLayout.addView(bottomTv)
+            })
         }
 
         row.addView(rightLayout)
         return row
+    }
+
+    private fun showDefaultThumbnail() {
+        ivDetailThumbnail.setImageResource(android.R.drawable.ic_menu_gallery)
+        ImageViewCompat.setImageTintList(
+            ivDetailThumbnail,
+            android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.brown_300)
+            )
+        )
     }
 
     private fun formatTime(createdAt: String): String {
@@ -451,73 +668,7 @@ class CalendarFragment : Fragment() {
             } else {
                 "오후 %d:%02d".format(if (hour == 12) 12 else hour - 12, minute)
             }
-        } catch (e: DateTimeParseException) {
-            ""
-        }
-    }
-
-    private fun loadMemoryDetail(day: Int) {
-        val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
-        viewLifecycleOwner.lifecycleScope.launch {
-            repository.getFragmentsByDate(dateStr).collect { fragments ->
-                if (fragments.isEmpty()) {
-                    hideAllDetailCards()
-                    return@collect
-                }
-                cardEmptyDay.visibility = View.GONE
-                cardRecordingDay.visibility = View.GONE
-
-                val memory = MemoryMapper.fromFragmentList(fragments).firstOrNull()
-                    ?: return@collect
-
-                // 썸네일
-                if (!memory.thumbnailPath.isNullOrBlank()) {
-                    val bitmap = loadBitmapWithCorrectOrientation(memory.thumbnailPath!!)
-                    if (bitmap != null) {
-                        ivDetailThumbnail.setImageBitmap(bitmap)
-                        ImageViewCompat.setImageTintList(ivDetailThumbnail, null)
-                    } else {
-                        showDefaultThumbnail()
-                    }
-                } else {
-                    showDefaultThumbnail()
-                }
-
-                // 제목
-                tvDetailTitle.text = "%04d년 %02d월 %02d일의 기억".format(currentYear, currentMonth + 1, day)
-
-                // 위치
-                if (!memory.locationName.isNullOrBlank()) {
-                    tvDetailLocationOnImage.text = memory.locationName
-                    tvDetailLocationOnImage.visibility = View.VISIBLE
-                } else {
-                    tvDetailLocationOnImage.visibility = View.GONE
-                }
-
-                // 기록 수 배지
-                tvDetailCount.text = "${memory.fragmentCount}개 기록"
-
-                // 미리보기 텍스트
-                if (!memory.previewText.isNullOrBlank()) {
-                    tvDetailPreview.text = memory.previewText
-                    tvDetailPreview.visibility = View.VISIBLE
-                } else {
-                    tvDetailPreview.visibility = View.GONE
-                }
-
-                cardMemoryDetail.visibility = View.VISIBLE
-            }
-        }
-    }
-
-    private fun showDefaultThumbnail() {
-        ivDetailThumbnail.setImageResource(android.R.drawable.ic_menu_gallery)
-        ImageViewCompat.setImageTintList(
-            ivDetailThumbnail,
-            android.content.res.ColorStateList.valueOf(
-                ContextCompat.getColor(requireContext(), R.color.brown_300)
-            )
-        )
+        } catch (e: DateTimeParseException) { "" }
     }
 
     private val Int.dp: Int

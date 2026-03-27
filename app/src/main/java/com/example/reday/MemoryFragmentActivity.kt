@@ -387,6 +387,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
             val locations = fragments.mapNotNull { it.locationName }.distinct()
             val intent = android.content.Intent(this, MemoryResultActivity::class.java).apply {
                 putExtra(MemoryResultActivity.EXTRA_DATE, currentDate)
+                putExtra(MemoryResultActivity.EXTRA_TITLE, response.title)
                 putExtra(MemoryResultActivity.EXTRA_SUMMARY, response.summary)
                 putStringArrayListExtra(MemoryResultActivity.EXTRA_TAGS, ArrayList(response.tags))
                 putStringArrayListExtra(MemoryResultActivity.EXTRA_LOCATIONS, ArrayList(locations))
