@@ -1,5 +1,6 @@
 package com.example.reday
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
@@ -77,9 +78,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_HOME, false)) {
+            navigateToHome()
+        }
+    }
+
+    private fun navigateToHome() {
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.selectedItemId = R.id.nav_home
+        showFragment(HomeFragment())
+    }
+
     private fun showFragment(fragment: Fragment) {
         supportFragmentManager.beginTransaction()
             .replace(R.id.content_container, fragment)
             .commit()
+    }
+
+    companion object {
+        const val EXTRA_NAVIGATE_HOME = "extra_navigate_home"
     }
 }

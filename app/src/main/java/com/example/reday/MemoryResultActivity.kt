@@ -191,6 +191,11 @@ class MemoryResultActivity : AppCompatActivity() {
             )
             memoryRepository.saveMemory(entity)
             Toast.makeText(this@MemoryResultActivity, "기억이 저장되었습니다", Toast.LENGTH_SHORT).show()
+            val intent = android.content.Intent(this@MemoryResultActivity, MainActivity::class.java).apply {
+                flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(MainActivity.EXTRA_NAVIGATE_HOME, true)
+            }
+            startActivity(intent)
             finish()
         }
     }

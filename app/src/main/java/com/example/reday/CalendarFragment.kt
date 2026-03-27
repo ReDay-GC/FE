@@ -321,6 +321,12 @@ class CalendarFragment : Fragment() {
             cardEmptyDay.visibility = View.GONE
             cardRecordingDay.visibility = View.GONE
 
+            cardMemoryDetail.setOnClickListener {
+                val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
+                intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
+                startActivity(intent)
+            }
+
             // 썸네일
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
                 val bitmap = loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)

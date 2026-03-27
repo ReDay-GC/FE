@@ -19,6 +19,9 @@ interface MemoryDao {
     @Query("SELECT * FROM memories ORDER BY date DESC")
     fun getAll(): Flow<List<MemoryEntity>>
 
+    @Query("DELETE FROM memories WHERE date = :date")
+    suspend fun deleteByDate(date: String)
+
     @Query("SELECT DISTINCT date FROM memories WHERE date LIKE :yearMonth || '%'")
     suspend fun getDistinctDatesByMonth(yearMonth: String): List<String>
 }

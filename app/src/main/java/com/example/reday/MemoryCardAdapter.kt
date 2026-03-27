@@ -13,7 +13,8 @@ import androidx.core.widget.ImageViewCompat
 import com.example.reday.data.model.MemoryUiModel
 
 class MemoryCardAdapter(
-    private var items: List<MemoryUiModel> = emptyList()
+    private var items: List<MemoryUiModel> = emptyList(),
+    private val onItemClick: ((MemoryUiModel) -> Unit)? = null
 ) : RecyclerView.Adapter<MemoryCardAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -51,6 +52,8 @@ class MemoryCardAdapter(
         } else {
             holder.tvPreview.visibility = View.GONE
         }
+
+        holder.itemView.setOnClickListener { onItemClick?.invoke(item) }
 
         if (!item.thumbnailPath.isNullOrBlank()) {
             val bitmap = loadBitmapWithCorrectOrientation(item.thumbnailPath!!)
