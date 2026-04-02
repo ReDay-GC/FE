@@ -64,6 +64,7 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
         voiceUrl: String,
         durationSec: Int,
         date: String,
+        contentText: String? = null,
         locationName: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
@@ -72,6 +73,7 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
             fragmentType = "VOICE",
             voiceUrl = voiceUrl,
             durationSec = durationSec,
+            contentText = contentText,
             createdAt = java.time.LocalDateTime.now().toString(),
             date = date,
             locationName = locationName,
