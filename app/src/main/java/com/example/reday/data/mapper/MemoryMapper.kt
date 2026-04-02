@@ -59,12 +59,21 @@ object MemoryMapper {
     }
 
     fun fromMemoryEntity(entity: MemoryEntity): MemoryUiModel {
-        // 대표 조각의 위치를 우선 표시, 없으면 전체 위치 목록에서 첫 번째
         val locationName = entity.representativeLocationName
             ?: try {
                 val type = object : TypeToken<List<String>>() {}.type
                 Gson().fromJson<List<String>>(entity.locations, type).firstOrNull()
             } catch (e: Exception) { null }
+
+        val tags = try {
+            val type = object : TypeToken<List<String>>() {}.type
+            Gson().fromJson<List<String>>(entity.tags, type) ?: emptyList()
+        } catch (e: Exception) { emptyList() }
+
+        val people = try {
+            val type = object : TypeToken<List<String>>() {}.type
+            Gson().fromJson<List<String>>(entity.people, type) ?: emptyList()
+        } catch (e: Exception) { emptyList() }
 
         return MemoryUiModel(
             date = entity.date,
@@ -72,7 +81,9 @@ object MemoryMapper {
             thumbnailPath = entity.representativePhotoUrl,
             fragmentCount = entity.fragmentCount,
             locationName = locationName,
-            previewText = entity.summary
+            previewText = entity.summary,
+            tags = tags,
+            people = people
         )
     }
 

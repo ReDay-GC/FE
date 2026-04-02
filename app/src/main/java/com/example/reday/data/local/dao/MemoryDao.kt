@@ -24,4 +24,7 @@ interface MemoryDao {
 
     @Query("SELECT DISTINCT date FROM memories WHERE date LIKE :yearMonth || '%'")
     suspend fun getDistinctDatesByMonth(yearMonth: String): List<String>
+
+    @Query("SELECT * FROM memories WHERE date LIKE :yearMonth || '%' ORDER BY date DESC")
+    fun getByMonth(yearMonth: String): Flow<List<MemoryEntity>>
 }

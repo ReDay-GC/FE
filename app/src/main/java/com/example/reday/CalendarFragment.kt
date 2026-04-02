@@ -542,6 +542,9 @@ class CalendarFragment : Fragment() {
             isClickable = false
             isCheckable = false
             textSize = 12f
+            shapeAppearanceModel = shapeAppearanceModel.toBuilder()
+                .setAllCornerSizes(999f)
+                .build()
         }
     }
 

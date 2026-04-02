@@ -21,4 +21,9 @@ class MemoryRepository(private val dao: MemoryDao) {
             .mapNotNull { it.split("-").getOrNull(2)?.toIntOrNull() }
             .toSet()
     }
+
+    fun getMemoriesByMonth(year: Int, month: Int): Flow<List<MemoryEntity>> {
+        val yearMonth = "%04d-%02d".format(year, month)
+        return dao.getByMonth(yearMonth)
+    }
 }
