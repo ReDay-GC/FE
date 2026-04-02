@@ -15,7 +15,8 @@ data class FragmentInput(
 
 data class GenerateMemoryRequest(
     val date: String,
-    val records: List<FragmentInput>
+    val records: List<FragmentInput>,
+    val photo_data: List<String> = emptyList()  // base64 인코딩된 사진 목록
 )
 
 data class GenerateMemoryResponse(

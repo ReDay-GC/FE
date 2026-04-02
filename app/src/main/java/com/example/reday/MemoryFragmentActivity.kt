@@ -355,6 +355,15 @@ class MemoryFragmentActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                val photoData = fragments
+                    .filter { it.fragmentType.name == "PHOTO" && it.photoUrl != null }
+                    .mapNotNull { f ->
+                        try {
+                            val bytes = java.io.File(f.photoUrl!!).readBytes()
+                            android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                        } catch (e: Exception) { null }
+                    }
+
                 val request = GenerateMemoryRequest(
                     date = currentDate,
                     records = fragments.map { f ->
@@ -364,7 +373,8 @@ class MemoryFragmentActivity : AppCompatActivity() {
                             time = f.createdAt,
                             location = f.locationName
                         )
-                    }
+                    },
+                    photo_data = photoData
                 )
                 val response = RetrofitClient.memoryApi.generateMemory(request)
                 loadingDialog.dismiss()
