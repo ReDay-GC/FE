@@ -28,4 +28,6 @@ class MemoryRepository(private val dao: MemoryDao) {
         val yearMonth = "%04d-%02d".format(year, month)
         return dao.getByMonth(yearMonth)
     }
+
+    suspend fun getEmbeddingById(id: Long): String? = dao.getEmbeddingById(id)
 }

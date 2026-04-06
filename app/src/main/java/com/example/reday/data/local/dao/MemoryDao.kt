@@ -30,4 +30,7 @@ interface MemoryDao {
 
     @Query("SELECT * FROM memories WHERE date LIKE :yearMonth || '%' ORDER BY date DESC")
     fun getByMonth(yearMonth: String): Flow<List<MemoryEntity>>
+
+    @Query("SELECT embedding FROM memories WHERE id = :id")
+    suspend fun getEmbeddingById(id: Long): String?
 }

@@ -76,6 +76,7 @@ object MemoryMapper {
         } catch (e: Exception) { emptyList() }
 
         return MemoryUiModel(
+            id = entity.id,
             date = entity.date,
             title = formatTitle(entity.date),
             thumbnailPath = entity.representativePhotoUrl,

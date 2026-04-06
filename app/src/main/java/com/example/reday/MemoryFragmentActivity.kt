@@ -428,6 +428,9 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     putStringArrayListExtra(MemoryResultActivity.EXTRA_PEOPLE, ArrayList(response.people))
                     putExtra(MemoryResultActivity.EXTRA_FRAGMENT_COUNT, fragments.size)
                     putExtra(MemoryResultActivity.EXTRA_EMOTION, response.emotion)
+                    if (response.embedding.isNotEmpty()) {
+                        putExtra(MemoryResultActivity.EXTRA_EMBEDDING, com.google.gson.Gson().toJson(response.embedding))
+                    }
                 }
                 startActivity(intent)
             }

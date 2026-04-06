@@ -24,7 +24,22 @@ data class GenerateMemoryResponse(
     val summary: String,
     val tags: List<String>,
     val people: List<String> = emptyList(),
-    val emotion: String = "😐 평범한"
+    val emotion: String = "😐 평범한",
+    val embedding: List<Float> = emptyList()
+)
+
+data class MemoryEmbeddingItem(
+    val memory_id: Long,
+    val embedding: List<Float>
+)
+
+data class SearchSemanticRequest(
+    val query: String,
+    val memories: List<MemoryEmbeddingItem>
+)
+
+data class SearchSemanticResponse(
+    val ranked_ids: List<Long>
 )
 
 data class TranscribeResponse(
@@ -72,7 +87,8 @@ data class ParseSearchResponse(
     val tags: List<String> = emptyList(),
     val locations: List<String> = emptyList(),
     val yearMonth: String? = null,
-    val keywords: List<String> = emptyList()
+    val keywords: List<String> = emptyList(),
+    val sentiment: String? = null  // "긍정" | "부정" | null
 )
 
 interface MemoryApiService {
@@ -91,4 +107,7 @@ interface MemoryApiService {
 
     @POST("daily-comment")
     suspend fun dailyComment(@Body request: DailyCommentRequest): DailyCommentResponse
+
+    @POST("search-semantic")
+    suspend fun searchSemantic(@Body request: SearchSemanticRequest): SearchSemanticResponse
 }

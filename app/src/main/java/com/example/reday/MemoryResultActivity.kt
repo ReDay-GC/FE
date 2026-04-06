@@ -60,6 +60,7 @@ class MemoryResultActivity : AppCompatActivity() {
     private var currentTitle: String = ""
     private var currentFragmentCount: Int = 0
     private var currentEmotion: String? = null
+    private var currentEmbedding: String? = null
     private var photoFragments: List<RecordFragmentUiModel> = emptyList()
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
@@ -80,6 +81,7 @@ class MemoryResultActivity : AppCompatActivity() {
         currentTitle = title
         currentFragmentCount = fragmentCount
         currentEmotion = intent.getStringExtra(EXTRA_EMOTION)
+        currentEmbedding = intent.getStringExtra(EXTRA_EMBEDDING)
 
         selectedTags.addAll(tags.filter { it in ALL_TAGS })
         locationList.addAll(locations.distinct().filter { it.isNotBlank() })
@@ -190,6 +192,7 @@ class MemoryResultActivity : AppCompatActivity() {
                 representativePhotoUrl = representativePhotoUrl,
                 representativeLocationName = representativeLocationName,
                 emotion = currentEmotion,
+                embedding = currentEmbedding,
                 createdAt = LocalDateTime.now().toString()
             )
             memoryRepository.saveMemory(entity)
@@ -448,6 +451,7 @@ class MemoryResultActivity : AppCompatActivity() {
         const val EXTRA_LOCATIONS = "extra_locations"
         const val EXTRA_PEOPLE = "extra_people"
         const val EXTRA_FRAGMENT_COUNT = "extra_fragment_count"
+        const val EXTRA_EMBEDDING = "extra_embedding"
         const val EXTRA_EMOTION = "extra_emotion"
     }
 }

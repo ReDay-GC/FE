@@ -17,5 +17,6 @@ data class MemoryEntity(
     val representativePhotoUrl: String?,     // 대표 사진 경로
     val representativeLocationName: String?, // 대표 조각의 위치
     val emotion: String? = null,             // AI 감정 태그 (예: "😊 즐거운")
+    val embedding: String? = null,           // JSON 배열 문자열 (임베딩 벡터)
     val createdAt: String
 )
