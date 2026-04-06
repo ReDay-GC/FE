@@ -458,6 +458,40 @@
                         android:layout_marginTop="4dp"
                         android:visibility="gone" />
 
+                    <!-- STT 결과 (녹음 완료 후 표시) -->
+                    <LinearLayout
+                        android:id="@+id/layout_stt_result"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="12dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tv_stt_label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="음성 변환 텍스트"
+                            android:textColor="@color/brown_500"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <EditText
+                            android:id="@+id/et_stt_result"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_input_memo"
+                            android:padding="12dp"
+                            android:textColor="@color/brown_900"
+                            android:textSize="14sp"
+                            android:hint="변환 중..."
+                            android:textColorHint="@color/brown_300"
+                            android:minLines="2"
+                            android:gravity="top|start"
+                            android:inputType="textMultiLine" />
+
+                    </LinearLayout>
+
                     <!-- 힌트 (IDLE만 표시) -->
                     <TextView
                         android:id="@+id/tv_voice_hint"

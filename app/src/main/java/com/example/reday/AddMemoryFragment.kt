@@ -29,7 +29,11 @@ import androidx.lifecycle.lifecycleScope
 import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
+import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.RecordFragmentRepository
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import android.graphics.BitmapFactory
 import android.view.Gravity
 import android.widget.NumberPicker
@@ -437,10 +441,12 @@ class AddMemoryFragment : Fragment() {
                             return@launch
                         }
                         val file = voiceFile ?: return@launch
+                        val sttText = view?.findViewById<EditText>(R.id.et_stt_result)?.text?.toString()?.trim()
                         repository.saveVoiceFragment(
                             voiceUrl = file.absolutePath,
                             durationSec = elapsedSec,
                             date = date,
+                            contentText = sttText?.ifEmpty { null },
                             locationName = locationName,
                             latitude = currentLatitude,
                             longitude = currentLongitude
@@ -535,6 +541,31 @@ class AddMemoryFragment : Fragment() {
         }
         voiceState = VoiceUiState.COMPLETED
         updateVoiceUI(VoiceUiState.COMPLETED)
+        requestStt()
+    }
+
+    private fun requestStt() {
+        val file = voiceFile ?: return
+        val layoutStt = view?.findViewById<View>(R.id.layout_stt_result) ?: return
+        val etStt = view?.findViewById<EditText>(R.id.et_stt_result) ?: return
+
+        layoutStt.visibility = View.VISIBLE
+        etStt.hint = "변환 중..."
+        etStt.setText("")
+
+        lifecycleScope.launch {
+            try {
+                val requestBody = file.asRequestBody("audio/mp4".toMediaTypeOrNull())
+                val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.memoryApi.transcribe(part)
+                }
+                etStt.setText(response.text)
+                etStt.hint = ""
+            } catch (e: Exception) {
+                etStt.hint = "변환 실패. 직접 입력해주세요."
+            }
+        }
     }
 
     private fun startPlayback() {
