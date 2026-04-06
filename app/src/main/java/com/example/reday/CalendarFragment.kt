@@ -48,6 +48,7 @@ class CalendarFragment : Fragment() {
     private lateinit var cardMemoryDetail: View
     private lateinit var ivDetailThumbnail: ImageView
     private lateinit var tvDetailTitle: TextView
+    private lateinit var tvDetailEmotion: TextView
     private lateinit var tvDetailDateLocation: TextView
     private lateinit var tvDetailSummary: TextView
     private lateinit var llDetailMeta: LinearLayout
@@ -93,6 +94,7 @@ class CalendarFragment : Fragment() {
         cardMemoryDetail = view.findViewById(R.id.card_memory_detail)
         ivDetailThumbnail = view.findViewById(R.id.iv_detail_thumbnail)
         tvDetailTitle = view.findViewById(R.id.tv_detail_title)
+        tvDetailEmotion = view.findViewById(R.id.tv_detail_emotion)
         tvDetailDateLocation = view.findViewById(R.id.tv_detail_date_location)
         tvDetailSummary = view.findViewById(R.id.tv_detail_summary)
         llDetailMeta = view.findViewById(R.id.ll_detail_meta)
@@ -343,8 +345,16 @@ class CalendarFragment : Fragment() {
             // 날짜 + 첫 번째 위치
             val memory = MemoryMapper.fromMemoryEntity(entity)
 
-            // 제목 (날짜 기반 형식)
+            // 제목
             tvDetailTitle.text = memory.title
+
+            // 감정 이모지
+            if (!memory.emotion.isNullOrBlank()) {
+                tvDetailEmotion.text = memory.emotion.take(2).trim()
+                tvDetailEmotion.visibility = View.VISIBLE
+            } else {
+                tvDetailEmotion.visibility = View.GONE
+            }
             tvDetailDateLocation.text = buildString {
                 append(entity.date)
                 if (!memory.locationName.isNullOrBlank()) {
