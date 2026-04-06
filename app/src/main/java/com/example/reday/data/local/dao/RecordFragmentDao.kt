@@ -30,4 +30,7 @@ interface RecordFragmentDao {
 
     @Query("SELECT * FROM record_fragments WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
     suspend fun getAllWithLocation(): List<RecordFragmentEntity>
+
+    @Query("SELECT * FROM record_fragments WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND date IN (:dates)")
+    suspend fun getWithLocationByDates(dates: List<String>): List<RecordFragmentEntity>
 }

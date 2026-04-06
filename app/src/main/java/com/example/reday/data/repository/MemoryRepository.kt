@@ -13,6 +13,8 @@ class MemoryRepository(private val dao: MemoryDao) {
 
     fun getAllMemories(): Flow<List<MemoryEntity>> = dao.getAll()
 
+    suspend fun getAllMemoryDates(): List<String> = dao.getAllDates()
+
     suspend fun getMemoryByDate(date: String): MemoryEntity? = dao.getByDate(date)
 
     suspend fun getMemoryDatesByMonth(year: Int, month: Int): Set<Int> {
