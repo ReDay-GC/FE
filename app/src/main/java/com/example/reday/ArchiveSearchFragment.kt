@@ -5,12 +5,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -19,6 +23,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.MemoryUiModel
+import com.example.reday.data.remote.ParseSearchRequest
+import com.example.reday.data.remote.ParseSearchResponse
+import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.MemoryRepository
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -33,6 +40,7 @@ class ArchiveSearchFragment : Fragment() {
 
     private var isFilterOpen = false
     private val selectedTags = mutableSetOf<String>()
+    private var aiFilter: ParseSearchResponse? = null
 
     private val allTags = listOf("여행", "카페", "산책", "쇼핑", "문화생활", "운동", "유흥", "자연", "식사", "휴식", "공부")
 
@@ -75,7 +83,21 @@ class ArchiveSearchFragment : Fragment() {
 
         // 검색 입력
         val etSearch = view.findViewById<EditText>(R.id.et_search)
-        etSearch.addTextChangedListener { applyFilter(etSearch.text?.toString() ?: "") }
+
+        // 텍스트 변경 시 → 기존 단순 검색
+        etSearch.addTextChangedListener {
+            aiFilter = null
+            applyFilter(etSearch.text?.toString() ?: "")
+        }
+
+        // 키보드 검색 버튼 → AI 자연어 검색
+        etSearch.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                val query = etSearch.text?.toString()?.trim() ?: ""
+                if (query.isNotBlank()) triggerAiSearch(query)
+                true
+            } else false
+        }
 
         // 전체 기억 로드
         lifecycleScope.launch {
@@ -89,6 +111,24 @@ class ArchiveSearchFragment : Fragment() {
         etSearch.requestFocus()
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         etSearch.postDelayed({ imm.showSoftInput(etSearch, InputMethodManager.SHOW_IMPLICIT) }, 100)
+    }
+
+    private fun triggerAiSearch(query: String) {
+        val pbLoading = view?.findViewById<ProgressBar>(R.id.pb_ai_search)
+        pbLoading?.isVisible = true
+
+        lifecycleScope.launch {
+            try {
+                val result = RetrofitClient.memoryApi.parseSearch(ParseSearchRequest(query))
+                aiFilter = result
+                applyFilter(query)
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "AI 검색에 실패했어요. 일반 검색으로 대신할게요.", Toast.LENGTH_SHORT).show()
+                applyFilter(query)
+            } finally {
+                pbLoading?.isVisible = false
+            }
+        }
     }
 
     private fun setupFilterButton(view: View) {
@@ -158,12 +198,36 @@ class ArchiveSearchFragment : Fragment() {
 
         val filtered = if (isInitial) emptyList()
         else allItems.filter { item ->
-            val matchesQuery = query.isBlank() ||
-                item.title.contains(query, ignoreCase = true) ||
-                item.previewText?.contains(query, ignoreCase = true) == true ||
-                item.tags.any { it.contains(query, ignoreCase = true) } ||
-                item.people.any { it.contains(query, ignoreCase = true) } ||
-                item.locationName?.contains(query, ignoreCase = true) == true
+            val ai = aiFilter
+
+            val matchesQuery = if (ai != null) {
+                // AI 파싱 결과로 필터링
+                val matchesPeople = ai.people.isEmpty() ||
+                    ai.people.any { p -> item.people.any { it.contains(p, ignoreCase = true) } }
+                val matchesTags = ai.tags.isEmpty() ||
+                    ai.tags.any { t -> item.tags.contains(t) }
+                val matchesLocations = ai.locations.isEmpty() ||
+                    ai.locations.any { l -> item.locationName?.contains(l, ignoreCase = true) == true }
+                val matchesYearMonth = ai.yearMonth == null ||
+                    item.date.startsWith(ai.yearMonth)
+                val matchesKeywords = ai.keywords.isEmpty() ||
+                    ai.keywords.any { k ->
+                        item.title.contains(k, ignoreCase = true) ||
+                        item.previewText?.contains(k, ignoreCase = true) == true ||
+                        item.locationName?.contains(k, ignoreCase = true) == true ||
+                        item.people.any { p -> p.contains(k, ignoreCase = true) } ||
+                        item.tags.any { t -> t.contains(k, ignoreCase = true) }
+                    }
+                matchesPeople && matchesTags && matchesLocations && matchesYearMonth && matchesKeywords
+            } else {
+                // 기존 단순 검색
+                query.isBlank() ||
+                    item.title.contains(query, ignoreCase = true) ||
+                    item.previewText?.contains(query, ignoreCase = true) == true ||
+                    item.tags.any { it.contains(query, ignoreCase = true) } ||
+                    item.people.any { it.contains(query, ignoreCase = true) } ||
+                    item.locationName?.contains(query, ignoreCase = true) == true
+            }
 
             val matchesTags = selectedTags.isEmpty() ||
                 selectedTags.any { tag -> item.tags.contains(tag) }

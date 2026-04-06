@@ -48,6 +48,18 @@ data class GenerateInsightResponse(
     val insight: String
 )
 
+data class ParseSearchRequest(
+    val query: String
+)
+
+data class ParseSearchResponse(
+    val people: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
+    val locations: List<String> = emptyList(),
+    val yearMonth: String? = null,
+    val keywords: List<String> = emptyList()
+)
+
 interface MemoryApiService {
     @POST("generate-memory")
     suspend fun generateMemory(@Body request: GenerateMemoryRequest): GenerateMemoryResponse
@@ -58,4 +70,7 @@ interface MemoryApiService {
 
     @POST("generate-insight")
     suspend fun generateInsight(@Body request: GenerateInsightRequest): GenerateInsightResponse
+
+    @POST("parse-search")
+    suspend fun parseSearch(@Body request: ParseSearchRequest): ParseSearchResponse
 }
