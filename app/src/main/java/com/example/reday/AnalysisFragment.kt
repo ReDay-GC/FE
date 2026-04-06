@@ -31,12 +31,16 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import android.location.Geocoder
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class AnalysisFragment : Fragment() {
 
@@ -311,7 +315,7 @@ class AnalysisFragment : Fragment() {
         }
     }
 
-    private fun setupPlaces(fragments: List<com.example.reday.data.model.RecordFragmentUiModel>) {
+    private suspend fun setupPlaces(fragments: List<com.example.reday.data.model.RecordFragmentUiModel>) {
         val located = fragments.filter {
             it.latitude != null && it.longitude != null && !it.locationName.isNullOrBlank()
         }
@@ -343,15 +347,23 @@ class AnalysisFragment : Fragment() {
             }
         }
 
-        // 각 클러스터의 대표 이름: 가장 많이 등장한 이름, 동률이면 가장 짧은 이름
+        // 각 클러스터의 대표 이름: 좌표 역지오코딩으로 동/구 수준 지역명, 실패 시 가장 빈도 높은 입력값
+        val geocoder = Geocoder(requireContext(), Locale.KOREA)
         val top = clusters.map { cluster ->
-            val representativeName = cluster.names
-                .groupingBy { it }
-                .eachCount()
-                .entries
-                .maxWithOrNull(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key.length })
-                ?.key ?: cluster.names.first()
-            representativeName to cluster.names.size
+            val areaName = withContext(Dispatchers.IO) {
+                try {
+                    val address = geocoder.getFromLocation(cluster.centerLat, cluster.centerLng, 1)?.firstOrNull()
+                    address?.thoroughfare
+                        ?: address?.subLocality
+                        ?: address?.subAdminArea
+                        ?: cluster.names.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+                        ?: cluster.names.first()
+                } catch (e: Exception) {
+                    cluster.names.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+                        ?: cluster.names.first()
+                }
+            }
+            areaName to cluster.names.size
         }.sortedByDescending { it.second }.take(4)
 
         val barColor = ContextCompat.getColor(requireContext(), R.color.sub_200)

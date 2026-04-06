@@ -22,8 +22,12 @@ import com.example.reday.data.remote.GenerateMemoryResponse
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.RecordFragmentRepository
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import android.location.Geocoder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
+import java.util.Locale
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
@@ -394,17 +398,38 @@ class MemoryFragmentActivity : AppCompatActivity() {
             setCanceledOnTouchOutside(true)
         }
         completeDialog.setOnDismissListener {
-            val locations = fragments.mapNotNull { it.locationName }.distinct()
-            val intent = android.content.Intent(this, MemoryResultActivity::class.java).apply {
-                putExtra(MemoryResultActivity.EXTRA_DATE, currentDate)
-                putExtra(MemoryResultActivity.EXTRA_TITLE, response.title)
-                putExtra(MemoryResultActivity.EXTRA_SUMMARY, response.summary)
-                putStringArrayListExtra(MemoryResultActivity.EXTRA_TAGS, ArrayList(response.tags))
-                putStringArrayListExtra(MemoryResultActivity.EXTRA_LOCATIONS, ArrayList(locations))
-                putStringArrayListExtra(MemoryResultActivity.EXTRA_PEOPLE, ArrayList(response.people))
-                putExtra(MemoryResultActivity.EXTRA_FRAGMENT_COUNT, fragments.size)
+            lifecycleScope.launch {
+                val geocoder = Geocoder(this@MemoryFragmentActivity, Locale.KOREA)
+                val locations = withContext(Dispatchers.IO) {
+                    fragments.mapNotNull { fragment ->
+                        val lat = fragment.latitude
+                        val lng = fragment.longitude
+                        if (lat != null && lng != null) {
+                            try {
+                                val address = geocoder.getFromLocation(lat, lng, 1)?.firstOrNull()
+                                address?.thoroughfare
+                                    ?: address?.subLocality
+                                    ?: address?.subAdminArea
+                                    ?: fragment.locationName
+                            } catch (e: Exception) {
+                                fragment.locationName
+                            }
+                        } else {
+                            fragment.locationName
+                        }
+                    }.filterNotNull().distinct()
+                }
+                val intent = android.content.Intent(this@MemoryFragmentActivity, MemoryResultActivity::class.java).apply {
+                    putExtra(MemoryResultActivity.EXTRA_DATE, currentDate)
+                    putExtra(MemoryResultActivity.EXTRA_TITLE, response.title)
+                    putExtra(MemoryResultActivity.EXTRA_SUMMARY, response.summary)
+                    putStringArrayListExtra(MemoryResultActivity.EXTRA_TAGS, ArrayList(response.tags))
+                    putStringArrayListExtra(MemoryResultActivity.EXTRA_LOCATIONS, ArrayList(locations))
+                    putStringArrayListExtra(MemoryResultActivity.EXTRA_PEOPLE, ArrayList(response.people))
+                    putExtra(MemoryResultActivity.EXTRA_FRAGMENT_COUNT, fragments.size)
+                }
+                startActivity(intent)
             }
-            startActivity(intent)
         }
         completeDialog.show()
     }
