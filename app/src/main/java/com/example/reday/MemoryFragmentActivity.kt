@@ -360,7 +360,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val photoData = fragments
-                    .filter { it.fragmentType.name == "PHOTO" && it.photoUrl != null }
+                    .filter { it.fragmentType == FragmentType.PHOTO && it.photoUrl != null }
                     .mapNotNull { f ->
                         try {
                             val bytes = java.io.File(f.photoUrl!!).readBytes()

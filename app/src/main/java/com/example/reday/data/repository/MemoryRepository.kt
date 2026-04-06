@@ -7,8 +7,7 @@ import kotlinx.coroutines.flow.Flow
 class MemoryRepository(private val dao: MemoryDao) {
 
     suspend fun saveMemory(entity: MemoryEntity): Long {
-        dao.deleteByDate(entity.date)
-        return dao.insert(entity)
+        return dao.deleteAndInsert(entity)
     }
 
     fun getAllMemories(): Flow<List<MemoryEntity>> = dao.getAll()
