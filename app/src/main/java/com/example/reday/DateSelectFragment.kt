@@ -13,6 +13,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.reday.data.local.AppDatabase
+import com.example.reday.data.repository.MemoryRepository
+import com.example.reday.data.repository.RecordFragmentRepository
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 class DateSelectFragment : Fragment() {
@@ -27,17 +32,12 @@ class DateSelectFragment : Fragment() {
     private var currentMonth = 0
     private var selectedDay = -1
 
-    // 더미데이터 (추후 repository에서 공급 예정) - key: Pair(year, month 0-based)
-    private val hasRecordMap = mapOf(
-        Pair(2026, 2) to setOf(3, 5, 8),
-        Pair(2026, 3) to setOf(1, 7, 15),
-        Pair(2026, 4) to setOf(5, 20)
-    )
-    private val recordingMap = mapOf(
-        Pair(2026, 2) to setOf(10),
-        Pair(2026, 3) to setOf(22),
-        Pair(2026, 4) to setOf(3)
-    )
+    private lateinit var fragmentRepository: RecordFragmentRepository
+    private lateinit var memoryRepository: MemoryRepository
+
+    // 실 데이터 (DB에서 로드)
+    private var memoryDays: Set<Int> = emptySet()     // 기억 저장된 날 (기억있음)
+    private var recordingDays: Set<Int> = emptySet()  // 기록 있지만 기억 미생성 (기록중)
 
     private lateinit var tvMonthYear: TextView
     private lateinit var gridCalendar: LinearLayout
@@ -57,6 +57,10 @@ class DateSelectFragment : Fragment() {
         val cal = Calendar.getInstance()
         currentYear = cal.get(Calendar.YEAR)
         currentMonth = cal.get(Calendar.MONTH)
+
+        val db = AppDatabase.getInstance(requireContext())
+        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository(db.memoryDao())
     }
 
     override fun onCreateView(
@@ -88,6 +92,14 @@ class DateSelectFragment : Fragment() {
 
     private fun renderCalendar() {
         tvMonthYear.text = "${currentYear}년 ${currentMonth + 1}월"
+        viewLifecycleOwner.lifecycleScope.launch {
+            memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
+            recordingDays = fragmentRepository.getRecordDatesByMonth(currentYear, currentMonth + 1) - memoryDays
+            drawCalendarGrid()
+        }
+    }
+
+    private fun drawCalendarGrid() {
         gridCalendar.removeAllViews()
 
         val cal = Calendar.getInstance()
@@ -105,10 +117,6 @@ class DateSelectFragment : Fragment() {
                 || (currentYear == todayYear && currentMonth > todayMonth)
         val todayDay = if (isCurrentMonth) todayDayOfMonth else -1
 
-        val key = Pair(currentYear, currentMonth)
-        val hasRecordDays = hasRecordMap[key] ?: emptySet()
-        val recordingDays = recordingMap[key] ?: emptySet()
-
         val totalRows = Math.ceil((firstDayOfWeek + daysInMonth) / 7.0).toInt()
         for (row in 0 until totalRows) {
             val weekRow = LinearLayout(requireContext()).apply {
@@ -125,7 +133,7 @@ class DateSelectFragment : Fragment() {
                     weekRow.addView(createEmptyCell())
                 } else {
                     val isFutureDay = isFutureMonth || (isCurrentMonth && day > todayDayOfMonth)
-                    weekRow.addView(createDayCell(day, todayDay, hasRecordDays, recordingDays, isFutureDay))
+                    weekRow.addView(createDayCell(day, todayDay, memoryDays, recordingDays, isFutureDay))
                 }
             }
             gridCalendar.addView(weekRow)

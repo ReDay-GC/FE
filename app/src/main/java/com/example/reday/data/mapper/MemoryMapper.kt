@@ -1,9 +1,12 @@
 package com.example.reday.data.mapper
 
+import com.example.reday.data.local.entity.MemoryEntity
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.MapLocationGroup
 import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.model.RecordFragmentUiModel
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 object MemoryMapper {
 
@@ -48,6 +51,31 @@ object MemoryMapper {
         )
     }
 
+    fun fromMemoryEntityList(entities: List<MemoryEntity>, limit: Int = Int.MAX_VALUE): List<MemoryUiModel> {
+        return entities
+            .sortedByDescending { it.date }
+            .take(limit)
+            .map { fromMemoryEntity(it) }
+    }
+
+    fun fromMemoryEntity(entity: MemoryEntity): MemoryUiModel {
+        // 대표 조각의 위치를 우선 표시, 없으면 전체 위치 목록에서 첫 번째
+        val locationName = entity.representativeLocationName
+            ?: try {
+                val type = object : TypeToken<List<String>>() {}.type
+                Gson().fromJson<List<String>>(entity.locations, type).firstOrNull()
+            } catch (e: Exception) { null }
+
+        return MemoryUiModel(
+            date = entity.date,
+            title = formatTitle(entity.date),
+            thumbnailPath = entity.representativePhotoUrl,
+            fragmentCount = entity.fragmentCount,
+            locationName = locationName,
+            previewText = entity.summary
+        )
+    }
+
     fun groupByLocation(fragments: List<RecordFragmentUiModel>): List<MapLocationGroup> {
         return fragments
             .filter { it.locationName != null && it.latitude != null && it.longitude != null }
@@ -61,12 +89,13 @@ object MemoryMapper {
     }
 
     private fun formatTitle(date: String): String {
-        // "2026-03-08" → "3월 8일의 기억"
+        // "2026-03-08" → "2026년 3월 8일의 기억"
         return try {
             val parts = date.split("-")
+            val year = parts[0].toInt()
             val month = parts[1].toInt()
             val day = parts[2].toInt()
-            "${month}월 ${day}일의 기억"
+            "${year}년 ${month}월 ${day}일의 기억"
         } catch (e: Exception) {
             date
         }

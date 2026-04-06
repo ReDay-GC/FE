@@ -246,6 +246,108 @@
 
             </LinearLayout>
 
+            <!-- 기록중 날 선택 시 카드 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_recording_day"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/brown_50"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/brown_300"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- 헤더: 날짜 + 기록중 배지 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp">
+
+                        <TextView
+                            android:id="@+id/tv_recording_day_date"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="3월 5일"
+                            android:textColor="@color/brown_600"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_recording_badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="● 기록 중"
+                            android:textColor="@color/brown_600"
+                            android:textSize="12sp"
+                            android:background="@drawable/bg_badge_recording"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp" />
+
+                    </LinearLayout>
+
+                    <!-- 안내 문구 -->
+                    <TextView
+                        android:id="@+id/tv_recording_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0개의 기억 조각이 저장되어 있습니다\nAI를 생성하면 하나의 완성된 기억이 됩니다"
+                        android:textColor="@color/brown_500"
+                        android:textSize="13sp"
+                        android:gravity="center"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- 기록 조각 목록 (동적 생성) -->
+                    <LinearLayout
+                        android:id="@+id/ll_recording_fragments"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- AI 생성하러가기 버튼 -->
+                    <LinearLayout
+                        android:id="@+id/btn_generate_ai"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_btn_ai_generate">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_star_ai"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AI 생성하러가기"
+                            android:textColor="@color/brown_50"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="8dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- 선택된 날짜 기억 상세 카드 -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_memory_detail"
@@ -267,7 +369,8 @@
                 <!-- 썸네일 + 제목 오버레이 -->
                 <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:minHeight="160dp">
 
                     <ImageView
                         android:id="@+id/iv_detail_thumbnail"
@@ -278,14 +381,11 @@
                         android:background="@color/brown_200"
                         android:contentDescription="기억 썸네일" />
 
-                    <!-- 어두운 그라디언트 오버레이 -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_gravity="bottom"
                         android:background="@drawable/bg_thumbnail_gradient" />
 
-                    <!-- 제목 (이미지 위 하단) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -297,19 +397,17 @@
                             android:id="@+id/tv_detail_title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="2026년 03월 08일의 기억"
                             android:textColor="@color/brown_50"
                             android:textSize="18sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
 
                         <TextView
-                            android:id="@+id/tv_detail_location_on_image"
+                            android:id="@+id/tv_detail_date_location"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
                             android:textColor="@color/brown_200"
-                            android:textSize="13sp"
-                            android:visibility="gone" />
+                            android:textSize="12sp" />
 
                     </LinearLayout>
 
@@ -322,14 +420,14 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <!-- 기록 수 배지 -->
+                    <!-- AI 요약 배지 -->
                     <TextView
-                        android:id="@+id/tv_detail_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="3개 기록"
+                        android:text="AI 요약"
                         android:textColor="@color/sub_200"
                         android:textSize="12sp"
+                        android:textStyle="bold"
                         android:background="@drawable/bg_badge_sub"
                         android:paddingStart="10dp"
                         android:paddingEnd="10dp"
@@ -337,15 +435,58 @@
                         android:paddingBottom="4dp"
                         android:layout_marginBottom="10dp" />
 
-                    <!-- 미리보기 텍스트 -->
+                    <!-- AI 요약 텍스트 -->
                     <TextView
-                        android:id="@+id/tv_detail_preview"
+                        android:id="@+id/tv_detail_summary"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/brown_600"
                         android:textSize="14sp"
-                        android:lineSpacingMultiplier="1.4"
-                        android:visibility="gone" />
+                        android:lineSpacingMultiplier="1.5"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 위치 + 사람 메타 -->
+                    <LinearLayout
+                        android:id="@+id/ll_detail_meta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- 구분선 -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/brown_200"
+                        android:layout_marginBottom="14dp" />
+
+                    <!-- 기록 조각 섹션 레이블 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="RECORDS"
+                        android:textColor="@color/brown_400"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- 기록 조각 목록 (동적 생성) -->
+                    <LinearLayout
+                        android:id="@+id/ll_detail_fragments"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- 태그 -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_detail_tags"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacingHorizontal="4dp"
+                        app:chipSpacingVertical="4dp" />
 
                 </LinearLayout>
 
