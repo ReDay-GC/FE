@@ -127,8 +127,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:text="다시 생성"
+                            android:textColor="@color/main_200"
                             android:textSize="13sp"
                             app:strokeColor="@color/main_200"
+                            app:rippleColor="@color/main_105"
                             app:cornerRadius="20dp" />
 
                     </LinearLayout>

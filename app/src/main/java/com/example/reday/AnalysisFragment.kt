@@ -115,7 +115,10 @@ class AnalysisFragment : Fragment() {
             layoutEmpty.visibility = View.GONE
             layoutContent.visibility = View.VISIBLE
 
+            val memoryDates = allMemories.map { it.date }
+            val memoryFragments = fragmentRepository.getFragmentsWithLocationByDates(memoryDates)
             val allFragments = fragmentRepository.getAllFragments().first()
+                .filter { it.date in memoryDates }
 
             setupMonthlyChart(allMemories)
             setupActivityChart(allMemories)
@@ -124,7 +127,7 @@ class AnalysisFragment : Fragment() {
                 text = allFragments.count { it.fragmentType == FragmentType.TEXT },
                 voice = allFragments.count { it.fragmentType == FragmentType.VOICE }
             )
-            setupPlaces(allFragments)
+            setupPlaces(memoryFragments)
             setupPeople(allMemories)
             loadInsight()
         }
