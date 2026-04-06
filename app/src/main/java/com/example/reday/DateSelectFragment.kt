@@ -1,6 +1,9 @@
 package com.example.reday
 
+import android.content.Context
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +16,12 @@ import androidx.fragment.app.Fragment
 import java.util.Calendar
 
 class DateSelectFragment : Fragment() {
+
+    interface DateSelectListener {
+        fun onDateSelected(year: Int, month: Int, day: Int)
+    }
+
+    private var listener: DateSelectListener? = null
 
     private var currentYear = 0
     private var currentMonth = 0
@@ -32,6 +41,16 @@ class DateSelectFragment : Fragment() {
 
     private lateinit var tvMonthYear: TextView
     private lateinit var gridCalendar: LinearLayout
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        listener = context as? DateSelectListener
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        listener = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,19 +73,13 @@ class DateSelectFragment : Fragment() {
         tvMonthYear = view.findViewById(R.id.tv_month_year)
         gridCalendar = view.findViewById(R.id.grid_calendar)
 
-        view.findViewById<ImageButton>(R.id.btn_close).setOnClickListener {
-            requireActivity().supportFragmentManager.popBackStack()
-        }
-
         view.findViewById<ImageButton>(R.id.btn_prev_month).setOnClickListener {
             if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth--
-            selectedDay = -1
             renderCalendar()
         }
 
         view.findViewById<ImageButton>(R.id.btn_next_month).setOnClickListener {
             if (currentMonth == 11) { currentMonth = 0; currentYear++ } else currentMonth++
-            selectedDay = -1
             renderCalendar()
         }
 
@@ -96,7 +109,6 @@ class DateSelectFragment : Fragment() {
         val hasRecordDays = hasRecordMap[key] ?: emptySet()
         val recordingDays = recordingMap[key] ?: emptySet()
 
-        // 항상 6행으로 고정 → 높이 안정적, 범례 항상 표시됨
         for (row in 0 until 6) {
             val weekRow = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -132,7 +144,6 @@ class DateSelectFragment : Fragment() {
         recordingDays: Set<Int>,
         isFutureDay: Boolean
     ): LinearLayout {
-        // cell: 셀 전체 공간 차지, wrapper를 가운데 정렬
         val cell = LinearLayout(requireContext())
         cell.orientation = LinearLayout.VERTICAL
         cell.gravity = Gravity.CENTER
@@ -154,7 +165,6 @@ class DateSelectFragment : Fragment() {
         tvDay.gravity = Gravity.CENTER
         tvDay.textSize = 14f
 
-        // dot: wrapper 안 tvDay 아래
         val dot = View(requireContext())
         val dotSize = 5.dp
         val dotParams = LinearLayout.LayoutParams(dotSize, dotSize)
@@ -202,6 +212,9 @@ class DateSelectFragment : Fragment() {
             if (!isFutureDay) {
                 selectedDay = day
                 renderCalendar()
+                Handler(Looper.getMainLooper()).postDelayed({
+                    listener?.onDateSelected(currentYear, currentMonth + 1, day)
+                }, 150)
             }
         }
 

@@ -1,5 +1,6 @@
 package com.example.reday
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -26,10 +27,7 @@ class HomeFragment : Fragment() {
 
     private fun setupAddMemoryButton(view: View) {
         view.findViewById<View>(R.id.btn_add_memory).setOnClickListener {
-            requireActivity().supportFragmentManager.beginTransaction()
-                .replace(R.id.content_container, DateSelectFragment())
-                .addToBackStack(null)
-                .commit()
+            startActivity(Intent(requireContext(), AddMemoryActivity::class.java))
         }
     }
 
