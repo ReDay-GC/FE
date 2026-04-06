@@ -48,6 +48,10 @@ class MainActivity : AppCompatActivity() {
                     showFragment(HomeFragment())
                     true
                 }
+                R.id.nav_calendar -> {
+                    showFragment(CalendarFragment())
+                    true
+                }
                 else -> false
             }
         }

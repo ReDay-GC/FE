@@ -15,6 +15,12 @@ class AddMemoryActivity : AppCompatActivity(),
     DateSelectFragment.DateSelectListener,
     AddMemoryFragment.AddMemoryListener {
 
+    companion object {
+        const val EXTRA_YEAR = "extra_year"
+        const val EXTRA_MONTH = "extra_month"
+        const val EXTRA_DAY = "extra_day"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_add_memory)
@@ -33,9 +39,16 @@ class AddMemoryActivity : AppCompatActivity(),
         })
 
         if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, DateSelectFragment())
-                .commit()
+            val year = intent.getIntExtra(EXTRA_YEAR, -1)
+            val month = intent.getIntExtra(EXTRA_MONTH, -1)
+            val day = intent.getIntExtra(EXTRA_DAY, -1)
+            if (year != -1 && month != -1 && day != -1) {
+                onDateSelected(year, month, day)
+            } else {
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, DateSelectFragment())
+                    .commit()
+            }
         }
     }
 

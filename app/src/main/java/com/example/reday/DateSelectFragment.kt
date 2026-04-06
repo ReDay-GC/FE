@@ -109,7 +109,8 @@ class DateSelectFragment : Fragment() {
         val hasRecordDays = hasRecordMap[key] ?: emptySet()
         val recordingDays = recordingMap[key] ?: emptySet()
 
-        for (row in 0 until 6) {
+        val totalRows = Math.ceil((firstDayOfWeek + daysInMonth) / 7.0).toInt()
+        for (row in 0 until totalRows) {
             val weekRow = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.HORIZONTAL
                 layoutParams = LinearLayout.LayoutParams(
