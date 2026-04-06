@@ -6,5 +6,7 @@ data class MemoryUiModel(
     val thumbnailPath: String?, // PHOTO 기록이 썸네일이면 파일 경로, 없으면 null (기본 이미지)
     val fragmentCount: Int,
     val locationName: String?,
-    val previewText: String?
+    val previewText: String?,
+    val tags: List<String> = emptyList(),
+    val people: List<String> = emptyList()
 )

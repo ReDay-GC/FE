@@ -57,6 +57,10 @@ class MainActivity : AppCompatActivity() {
                     showFragment(MapFragment())
                     true
                 }
+                R.id.nav_archive -> {
+                    showFragment(ArchiveFragment())
+                    true
+                }
                 else -> false
             }
         }
