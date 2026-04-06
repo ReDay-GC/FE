@@ -11,59 +11,6 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Top App Bar (HOM/header gradient) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_header_gradient"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp">
-
-            <TextView
-                android:id="@+id/tv_app_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Re:Day"
-                android:textColor="@color/brown_700"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
-
-            <ImageButton
-                android:id="@+id/btn_profile"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_button"
-                android:src="@drawable/ic_person"
-                app:tint="@color/brown_700"
-                android:scaleType="fitCenter"
-                android:padding="8dp"
-                android:contentDescription="프로필"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
-
-            <ImageButton
-                android:id="@+id/btn_notification"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_button"
-                android:src="@drawable/ic_bell"
-                app:tint="@color/brown_700"
-                android:scaleType="fitCenter"
-                android:padding="8dp"
-                android:contentDescription="알림"
-                android:layout_marginEnd="6dp"
-                app:layout_constraintEnd_toStartOf="@id/btn_profile"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
         <!-- Greeting Card (HOM/main_card gradient) -->
         <!-- Gradient + rounded corners + stroke via custom background -->
         <com.google.android.material.card.MaterialCardView

@@ -27,4 +27,7 @@ interface RecordFragmentDao {
 
     @Query("SELECT * FROM record_fragments ORDER BY date DESC, createdAt ASC")
     fun getAll(): kotlinx.coroutines.flow.Flow<List<RecordFragmentEntity>>
+
+    @Query("SELECT * FROM record_fragments WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
+    suspend fun getAllWithLocation(): List<RecordFragmentEntity>
 }

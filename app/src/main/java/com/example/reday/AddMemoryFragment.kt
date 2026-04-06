@@ -2,6 +2,7 @@ package com.example.reday
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
@@ -10,6 +11,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
+import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.view.LayoutInflater
@@ -29,10 +31,20 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.RecordFragmentRepository
 import android.graphics.BitmapFactory
+import android.view.Gravity
+import android.widget.NumberPicker
+import androidx.appcompat.app.AlertDialog
+import androidx.exifinterface.media.ExifInterface
+import android.content.ContentUris
+import android.provider.MediaStore
+import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
 class AddMemoryFragment : Fragment() {
 
@@ -75,6 +87,7 @@ class AddMemoryFragment : Fragment() {
 
     private var selectedType: RecordType = RecordType.TEXT
     private var selectedPhotoUri: Uri? = null
+    private var selectedPhotoPath: String? = null
 
     private enum class VoiceUiState { IDLE, RECORDING, PAUSED, COMPLETED, PLAYING }
     private var voiceState = VoiceUiState.IDLE
@@ -99,6 +112,33 @@ class AddMemoryFragment : Fragment() {
 
     private lateinit var repository: RecordFragmentRepository
 
+    private var currentLatitude: Double? = null
+    private var currentLongitude: Double? = null
+    private var recordHour = 0
+    private var recordMinute = 0
+
+    private var pendingExifUri: Uri? = null
+
+    private val requestMediaLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val uri = pendingExifUri ?: return@registerForActivityResult
+        pendingExifUri = null
+        lifecycleScope.launch(Dispatchers.IO) {
+            readExifFromUri(uri)
+        }
+    }
+
+    private val requestLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) fetchCurrentLocation()
+        else {
+            view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+            Toast.makeText(requireContext(), "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private val requestAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -117,6 +157,26 @@ class AddMemoryFragment : Fragment() {
                     visibility = View.VISIBLE
                 }
                 v.findViewById<View>(R.id.layout_photo_placeholder).visibility = View.GONE
+            }
+            // 선택 즉시 내부 저장소로 복사 + 원본 URI에서 EXIF 읽기
+            lifecycleScope.launch(Dispatchers.IO) {
+                val path = copyImageToInternalStorage(uri)
+                selectedPhotoPath = path
+
+                val hasMediaLocation = ContextCompat.checkSelfPermission(
+                    requireContext(), android.Manifest.permission.ACCESS_MEDIA_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasMediaLocation) {
+                    withContext(Dispatchers.Main) {
+                        pendingExifUri = uri
+                        requestMediaLocationPermissionLauncher.launch(
+                            android.Manifest.permission.ACCESS_MEDIA_LOCATION
+                        )
+                    }
+                } else {
+                    readExifFromUri(uri)
+                }
             }
         }
     }
@@ -144,12 +204,86 @@ class AddMemoryFragment : Fragment() {
         val db = AppDatabase.getInstance(requireContext())
         repository = RecordFragmentRepository(db.recordFragmentDao())
 
-        // 현재 시간
-        val tvTime = view.findViewById<TextView>(R.id.tv_time)
+        // 현재 위치 체크박스
+        view.findViewById<CheckBox>(R.id.cb_current_location).setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                if (ContextCompat.checkSelfPermission(
+                        requireContext(), android.Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    fetchCurrentLocation()
+                } else {
+                    requestLocationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+            } else {
+                currentLatitude = null
+                currentLongitude = null
+                view.findViewById<EditText>(R.id.et_location).setText("")
+            }
+        }
+
+        // 위치 직접 입력 시 Geocoder로 좌표 변환
+        view.findViewById<EditText>(R.id.et_location).setOnFocusChangeListener { v, hasFocus ->
+            val cb = view.findViewById<CheckBox>(R.id.cb_current_location)
+            if (!hasFocus && !cb.isChecked) {
+                val text = (v as EditText).text.toString()
+                geocodeManualLocation(text)
+            }
+        }
+
+        // 현재 시간 (클래스 변수 초기화 - EXIF로 나중에 덮어쓸 수 있음)
+        val tvTime = view.findViewById<TextView>(R.id.tv_time_input)
         val cal = java.util.Calendar.getInstance()
-        val recordHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
-        val recordMinute = cal.get(java.util.Calendar.MINUTE)
+        recordHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        recordMinute = cal.get(java.util.Calendar.MINUTE)
         tvTime.text = String.format("%02d:%02d", recordHour, recordMinute)
+
+        // 시간 필드 탭 → NumberPicker 다이얼로그
+        view.findViewById<View>(R.id.layout_time_input).setOnClickListener {
+            val dialogView = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                setPadding(64, 48, 64, 16)
+            }
+            val hourPicker = NumberPicker(requireContext()).apply {
+                minValue = 0; maxValue = 23; value = recordHour
+                setFormatter { String.format("%02d", it) }
+            }
+            val colonView = TextView(requireContext()).apply {
+                text = ":"; textSize = 24f
+                setPadding(24, 0, 24, 0)
+                gravity = Gravity.CENTER
+            }
+            val minutePicker = NumberPicker(requireContext()).apply {
+                minValue = 0; maxValue = 59; value = recordMinute
+                setFormatter { String.format("%02d", it) }
+            }
+            dialogView.addView(hourPicker)
+            dialogView.addView(colonView)
+            dialogView.addView(minutePicker)
+
+            AlertDialog.Builder(requireContext())
+                .setTitle("시간 선택")
+                .setView(dialogView)
+                .setPositiveButton("확인") { _, _ ->
+                    recordHour = hourPicker.value
+                    recordMinute = minutePicker.value
+                    tvTime.text = String.format("%02d:%02d", recordHour, recordMinute)
+                    view.findViewById<CheckBox>(R.id.cb_current_time)?.isChecked = false
+                }
+                .setNegativeButton("취소", null)
+                .show()
+        }
+
+        // 현재 시간으로 기록 체크박스
+        view.findViewById<CheckBox>(R.id.cb_current_time).setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                val now = java.util.Calendar.getInstance()
+                recordHour = now.get(java.util.Calendar.HOUR_OF_DAY)
+                recordMinute = now.get(java.util.Calendar.MINUTE)
+                tvTime.text = String.format("%02d:%02d", recordHour, recordMinute)
+            }
+        }
 
         // 오늘 추가된 기록 토글
         val layoutExpanded = view.findViewById<View>(R.id.layout_records_expanded)
@@ -249,6 +383,18 @@ class AddMemoryFragment : Fragment() {
             val locationName = etLocation.text.toString().takeIf { it.isNotBlank() }
 
             lifecycleScope.launch {
+                // 위치명은 있는데 좌표가 없으면 저장 전에 Geocoder로 변환
+                if (locationName != null && currentLatitude == null) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val geocoder = Geocoder(requireContext(), Locale.KOREA)
+                            val result = geocoder.getFromLocationName(locationName, 1)?.firstOrNull()
+                            currentLatitude = result?.latitude
+                            currentLongitude = result?.longitude
+                        } catch (e: Exception) { /* 변환 실패 시 null 유지 */ }
+                    }
+                }
+
                 when (selectedType) {
                     RecordType.TEXT -> {
                         val text = etMemo.text.toString().trim()
@@ -256,16 +402,19 @@ class AddMemoryFragment : Fragment() {
                             Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
                             return@launch
                         }
-                        repository.saveTextFragment(text, createdAt, date, locationName)
+                        repository.saveTextFragment(
+                            text, createdAt, date, locationName,
+                            latitude = currentLatitude, longitude = currentLongitude
+                        )
                     }
                     RecordType.PHOTO -> {
-                        val uri = selectedPhotoUri
-                        if (uri == null) {
+                        if (selectedPhotoUri == null) {
                             Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
                             return@launch
                         }
-                        val path = withContext(Dispatchers.IO) {
-                            copyImageToInternalStorage(uri)
+                        // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
+                        val path = selectedPhotoPath ?: withContext(Dispatchers.IO) {
+                            copyImageToInternalStorage(selectedPhotoUri!!)
                         }
                         if (path == null) {
                             Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
@@ -277,7 +426,9 @@ class AddMemoryFragment : Fragment() {
                             createdAt = createdAt,
                             date = date,
                             contentText = memo,
-                            locationName = locationName
+                            locationName = locationName,
+                            latitude = currentLatitude,
+                            longitude = currentLongitude
                         )
                     }
                     RecordType.VOICE -> {
@@ -290,7 +441,9 @@ class AddMemoryFragment : Fragment() {
                             voiceUrl = file.absolutePath,
                             durationSec = elapsedSec,
                             date = date,
-                            locationName = locationName
+                            locationName = locationName,
+                            latitude = currentLatitude,
+                            longitude = currentLongitude
                         )
                     }
                 }
@@ -523,6 +676,162 @@ class AddMemoryFragment : Fragment() {
         }
     }
 
+    private fun fetchCurrentLocation() {
+        val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        try {
+            fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { location ->
+                    if (location != null) {
+                        currentLatitude = location.latitude
+                        currentLongitude = location.longitude
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val geocoder = Geocoder(requireContext(), Locale.KOREA)
+                            val address = try {
+                                geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                                    ?.firstOrNull()
+                            } catch (e: Exception) { null }
+                            val addressText = address?.let {
+                                it.getAddressLine(0)
+                                    ?.removePrefix("대한민국 ")
+                                    ?: "${location.latitude}, ${location.longitude}"
+                            } ?: "${location.latitude}, ${location.longitude}"
+                            withContext(Dispatchers.Main) {
+                                view?.findViewById<EditText>(R.id.et_location)?.setText(addressText)
+                            }
+                        }
+                    } else {
+                        view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+                        Toast.makeText(requireContext(), "위치를 가져올 수 없습니다", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .addOnFailureListener {
+                    view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+                    Toast.makeText(requireContext(), "위치 오류: ${it.message}", Toast.LENGTH_SHORT).show()
+                }
+        } catch (e: SecurityException) {
+            view?.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+        }
+    }
+
+    private suspend fun readExifFromUri(uri: Uri) {
+        try {
+            val exif = createExifInterface(uri) ?: return
+
+            val parsedTime = parseExifDatetime(exif.getAttribute(ExifInterface.TAG_DATETIME))
+            val latLong = FloatArray(2)
+            val hasGps = exif.getLatLong(latLong)
+
+            withContext(Dispatchers.Main) {
+                val v = view ?: return@withContext
+
+                if (parsedTime != null) {
+                    recordHour = parsedTime.first
+                    recordMinute = parsedTime.second
+                    v.findViewById<TextView>(R.id.tv_time_input)?.text =
+                        String.format("%02d:%02d", recordHour, recordMinute)
+                    v.findViewById<CheckBox>(R.id.cb_current_time)?.isChecked = false
+                }
+
+                if (hasGps) {
+                    currentLatitude = latLong[0].toDouble()
+                    currentLongitude = latLong[1].toDouble()
+                    v.findViewById<CheckBox>(R.id.cb_current_location)?.isChecked = false
+
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val geocoder = Geocoder(requireContext(), Locale.KOREA)
+                            val address = geocoder.getFromLocation(
+                                latLong[0].toDouble(), latLong[1].toDouble(), 1
+                            )?.firstOrNull()
+                            val addressText = address?.getAddressLine(0)
+                                ?.removePrefix("대한민국 ")
+                                ?: "${latLong[0]}, ${latLong[1]}"
+                            withContext(Dispatchers.Main) {
+                                view?.findViewById<EditText>(R.id.et_location)?.setText(addressText)
+                            }
+                        } catch (e: Exception) { }
+                    }
+                }
+            }
+        } catch (e: Exception) { }
+    }
+
+    private fun createExifInterface(uri: Uri): ExifInterface? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return requireContext().contentResolver.openInputStream(uri)?.use { ExifInterface(it) }
+        }
+
+        val hasMediaLocation = ContextCompat.checkSelfPermission(
+            requireContext(), android.Manifest.permission.ACCESS_MEDIA_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        val mediaId = uri.lastPathSegment?.toLongOrNull()
+        if (mediaId != null) {
+            val mediaUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, mediaId)
+
+            // 1. DATA 컬럼으로 실제 파일 경로 직접 접근
+            try {
+                requireContext().contentResolver.query(
+                    mediaUri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val path = cursor.getString(0)
+                        if (!path.isNullOrEmpty()) return ExifInterface(path)
+                    }
+                }
+            } catch (e: Exception) { }
+
+            // 2. FileDescriptor + setRequireOriginal
+            try {
+                val originalUri = MediaStore.setRequireOriginal(mediaUri)
+                requireContext().contentResolver.openFileDescriptor(originalUri, "r")?.use { pfd ->
+                    return ExifInterface(pfd.fileDescriptor)
+                }
+            } catch (e: Exception) { }
+
+            // 3. InputStream + setRequireOriginal
+            try {
+                val originalUri = MediaStore.setRequireOriginal(mediaUri)
+                requireContext().contentResolver.openInputStream(originalUri)?.use { stream ->
+                    return ExifInterface(stream)
+                }
+            } catch (e: Exception) { }
+        }
+
+        return requireContext().contentResolver.openInputStream(uri)?.use { ExifInterface(it) }
+    }
+
+    private fun parseExifDatetime(datetime: String?): Pair<Int, Int>? {
+        // EXIF 형식: "2026:03:08 14:30:00"
+        return try {
+            val timePart = datetime?.split(" ")?.getOrNull(1) ?: return null
+            val parts = timePart.split(":")
+            Pair(parts[0].toInt(), parts[1].toInt())
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun geocodeManualLocation(locationText: String) {
+        if (locationText.isBlank()) {
+            currentLatitude = null
+            currentLongitude = null
+            return
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(requireContext(), Locale.KOREA)
+                val result = geocoder.getFromLocationName(locationText, 1)?.firstOrNull()
+                withContext(Dispatchers.Main) {
+                    currentLatitude = result?.latitude
+                    currentLongitude = result?.longitude
+                }
+            } catch (e: Exception) {
+                // 변환 실패 시 좌표 null 유지 (위치명은 저장됨)
+            }
+        }
+    }
+
     fun hasUnsavedContent(): Boolean {
         val etMemo = view?.findViewById<EditText>(R.id.et_memo)
         val etLocation = view?.findViewById<EditText>(R.id.et_location)
@@ -586,7 +895,7 @@ class AddMemoryFragment : Fragment() {
         val tvFullContent = itemView.findViewById<TextView>(R.id.tv_full_content)
 
         if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
-            val bitmap = BitmapFactory.decodeFile(record.photoUrl)
+            val bitmap = loadBitmapWithCorrectOrientation(record.photoUrl!!)
             if (bitmap != null) {
                 ivPhotoDetail.setImageBitmap(bitmap)
                 ivPhotoDetail.visibility = View.VISIBLE
