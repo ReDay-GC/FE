@@ -30,6 +30,24 @@ data class TranscribeResponse(
     val text: String
 )
 
+data class GenerateInsightRequest(
+    val year_month: String,             // "2026-03"
+    val memories: List<MemorySummary>
+)
+
+data class MemorySummary(
+    val date: String,
+    val title: String,
+    val summary: String,
+    val tags: List<String>,
+    val locations: List<String>,
+    val people: List<String>
+)
+
+data class GenerateInsightResponse(
+    val insight: String
+)
+
 interface MemoryApiService {
     @POST("generate-memory")
     suspend fun generateMemory(@Body request: GenerateMemoryRequest): GenerateMemoryResponse
@@ -37,4 +55,7 @@ interface MemoryApiService {
     @Multipart
     @POST("transcribe")
     suspend fun transcribe(@Part file: MultipartBody.Part): TranscribeResponse
+
+    @POST("generate-insight")
+    suspend fun generateInsight(@Body request: GenerateInsightRequest): GenerateInsightResponse
 }
