@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.MapLocationGroup
+import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -41,6 +42,7 @@ import kotlinx.coroutines.launch
 class MapFragment : Fragment(), OnMapReadyCallback {
 
     private lateinit var repository: RecordFragmentRepository
+    private lateinit var memoryRepository: MemoryRepository
     private var googleMap: GoogleMap? = null
 
     private lateinit var panelLocation: View
@@ -61,6 +63,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         val db = AppDatabase.getInstance(requireContext())
         repository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository(db.memoryDao())
     }
 
     override fun onCreateView(
@@ -113,7 +116,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private fun loadLocationGroups() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val fragments = repository.getFragmentsWithLocation()
+            val memoryDates = memoryRepository.getAllMemoryDates()
+            if (memoryDates.isEmpty()) return@launch
+            val fragments = repository.getFragmentsWithLocationByDates(memoryDates)
             val map = googleMap ?: return@launch
 
             val groups = MemoryMapper.groupByLocation(fragments)

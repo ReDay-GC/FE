@@ -18,6 +18,9 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
     suspend fun getFragmentsWithLocation(): List<RecordFragmentUiModel> =
         dao.getAllWithLocation().map { RecordFragmentMapper.entityToUiModel(it) }
 
+    suspend fun getFragmentsWithLocationByDates(dates: List<String>): List<RecordFragmentUiModel> =
+        dao.getWithLocationByDates(dates).map { RecordFragmentMapper.entityToUiModel(it) }
+
     suspend fun saveTextFragment(
         contentText: String,
         createdAt: String,
