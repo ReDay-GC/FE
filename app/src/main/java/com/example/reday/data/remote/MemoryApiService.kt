@@ -48,6 +48,20 @@ data class GenerateInsightResponse(
     val insight: String
 )
 
+data class MemoryForComment(
+    val title: String,
+    val summary: String,
+    val tags: List<String> = emptyList()
+)
+
+data class DailyCommentRequest(
+    val memories: List<MemoryForComment>
+)
+
+data class DailyCommentResponse(
+    val comment: String
+)
+
 data class ParseSearchRequest(
     val query: String
 )
@@ -73,4 +87,7 @@ interface MemoryApiService {
 
     @POST("parse-search")
     suspend fun parseSearch(@Body request: ParseSearchRequest): ParseSearchResponse
+
+    @POST("daily-comment")
+    suspend fun dailyComment(@Body request: DailyCommentRequest): DailyCommentResponse
 }
