@@ -61,6 +61,10 @@ class MainActivity : AppCompatActivity() {
                     showFragment(ArchiveFragment())
                     true
                 }
+                R.id.nav_analysis -> {
+                    showFragment(AnalysisFragment())
+                    true
+                }
                 else -> false
             }
         }
