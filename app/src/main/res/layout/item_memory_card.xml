@@ -59,6 +59,14 @@
                     android:ellipsize="end" />
 
                 <TextView
+                    android:id="@+id/tv_emotion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/tv_fragment_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

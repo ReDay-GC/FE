@@ -23,7 +23,8 @@ data class GenerateMemoryResponse(
     val title: String,
     val summary: String,
     val tags: List<String>,
-    val people: List<String> = emptyList()
+    val people: List<String> = emptyList(),
+    val emotion: String = "😐 평범한"
 )
 
 data class TranscribeResponse(

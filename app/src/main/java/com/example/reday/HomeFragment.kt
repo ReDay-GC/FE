@@ -32,6 +32,10 @@ class HomeFragment : Fragment() {
     private lateinit var memoryRepository: MemoryRepository
     private lateinit var adapter: MemoryCardAdapter
 
+    companion object {
+        private var commentShownThisSession = false
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val db = AppDatabase.getInstance(requireContext())
@@ -57,6 +61,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showDailyCommentIfNeeded() {
+        if (commentShownThisSession) return
         val prefs = requireContext().getSharedPreferences("daily_comment", Context.MODE_PRIVATE)
         val today = run {
             val cal = Calendar.getInstance()
@@ -69,15 +74,18 @@ class HomeFragment : Fragment() {
         val savedDate = prefs.getString("date", "")
         val savedComment = prefs.getString("comment", "")
 
-        if (savedDate == today && !savedComment.isNullOrBlank()) {
-            showCommentBottomSheet(savedComment)
-            return
-        }
-
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val memories = memoryRepository.getAllMemories().first().take(3)
-                if (memories.isEmpty()) return@launch
+                if (memories.isEmpty()) {
+                    prefs.edit().remove("date").remove("comment").apply()
+                    return@launch
+                }
+
+                if (savedDate == today && !savedComment.isNullOrBlank()) {
+                    showCommentBottomSheet(savedComment)
+                    return@launch
+                }
 
                 val gson = Gson()
                 val listType = object : TypeToken<List<String>>() {}.type
@@ -109,6 +117,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showCommentBottomSheet(comment: String) {
+        commentShownThisSession = true
         val dialog = BottomSheetDialog(requireContext())
         val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_daily_comment, null)
         sheetView.findViewById<TextView>(R.id.tv_daily_comment).text = comment

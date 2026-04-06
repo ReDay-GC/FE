@@ -8,5 +8,6 @@ data class MemoryUiModel(
     val locationName: String?,
     val previewText: String?,
     val tags: List<String> = emptyList(),
-    val people: List<String> = emptyList()
+    val people: List<String> = emptyList(),
+    val emotion: String? = null
 )

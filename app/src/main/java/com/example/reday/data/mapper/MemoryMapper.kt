@@ -83,7 +83,8 @@ object MemoryMapper {
             locationName = locationName,
             previewText = entity.summary,
             tags = tags,
-            people = people
+            people = people,
+            emotion = entity.emotion
         )
     }
 

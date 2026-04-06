@@ -403,6 +403,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                 putStringArrayListExtra(MemoryResultActivity.EXTRA_LOCATIONS, ArrayList(locations))
                 putStringArrayListExtra(MemoryResultActivity.EXTRA_PEOPLE, ArrayList(response.people))
                 putExtra(MemoryResultActivity.EXTRA_FRAGMENT_COUNT, fragments.size)
+                putExtra(MemoryResultActivity.EXTRA_EMOTION, response.emotion)
             }
             startActivity(intent)
         }
