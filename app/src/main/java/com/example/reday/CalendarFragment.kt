@@ -128,6 +128,11 @@ class CalendarFragment : Fragment() {
         loadAndRender()
     }
 
+    override fun onResume() {
+        super.onResume()
+        loadAndRender()
+    }
+
     private fun loadAndRender() {
         viewLifecycleOwner.lifecycleScope.launch {
             val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
