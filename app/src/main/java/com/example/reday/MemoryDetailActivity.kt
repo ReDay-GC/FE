@@ -82,6 +82,7 @@ class MemoryDetailActivity : AppCompatActivity() {
 
     private fun showMoreMenu(date: String) {
         val parts = date.split("-")
+        if (parts.size < 3) return
         val dialog = android.app.Dialog(this)
         dialog.setContentView(R.layout.dialog_memory_menu)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -89,9 +90,9 @@ class MemoryDetailActivity : AppCompatActivity() {
         dialog.findViewById<android.view.View>(R.id.btn_menu_add_fragment).setOnClickListener {
             dialog.dismiss()
             val intent = android.content.Intent(this, AddMemoryActivity::class.java).apply {
-                putExtra(AddMemoryActivity.EXTRA_YEAR, parts[0].toInt())
-                putExtra(AddMemoryActivity.EXTRA_MONTH, parts[1].toInt())
-                putExtra(AddMemoryActivity.EXTRA_DAY, parts[2].toInt())
+                putExtra(AddMemoryActivity.EXTRA_YEAR, parts[0].toIntOrNull() ?: return@setOnClickListener)
+                putExtra(AddMemoryActivity.EXTRA_MONTH, parts[1].toIntOrNull() ?: return@setOnClickListener)
+                putExtra(AddMemoryActivity.EXTRA_DAY, parts[2].toIntOrNull() ?: return@setOnClickListener)
                 putExtra(AddMemoryActivity.EXTRA_GO_TO_TIMELINE, true)
             }
             startActivity(intent)
@@ -156,6 +157,7 @@ class MemoryDetailActivity : AppCompatActivity() {
 
             // 태그
             val tags = parseTags(entity.tags)
+            chipGroupTags.removeAllViews()
             tags.forEach { tag ->
                 chipGroupTags.addView(createTagChip(tag))
             }
