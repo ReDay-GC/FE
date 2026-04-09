@@ -76,7 +76,7 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val memories = memoryRepository.getAllMemories().first().take(3)
+                val memories = memoryRepository.getAllMemories().first().take(1)
                 if (memories.isEmpty()) {
                     prefs.edit().remove("date").remove("comment").apply()
                     return@launch

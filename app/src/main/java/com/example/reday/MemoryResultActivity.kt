@@ -197,6 +197,11 @@ class MemoryResultActivity : AppCompatActivity() {
             )
             memoryRepository.saveMemory(entity)
             getSharedPreferences("daily_comment", MODE_PRIVATE).edit().remove("date").apply()
+            val yearMonth = currentDate.substring(0, 7)
+            getSharedPreferences("insight_prefs", MODE_PRIVATE).edit()
+                .putBoolean("needs_regen", true)
+                .putString("needs_regen_month", yearMonth)
+                .apply()
             Toast.makeText(this@MemoryResultActivity, "기억이 저장되었습니다", Toast.LENGTH_SHORT).show()
             val intent = android.content.Intent(this@MemoryResultActivity, MainActivity::class.java).apply {
                 flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP

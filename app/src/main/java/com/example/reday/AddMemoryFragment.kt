@@ -47,6 +47,7 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.Log
 import java.io.File
 import java.util.Locale
 
@@ -543,8 +544,7 @@ class AddMemoryFragment : Fragment() {
         try {
             mediaRecorder?.apply { stop(); release() }
         } catch (e: Exception) {
-            voiceFile?.delete()
-            voiceFile = null
+            // stop() 예외가 나도 voiceFile은 유지 — STT 요청은 계속 시도
         } finally {
             mediaRecorder = null
         }
@@ -564,14 +564,17 @@ class AddMemoryFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
+                Log.d("STT", "파일 경로: ${file.absolutePath}, 존재: ${file.exists()}, 크기: ${file.length()}")
                 val requestBody = file.asRequestBody("audio/mp4".toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
                 val response = withContext(Dispatchers.IO) {
                     RetrofitClient.memoryApi.transcribe(part)
                 }
+                Log.d("STT", "변환 성공: ${response.text}")
                 etStt.setText(response.text)
                 etStt.hint = ""
             } catch (e: Exception) {
+                Log.e("STT", "변환 실패: ${e.javaClass.simpleName} - ${e.message}", e)
                 etStt.hint = "변환 실패. 직접 입력해주세요."
             }
         }

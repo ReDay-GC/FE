@@ -138,6 +138,16 @@ class AnalysisFragment : Fragment() {
     }
 
     private suspend fun loadInsight() {
+        val prefs = requireContext().getSharedPreferences("insight_prefs", android.content.Context.MODE_PRIVATE)
+        val needsRegen = prefs.getBoolean("needs_regen", false)
+        val regenMonth = prefs.getString("needs_regen_month", "")
+
+        if (needsRegen && regenMonth == currentYearMonth) {
+            prefs.edit().putBoolean("needs_regen", false).apply()
+            generateInsight()
+            return
+        }
+
         val saved = insightRepository.getInsight(currentYearMonth)
         if (saved != null) {
             showInsightContent(saved.insightText)
