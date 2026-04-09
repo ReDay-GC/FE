@@ -1,5 +1,6 @@
 package com.example.reday
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,9 +13,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
+import com.example.reday.data.remote.DailyCommentRequest
+import com.example.reday.data.remote.MemoryForComment
+import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -23,6 +31,10 @@ class HomeFragment : Fragment() {
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
     private lateinit var adapter: MemoryCardAdapter
+
+    companion object {
+        private var commentShownThisSession = false
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +57,75 @@ class HomeFragment : Fragment() {
         setupAddMemoryButton(view)
         setupRecyclerView(view)
         observeMemories(view)
+        showDailyCommentIfNeeded()
+    }
+
+    private fun showDailyCommentIfNeeded() {
+        if (commentShownThisSession) return
+        val prefs = requireContext().getSharedPreferences("daily_comment", Context.MODE_PRIVATE)
+        val today = run {
+            val cal = Calendar.getInstance()
+            "%04d-%02d-%02d".format(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
+        }
+        val savedDate = prefs.getString("date", "")
+        val savedComment = prefs.getString("comment", "")
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val memories = memoryRepository.getAllMemories().first().take(1)
+                if (memories.isEmpty()) {
+                    prefs.edit().remove("date").remove("comment").apply()
+                    return@launch
+                }
+
+                if (savedDate == today && !savedComment.isNullOrBlank()) {
+                    showCommentBottomSheet(savedComment)
+                    return@launch
+                }
+
+                val gson = Gson()
+                val listType = object : TypeToken<List<String>>() {}.type
+                val memoriesForComment = memories.map { entity ->
+                    val tags = try {
+                        gson.fromJson<List<String>>(entity.tags, listType) ?: emptyList()
+                    } catch (e: Exception) { emptyList() }
+                    MemoryForComment(
+                        title = entity.title,
+                        summary = entity.summary,
+                        tags = tags
+                    )
+                }
+
+                val response = RetrofitClient.memoryApi.dailyComment(
+                    DailyCommentRequest(memoriesForComment)
+                )
+
+                prefs.edit()
+                    .putString("date", today)
+                    .putString("comment", response.comment)
+                    .apply()
+
+                showCommentBottomSheet(response.comment)
+            } catch (e: Exception) {
+                // 서버 실패 시 조용히 무시
+            }
+        }
+    }
+
+    private fun showCommentBottomSheet(comment: String) {
+        commentShownThisSession = true
+        val dialog = BottomSheetDialog(requireContext())
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_daily_comment, null)
+        sheetView.findViewById<TextView>(R.id.tv_daily_comment).text = comment
+        sheetView.findViewById<View>(R.id.btn_close_comment).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.setContentView(sheetView)
+        dialog.show()
     }
 
     private fun setupAddMemoryButton(view: View) {

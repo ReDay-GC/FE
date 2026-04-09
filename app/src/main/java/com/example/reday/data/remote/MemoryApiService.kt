@@ -23,7 +23,23 @@ data class GenerateMemoryResponse(
     val title: String,
     val summary: String,
     val tags: List<String>,
-    val people: List<String> = emptyList()
+    val people: List<String> = emptyList(),
+    val emotion: String = "😐 평범한",
+    val embedding: List<Float> = emptyList()
+)
+
+data class MemoryEmbeddingItem(
+    val memory_id: Long,
+    val embedding: List<Float>
+)
+
+data class SearchSemanticRequest(
+    val query: String,
+    val memories: List<MemoryEmbeddingItem>
+)
+
+data class SearchSemanticResponse(
+    val ranked_ids: List<Long>
 )
 
 data class TranscribeResponse(
@@ -48,6 +64,33 @@ data class GenerateInsightResponse(
     val insight: String
 )
 
+data class MemoryForComment(
+    val title: String,
+    val summary: String,
+    val tags: List<String> = emptyList()
+)
+
+data class DailyCommentRequest(
+    val memories: List<MemoryForComment>
+)
+
+data class DailyCommentResponse(
+    val comment: String
+)
+
+data class ParseSearchRequest(
+    val query: String
+)
+
+data class ParseSearchResponse(
+    val people: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
+    val locations: List<String> = emptyList(),
+    val yearMonth: String? = null,
+    val keywords: List<String> = emptyList(),
+    val sentiment: String? = null  // "긍정" | "부정" | null
+)
+
 interface MemoryApiService {
     @POST("generate-memory")
     suspend fun generateMemory(@Body request: GenerateMemoryRequest): GenerateMemoryResponse
@@ -58,4 +101,13 @@ interface MemoryApiService {
 
     @POST("generate-insight")
     suspend fun generateInsight(@Body request: GenerateInsightRequest): GenerateInsightResponse
+
+    @POST("parse-search")
+    suspend fun parseSearch(@Body request: ParseSearchRequest): ParseSearchResponse
+
+    @POST("daily-comment")
+    suspend fun dailyComment(@Body request: DailyCommentRequest): DailyCommentResponse
+
+    @POST("search-semantic")
+    suspend fun searchSemantic(@Body request: SearchSemanticRequest): SearchSemanticResponse
 }

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.reday.data.local.entity.MemoryEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -12,6 +13,12 @@ interface MemoryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: MemoryEntity): Long
+
+    @Transaction
+    suspend fun deleteAndInsert(entity: MemoryEntity): Long {
+        deleteByDate(entity.date)
+        return insert(entity)
+    }
 
     @Query("SELECT * FROM memories WHERE date = :date LIMIT 1")
     suspend fun getByDate(date: String): MemoryEntity?
@@ -30,4 +37,7 @@ interface MemoryDao {
 
     @Query("SELECT * FROM memories WHERE date LIKE :yearMonth || '%' ORDER BY date DESC")
     fun getByMonth(yearMonth: String): Flow<List<MemoryEntity>>
+
+    @Query("SELECT embedding FROM memories WHERE id = :id")
+    suspend fun getEmbeddingById(id: Long): String?
 }

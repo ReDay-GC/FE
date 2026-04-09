@@ -83,6 +83,16 @@
         android:layout_height="1dp"
         android:background="@color/brown_200" />
 
+    <!-- AI 검색 로딩 -->
+    <ProgressBar
+        android:id="@+id/pb_ai_search"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/main_200"
+        android:visibility="gone" />
+
     <!-- 태그 필터 패널 (필터 버튼 클릭 시 표시) -->
     <LinearLayout
         android:id="@+id/layout_filter_panel"

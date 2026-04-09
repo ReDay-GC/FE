@@ -20,6 +20,7 @@ class MemoryCardAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val ivThumbnail: ImageView = view.findViewById(R.id.iv_thumbnail)
         val tvTitle: TextView = view.findViewById(R.id.tv_memory_title)
+        val tvEmotion: TextView = view.findViewById(R.id.tv_emotion)
         val tvCount: TextView = view.findViewById(R.id.tv_fragment_count)
         val tvLocationDate: TextView = view.findViewById(R.id.tv_location_date)
         val tvPreview: TextView = view.findViewById(R.id.tv_preview_text)
@@ -36,6 +37,14 @@ class MemoryCardAdapter(
 
         holder.tvTitle.text = item.title
         holder.tvCount.text = item.fragmentCount.toString()
+
+        if (!item.emotion.isNullOrBlank()) {
+            // 이모지만 추출 (첫 번째 문자)
+            holder.tvEmotion.text = item.emotion.take(2).trim()
+            holder.tvEmotion.visibility = View.VISIBLE
+        } else {
+            holder.tvEmotion.visibility = View.GONE
+        }
 
         val locationDate = buildString {
             if (!item.locationName.isNullOrBlank()) {

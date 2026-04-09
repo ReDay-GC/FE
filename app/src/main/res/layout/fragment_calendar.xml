@@ -420,20 +420,36 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <!-- AI 요약 배지 -->
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- AI 요약 배지 + 감정 이모지 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="AI 요약"
-                        android:textColor="@color/brown_50"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:background="@drawable/bg_badge_ai"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
-                        android:layout_marginBottom="10dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="AI 요약"
+                            android:textColor="@color/brown_50"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/bg_badge_ai"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tv_detail_emotion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:textSize="16sp"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
 
                     <!-- AI 요약 텍스트 -->
                     <TextView

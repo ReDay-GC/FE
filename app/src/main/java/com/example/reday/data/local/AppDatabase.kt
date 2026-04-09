@@ -11,7 +11,7 @@ import com.example.reday.data.local.entity.MemoryEntity
 import com.example.reday.data.local.entity.MonthlyInsightEntity
 import com.example.reday.data.local.entity.RecordFragmentEntity
 
-@Database(entities = [RecordFragmentEntity::class, MemoryEntity::class, MonthlyInsightEntity::class], version = 4)
+@Database(entities = [RecordFragmentEntity::class, MemoryEntity::class, MonthlyInsightEntity::class], version = 6)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun recordFragmentDao(): RecordFragmentDao

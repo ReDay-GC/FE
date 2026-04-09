@@ -59,6 +59,8 @@ class MemoryResultActivity : AppCompatActivity() {
     private var currentDate: String = ""
     private var currentTitle: String = ""
     private var currentFragmentCount: Int = 0
+    private var currentEmotion: String? = null
+    private var currentEmbedding: String? = null
     private var photoFragments: List<RecordFragmentUiModel> = emptyList()
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
@@ -78,6 +80,8 @@ class MemoryResultActivity : AppCompatActivity() {
         currentDate = date
         currentTitle = title
         currentFragmentCount = fragmentCount
+        currentEmotion = intent.getStringExtra(EXTRA_EMOTION)
+        currentEmbedding = intent.getStringExtra(EXTRA_EMBEDDING)
 
         selectedTags.addAll(tags.filter { it in ALL_TAGS })
         locationList.addAll(locations.distinct().filter { it.isNotBlank() })
@@ -187,9 +191,17 @@ class MemoryResultActivity : AppCompatActivity() {
                 representativeFragmentId = representativeFragmentId,
                 representativePhotoUrl = representativePhotoUrl,
                 representativeLocationName = representativeLocationName,
+                emotion = currentEmotion,
+                embedding = currentEmbedding,
                 createdAt = LocalDateTime.now().toString()
             )
             memoryRepository.saveMemory(entity)
+            getSharedPreferences("daily_comment", MODE_PRIVATE).edit().remove("date").apply()
+            val yearMonth = currentDate.substring(0, 7)
+            getSharedPreferences("insight_prefs", MODE_PRIVATE).edit()
+                .putBoolean("needs_regen", true)
+                .putString("needs_regen_month", yearMonth)
+                .apply()
             Toast.makeText(this@MemoryResultActivity, "기억이 저장되었습니다", Toast.LENGTH_SHORT).show()
             val intent = android.content.Intent(this@MemoryResultActivity, MainActivity::class.java).apply {
                 flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -444,5 +456,7 @@ class MemoryResultActivity : AppCompatActivity() {
         const val EXTRA_LOCATIONS = "extra_locations"
         const val EXTRA_PEOPLE = "extra_people"
         const val EXTRA_FRAGMENT_COUNT = "extra_fragment_count"
+        const val EXTRA_EMBEDDING = "extra_embedding"
+        const val EXTRA_EMOTION = "extra_emotion"
     }
 }

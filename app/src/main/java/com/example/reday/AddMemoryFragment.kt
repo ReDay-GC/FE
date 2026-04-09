@@ -47,6 +47,7 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.util.Log
 import java.io.File
 import java.util.Locale
 
@@ -115,6 +116,8 @@ class AddMemoryFragment : Fragment() {
     }
 
     private lateinit var repository: RecordFragmentRepository
+
+    private var isSaving = false
 
     private var currentLatitude: Double? = null
     private var currentLongitude: Double? = null
@@ -379,6 +382,9 @@ class AddMemoryFragment : Fragment() {
         val etLocation = view.findViewById<EditText>(R.id.et_location)
 
         view.findViewById<View>(R.id.btn_save).setOnClickListener {
+            if (isSaving) return@setOnClickListener
+            isSaving = true
+
             val date = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
             val createdAt = String.format(
                 "%04d-%02d-%02dT%02d:%02d:00",
@@ -404,6 +410,7 @@ class AddMemoryFragment : Fragment() {
                         val text = etMemo.text.toString().trim()
                         if (text.isEmpty()) {
                             Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
+                            isSaving = false
                             return@launch
                         }
                         repository.saveTextFragment(
@@ -414,6 +421,7 @@ class AddMemoryFragment : Fragment() {
                     RecordType.PHOTO -> {
                         if (selectedPhotoUri == null) {
                             Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
+                            isSaving = false
                             return@launch
                         }
                         // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
@@ -422,6 +430,7 @@ class AddMemoryFragment : Fragment() {
                         }
                         if (path == null) {
                             Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
+                            isSaving = false
                             return@launch
                         }
                         val memo = etMemo.text.toString().trim().takeIf { it.isNotBlank() }
@@ -438,9 +447,10 @@ class AddMemoryFragment : Fragment() {
                     RecordType.VOICE -> {
                         if (voiceState != VoiceUiState.COMPLETED && voiceState != VoiceUiState.PLAYING) {
                             Toast.makeText(requireContext(), "먼저 녹음을 완료해주세요", Toast.LENGTH_SHORT).show()
+                            isSaving = false
                             return@launch
                         }
-                        val file = voiceFile ?: return@launch
+                        val file = voiceFile ?: run { isSaving = false; return@launch }
                         val sttText = view?.findViewById<EditText>(R.id.et_stt_result)?.text?.toString()?.trim()
                         repository.saveVoiceFragment(
                             voiceUrl = file.absolutePath,
@@ -534,8 +544,7 @@ class AddMemoryFragment : Fragment() {
         try {
             mediaRecorder?.apply { stop(); release() }
         } catch (e: Exception) {
-            voiceFile?.delete()
-            voiceFile = null
+            // stop() 예외가 나도 voiceFile은 유지 — STT 요청은 계속 시도
         } finally {
             mediaRecorder = null
         }
@@ -555,14 +564,17 @@ class AddMemoryFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
+                Log.d("STT", "파일 경로: ${file.absolutePath}, 존재: ${file.exists()}, 크기: ${file.length()}")
                 val requestBody = file.asRequestBody("audio/mp4".toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
                 val response = withContext(Dispatchers.IO) {
                     RetrofitClient.memoryApi.transcribe(part)
                 }
+                Log.d("STT", "변환 성공: ${response.text}")
                 etStt.setText(response.text)
                 etStt.hint = ""
             } catch (e: Exception) {
+                Log.e("STT", "변환 실패: ${e.javaClass.simpleName} - ${e.message}", e)
                 etStt.hint = "변환 실패. 직접 입력해주세요."
             }
         }

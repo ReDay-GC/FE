@@ -7,8 +7,7 @@ import kotlinx.coroutines.flow.Flow
 class MemoryRepository(private val dao: MemoryDao) {
 
     suspend fun saveMemory(entity: MemoryEntity): Long {
-        dao.deleteByDate(entity.date)
-        return dao.insert(entity)
+        return dao.deleteAndInsert(entity)
     }
 
     fun getAllMemories(): Flow<List<MemoryEntity>> = dao.getAll()
@@ -28,4 +27,6 @@ class MemoryRepository(private val dao: MemoryDao) {
         val yearMonth = "%04d-%02d".format(year, month)
         return dao.getByMonth(yearMonth)
     }
+
+    suspend fun getEmbeddingById(id: Long): String? = dao.getEmbeddingById(id)
 }
