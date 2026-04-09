@@ -13,7 +13,8 @@ import com.example.reday.data.model.MemoryUiModel
 import com.google.android.material.chip.Chip
 
 class SearchResultAdapter(
-    private var items: List<MemoryUiModel>
+    private var items: List<MemoryUiModel>,
+    private val onItemClick: ((MemoryUiModel) -> Unit)? = null
 ) : RecyclerView.Adapter<SearchResultAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -83,6 +84,8 @@ class SearchResultAdapter(
             }
             holder.layoutTags.addView(tvCount)
         }
+
+        holder.itemView.setOnClickListener { onItemClick?.invoke(item) }
     }
 
     override fun getItemCount() = items.size

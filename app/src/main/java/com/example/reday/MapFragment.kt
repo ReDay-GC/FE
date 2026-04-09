@@ -162,7 +162,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private fun showLocationPanel(group: MapLocationGroup) {
         tvPanelLocationName.text = group.locationName
         tvPanelCount.text = "${group.memories.size}개"
-        rvMapMemories.adapter = MapMemoryAdapter(group.memories)
+        rvMapMemories.adapter = MapMemoryAdapter(group.memories) { memory ->
+            val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
+            intent.putExtra(MemoryDetailActivity.EXTRA_DATE, memory.date)
+            startActivity(intent)
+        }
         panelLocation.isVisible = true
     }
 
