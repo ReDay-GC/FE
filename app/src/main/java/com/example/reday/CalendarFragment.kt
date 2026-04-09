@@ -288,7 +288,7 @@ class CalendarFragment : Fragment() {
             repository.getFragmentsByDate(dateStr).collectLatest { fragments ->
                 if (fragments.isEmpty()) {
                     hideAllDetailCards()
-                    return@collect
+                    return@collectLatest
                 }
 
                 cardMemoryDetail.visibility = View.GONE
