@@ -226,22 +226,22 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         // ── 핀 머리 (원) ──
         canvas.drawCircle(pinCx, circleCy, circleR, paint)
 
-        // ── 배지 흰 원 (핀 우상단) ──
+        // ── 흰 내부 원 (빈티지 핀 느낌) ──
+        paint.color = Color.WHITE
+        canvas.drawCircle(pinCx, circleCy, circleR * 0.38f, paint)
+
+        // ── 배지 (흰 테두리 → main_200 내부 → 흰 숫자) ──
         val badgeCx = pinCx + circleR * 0.65f
         val badgeCy = badgeR
         paint.color = Color.WHITE
         canvas.drawCircle(badgeCx, badgeCy, badgeR, paint)
 
-        // 배지 테두리
-        paint.style = Paint.Style.STROKE
-        paint.color = ContextCompat.getColor(requireContext(), R.color.brown_200)
-        paint.strokeWidth = d
-        canvas.drawCircle(badgeCx, badgeCy, badgeR - d / 2, paint)
+        paint.color = mainColor
+        canvas.drawCircle(badgeCx, badgeCy, badgeR - d, paint)
 
         // 배지 숫자
-        paint.style = Paint.Style.FILL
-        paint.color = ContextCompat.getColor(requireContext(), R.color.brown_700)
-        paint.textSize = 9f * d
+        paint.color = Color.WHITE
+        paint.textSize = 8.5f * d
         paint.textAlign = Paint.Align.CENTER
         val textY = badgeCy - (paint.descent() + paint.ascent()) / 2f
         canvas.drawText(count.toString(), badgeCx, textY, paint)
