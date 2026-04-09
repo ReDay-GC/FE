@@ -63,12 +63,66 @@ class MemoryDetailActivity : AppCompatActivity() {
         llTimeline = findViewById(R.id.ll_timeline)
 
         findViewById<ImageButton>(R.id.btn_back).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.btn_more).setOnClickListener {
+            showMoreMenu(date)
+        }
 
         val db = AppDatabase.getInstance(this)
         memoryRepository = MemoryRepository(db.memoryDao())
         fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
 
         loadData(date)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val date = intent.getStringExtra(EXTRA_DATE) ?: return
+        loadData(date)
+    }
+
+    private fun showMoreMenu(date: String) {
+        val parts = date.split("-")
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_memory_menu)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialog.findViewById<android.view.View>(R.id.btn_menu_add_fragment).setOnClickListener {
+            dialog.dismiss()
+            val intent = android.content.Intent(this, AddMemoryActivity::class.java).apply {
+                putExtra(AddMemoryActivity.EXTRA_YEAR, parts[0].toInt())
+                putExtra(AddMemoryActivity.EXTRA_MONTH, parts[1].toInt())
+                putExtra(AddMemoryActivity.EXTRA_DAY, parts[2].toInt())
+                putExtra(AddMemoryActivity.EXTRA_GO_TO_TIMELINE, true)
+            }
+            startActivity(intent)
+        }
+
+        dialog.findViewById<android.view.View>(R.id.btn_menu_delete_memory).setOnClickListener {
+            dialog.dismiss()
+            showDeleteMemoryDialog(date)
+        }
+
+        dialog.show()
+    }
+
+    private fun showDeleteMemoryDialog(date: String) {
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_delete_confirm)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialog.findViewById<android.widget.TextView>(R.id.tv_dialog_title).text = "기억카드 삭제"
+        dialog.findViewById<android.widget.TextView>(R.id.tv_dialog_message).text = "이 기억을 삭제하면 복구할 수 없어요.\n정말 삭제할까요?"
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
+            dialog.dismiss()
+            lifecycleScope.launch {
+                memoryRepository.deleteMemoryByDate(date)
+                finish()
+            }
+        }
+        dialog.show()
     }
 
     private fun loadData(date: String) {

@@ -58,6 +58,16 @@ class MemoryFragmentActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
         findViewById<View>(R.id.btn_generate_memory).setOnClickListener { startAiGeneration() }
+        findViewById<View>(R.id.btn_add_fragment).setOnClickListener {
+            val parts = date.split("-")
+            val intent = android.content.Intent(this, AddMemoryActivity::class.java).apply {
+                putExtra(AddMemoryActivity.EXTRA_YEAR, parts[0].toInt())
+                putExtra(AddMemoryActivity.EXTRA_MONTH, parts[1].toInt())
+                putExtra(AddMemoryActivity.EXTRA_DAY, parts[2].toInt())
+                putExtra(AddMemoryActivity.EXTRA_GO_TO_TIMELINE, true)
+            }
+            startActivity(intent)
+        }
 
         val db = AppDatabase.getInstance(this)
         repository = RecordFragmentRepository(db.recordFragmentDao())
@@ -224,6 +234,18 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     ContextCompat.getColor(this@MemoryFragmentActivity, R.color.brown_400)))
         }
         header.addView(chevron)
+
+        if (isExpanded) {
+            val deleteBtn = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(20.dp, 20.dp).also {
+                    it.marginStart = 10.dp
+                }
+                setImageResource(R.drawable.ic_delete)
+                setOnClickListener { showDeleteConfirmDialog(fragment) }
+            }
+            header.addView(deleteBtn)
+        }
+
         container.addView(header)
 
         // 펼쳐진 콘텐츠
@@ -436,6 +458,22 @@ class MemoryFragmentActivity : AppCompatActivity() {
             }
         }
         completeDialog.show()
+    }
+
+    private fun showDeleteConfirmDialog(fragment: RecordFragmentUiModel) {
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_delete_confirm)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
+            dialog.dismiss()
+            lifecycleScope.launch {
+                repository.deleteFragment(fragment)
+            }
+        }
+        dialog.show()
     }
 
     private fun formatDateLabel(date: String): String = try {

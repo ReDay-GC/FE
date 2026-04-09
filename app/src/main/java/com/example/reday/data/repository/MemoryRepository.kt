@@ -29,4 +29,6 @@ class MemoryRepository(private val dao: MemoryDao) {
     }
 
     suspend fun getEmbeddingById(id: Long): String? = dao.getEmbeddingById(id)
+
+    suspend fun deleteMemoryByDate(date: String) = dao.deleteByDate(date)
 }
