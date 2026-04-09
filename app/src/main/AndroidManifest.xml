@@ -40,6 +40,9 @@
         <activity
             android:name=".MemoryResultActivity"
             android:exported="false" />
+        <activity
+            android:name=".MemoryDetailActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

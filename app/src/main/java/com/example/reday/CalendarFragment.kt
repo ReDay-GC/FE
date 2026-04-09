@@ -324,8 +324,8 @@ class CalendarFragment : Fragment() {
             cardRecordingDay.visibility = View.GONE
 
             cardMemoryDetail.setOnClickListener {
-                val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
-                intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
+                val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
+                intent.putExtra(MemoryDetailActivity.EXTRA_DATE, dateStr)
                 startActivity(intent)
             }
 

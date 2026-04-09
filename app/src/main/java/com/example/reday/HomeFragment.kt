@@ -154,7 +154,11 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupRecyclerView(view: View) {
-        adapter = MemoryCardAdapter()
+        adapter = MemoryCardAdapter { memory ->
+            val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
+            intent.putExtra(MemoryDetailActivity.EXTRA_DATE, memory.date)
+            startActivity(intent)
+        }
         view.findViewById<RecyclerView>(R.id.rv_memories).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@HomeFragment.adapter
