@@ -187,20 +187,20 @@ class DateSelectFragment : Fragment() {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_selected)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
                 if (day in recordingDays || day in hasRecordDays) {
-                    dot.setBackgroundResource(R.drawable.bg_dot_brown)
+                    dot.setBackgroundResource(R.drawable.bg_dot_main200)
                     dot.visibility = View.VISIBLE
                 }
             }
             day in recordingDays -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_recording)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
-                dot.setBackgroundResource(R.drawable.bg_dot_brown)
+                dot.setBackgroundResource(R.drawable.bg_dot_main200)
                 dot.visibility = View.VISIBLE
             }
             day in hasRecordDays -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_has_record)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
-                dot.setBackgroundResource(R.drawable.bg_dot_brown)
+                dot.setBackgroundResource(R.drawable.bg_dot_main200)
                 dot.visibility = View.VISIBLE
             }
             day == todayDay -> {
