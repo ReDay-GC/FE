@@ -236,7 +236,7 @@ class CalendarFragment : Fragment() {
             day in recordingDays -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_recording)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
-                dot.setBackgroundResource(R.drawable.bg_dot_brown)
+                dot.setBackgroundResource(R.drawable.bg_dot_main200)
                 dot.visibility = View.VISIBLE
             }
             day == todayDay -> {

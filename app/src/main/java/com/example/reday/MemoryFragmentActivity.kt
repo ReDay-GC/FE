@@ -163,7 +163,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     layoutParams = FrameLayout.LayoutParams(size, size, Gravity.TOP or Gravity.CENTER_HORIZONTAL).also {
                         it.topMargin = 14.dp
                     }
-                    background = ContextCompat.getDrawable(this@MemoryFragmentActivity, R.drawable.bg_dot_brown)
+                    background = ContextCompat.getDrawable(this@MemoryFragmentActivity, R.drawable.bg_dot_main200)
                     alpha = 0.3f
                 })
             }

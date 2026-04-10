@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="20"
+    android:viewportHeight="20">
+    <!-- 채워진 라운드 사각형 -->
+    <path
+        android:pathData="M4,0 L16,0 Q20,0 20,4 L20,16 Q20,20 16,20 L4,20 Q0,20 0,16 L0,4 Q0,0 4,0 Z"
+        android:fillColor="#95A889" />
+    <!-- 흰색 체크마크 -->
+    <path
+        android:pathData="M4.5,10.5 L8.5,14.5 L15.5,6.5"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FAF8F5"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

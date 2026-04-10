@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_login_screen"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="40dp"
+        android:paddingBottom="24dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <!-- 회원가입 카드 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_signup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="16dp"
+            app:cardBackgroundColor="@color/brown_50">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal"
+                android:paddingTop="50dp"
+                android:paddingBottom="30dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
+
+                <!-- 로고 + 타이틀 + 서브타이틀 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal">
+
+                    <FrameLayout
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:background="@drawable/bg_logo_container"
+                        android:elevation="8dp">
+
+                        <ImageView
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_logo_reday"
+                            android:contentDescription="@null" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="15dp"
+                        android:text="Re:Day"
+                        android:textSize="30sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/brown_800"
+                        android:shadowColor="#40000000"
+                        android:shadowDx="0"
+                        android:shadowDy="4"
+                        android:shadowRadius="6" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="당신의 소중한 기억을 함께 만들어가요"
+                        android:textSize="16sp"
+                        android:textColor="@color/brown_600"
+                        android:gravity="center" />
+
+                </LinearLayout>
+
+                <!-- 간격 -->
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp" />
+
+                <!-- 폼 영역 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- 이름 또는 닉네임 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="이름 또는 닉네임"
+                            android:textSize="14sp"
+                            android:textColor="@color/brown_600"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_signup_input_bg"
+                            android:addStatesFromChildren="true"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_person"
+                                android:contentDescription="@null" />
+
+                            <EditText
+                                android:id="@+id/et_name"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:layout_marginStart="10dp"
+                                android:background="@android:color/transparent"
+                                android:hint="홍길동"
+                                android:textColorHint="@color/brown_300"
+                                android:textColor="@color/brown_800"
+                                android:textSize="16sp"
+                                android:inputType="textPersonName"
+                                android:singleLine="true"
+                                android:imeOptions="actionNext" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 이메일 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="18dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="이메일"
+                            android:textSize="14sp"
+                            android:textColor="@color/brown_600"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_signup_input_bg"
+                            android:addStatesFromChildren="true"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_email"
+                                android:contentDescription="@null" />
+
+                            <EditText
+                                android:id="@+id/et_email"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:layout_marginStart="10dp"
+                                android:background="@android:color/transparent"
+                                android:hint="example@reday.com"
+                                android:textColorHint="@color/brown_300"
+                                android:textColor="@color/brown_800"
+                                android:textSize="16sp"
+                                android:inputType="textEmailAddress"
+                                android:singleLine="true"
+                                android:imeOptions="actionNext" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 비밀번호 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="18dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="비밀번호"
+                            android:textSize="14sp"
+                            android:textColor="@color/brown_600"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_signup_input_bg"
+                            android:addStatesFromChildren="true"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="14dp">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_lock"
+                                android:contentDescription="@null" />
+
+                            <EditText
+                                android:id="@+id/et_password"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:layout_marginStart="10dp"
+                                android:background="@android:color/transparent"
+                                android:hint="8자 이상 입력"
+                                android:textColorHint="@color/brown_300"
+                                android:textColor="@color/brown_800"
+                                android:textSize="16sp"
+                                android:inputType="textPassword"
+                                android:singleLine="true"
+                                android:imeOptions="actionNext" />
+
+                            <ImageButton
+                                android:id="@+id/btn_toggle_password"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:background="@android:color/transparent"
+                                android:padding="2dp"
+                                android:src="@drawable/ic_eye_off"
+                                android:contentDescription="@null" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 비밀번호 확인 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="18dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="비밀번호 확인"
+                            android:textSize="14sp"
+                            android:textColor="@color/brown_600"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="55dp"
+                            android:layout_marginTop="8dp"
+                            android:background="@drawable/selector_signup_input_bg"
+                            android:addStatesFromChildren="true"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="14dp">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_lock"
+                                android:contentDescription="@null" />
+
+                            <EditText
+                                android:id="@+id/et_password_confirm"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:layout_marginStart="10dp"
+                                android:background="@android:color/transparent"
+                                android:hint="비밀번호 재입력"
+                                android:textColorHint="@color/brown_300"
+                                android:textColor="@color/brown_800"
+                                android:textSize="16sp"
+                                android:inputType="textPassword"
+                                android:singleLine="true"
+                                android:imeOptions="actionDone" />
+
+                            <ImageButton
+                                android:id="@+id/btn_toggle_password_confirm"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:background="@android:color/transparent"
+                                android:padding="2dp"
+                                android:src="@drawable/ic_eye_off"
+                                android:contentDescription="@null" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 간격 -->
+                    <Space
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp" />
+
+                    <!-- 약관 동의 섹션 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_login_input"
+                        android:padding="20dp">
+
+                        <!-- 전체 동의 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <androidx.appcompat.widget.AppCompatCheckBox
+                                android:id="@+id/cb_all"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:button="@drawable/selector_checkbox_round"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="0dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:text="전체 동의"
+                                android:textSize="16sp"
+                                android:textColor="@color/brown_500"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- 구분선 -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@color/inactive" />
+
+                        <!-- 이용약관 동의 -->
+                        <LinearLayout
+                            android:id="@+id/ll_terms"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <androidx.appcompat.widget.AppCompatCheckBox
+                                android:id="@+id/cb_terms"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:button="@drawable/selector_checkbox_square"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="0dp"
+                                android:clickable="false"
+                                android:focusable="false" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="12dp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="(필수)"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/sub_105" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text=" 이용약관 동의"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/brown_500" />
+                            </LinearLayout>
+
+                            <ImageView
+                                android:id="@+id/iv_terms_detail"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_chevron_right"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:contentDescription="@null" />
+                        </LinearLayout>
+
+                        <!-- 개인정보 처리방침 동의 -->
+                        <LinearLayout
+                            android:id="@+id/ll_privacy"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="12dp"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <androidx.appcompat.widget.AppCompatCheckBox
+                                android:id="@+id/cb_privacy"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:button="@drawable/selector_checkbox_square"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="0dp"
+                                android:clickable="false"
+                                android:focusable="false" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="12dp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="(필수)"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/sub_105" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text=" 개인정보 처리방침 동의"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/brown_500" />
+                            </LinearLayout>
+
+                            <ImageView
+                                android:id="@+id/iv_privacy_detail"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_chevron_right"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:contentDescription="@null" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- 간격 -->
+                    <Space
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp" />
+
+                    <!-- 시작하기 버튼 -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_signup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp"
+                        android:text="시작하기"
+                        android:textColor="@color/brown_50"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:alpha="0.5"
+                        android:enabled="false"
+                        app:backgroundTint="@color/btn_signup_bg"
+                        app:cornerRadius="16dp"
+                        app:icon="@drawable/ic_arrow_right"
+                        app:iconGravity="end"
+                        app:iconTint="@color/brown_50"
+                        app:iconPadding="8dp"
+                        app:elevation="4dp" />
+
+                </LinearLayout>
+
+                <!-- 로그인 링크 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal"
+                    android:layout_marginTop="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="이미 계정이 있으신가요?"
+                        android:textSize="14sp"
+                        android:textColor="@color/brown_400" />
+
+                    <TextView
+                        android:id="@+id/tv_login"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="로그인"
+                        android:textSize="14sp"
+                        android:textColor="@color/sub_200"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 카피라이트 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:text="© 2026 Re:Day. 모든 기억을 소중히."
+            android:textSize="14sp"
+            android:textColor="@color/brown_500"
+            android:gravity="center" />
+
+    </LinearLayout>
+</ScrollView>
