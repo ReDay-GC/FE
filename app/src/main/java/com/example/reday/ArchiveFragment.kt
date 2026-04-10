@@ -40,7 +40,11 @@ class ArchiveFragment : Fragment() {
         currentYear = cal.get(Calendar.YEAR)
         currentMonth = cal.get(Calendar.MONTH) + 1
 
-        adapter = ArchiveMemoryAdapter(emptyList())
+        adapter = ArchiveMemoryAdapter(emptyList()) { memory ->
+            val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
+            intent.putExtra(MemoryDetailActivity.EXTRA_DATE, memory.date)
+            startActivity(intent)
+        }
         view.findViewById<RecyclerView>(R.id.rv_archive).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@ArchiveFragment.adapter

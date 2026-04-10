@@ -19,6 +19,7 @@ class AddMemoryActivity : AppCompatActivity(),
         const val EXTRA_YEAR = "extra_year"
         const val EXTRA_MONTH = "extra_month"
         const val EXTRA_DAY = "extra_day"
+        const val EXTRA_GO_TO_TIMELINE = "extra_go_to_timeline"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +106,17 @@ class AddMemoryActivity : AppCompatActivity(),
 
     // AddMemoryFragment → 저장 완료
     override fun onSaved() {
+        if (intent.getBooleanExtra(EXTRA_GO_TO_TIMELINE, false)) {
+            val year = intent.getIntExtra(EXTRA_YEAR, -1)
+            val month = intent.getIntExtra(EXTRA_MONTH, -1)
+            val day = intent.getIntExtra(EXTRA_DAY, -1)
+            if (year != -1 && month != -1 && day != -1) {
+                val date = "%04d-%02d-%02d".format(year, month, day)
+                val intent = android.content.Intent(this, MemoryFragmentActivity::class.java)
+                intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, date)
+                startActivity(intent)
+            }
+        }
         finish()
     }
 

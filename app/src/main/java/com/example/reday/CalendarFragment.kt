@@ -24,6 +24,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -124,6 +125,11 @@ class CalendarFragment : Fragment() {
             loadAndRender()
         }
 
+        loadAndRender()
+    }
+
+    override fun onResume() {
+        super.onResume()
         loadAndRender()
     }
 
@@ -284,10 +290,10 @@ class CalendarFragment : Fragment() {
     private fun loadRecordingDayDetail(day: Int) {
         val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
         viewLifecycleOwner.lifecycleScope.launch {
-            repository.getFragmentsByDate(dateStr).collect { fragments ->
+            repository.getFragmentsByDate(dateStr).collectLatest { fragments ->
                 if (fragments.isEmpty()) {
                     hideAllDetailCards()
-                    return@collect
+                    return@collectLatest
                 }
 
                 cardMemoryDetail.visibility = View.GONE
@@ -324,8 +330,8 @@ class CalendarFragment : Fragment() {
             cardRecordingDay.visibility = View.GONE
 
             cardMemoryDetail.setOnClickListener {
-                val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
-                intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
+                val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
+                intent.putExtra(MemoryDetailActivity.EXTRA_DATE, dateStr)
                 startActivity(intent)
             }
 

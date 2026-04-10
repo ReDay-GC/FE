@@ -12,7 +12,8 @@ import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
 
 class MapMemoryAdapter(
-    private val memories: List<MemoryUiModel>
+    private val memories: List<MemoryUiModel>,
+    private val onItemClick: ((MemoryUiModel) -> Unit)? = null
 ) : RecyclerView.Adapter<MapMemoryAdapter.ViewHolder>() {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -45,6 +46,8 @@ class MapMemoryAdapter(
         } else {
             holder.tvPreview.isVisible = false
         }
+
+        holder.itemView.setOnClickListener { onItemClick?.invoke(memory) }
     }
 
     override fun getItemCount() = memories.size

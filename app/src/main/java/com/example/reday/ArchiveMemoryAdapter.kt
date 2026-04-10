@@ -13,7 +13,8 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
 class ArchiveMemoryAdapter(
-    private var items: List<MemoryUiModel>
+    private var items: List<MemoryUiModel>,
+    private val onItemClick: ((MemoryUiModel) -> Unit)? = null
 ) : RecyclerView.Adapter<ArchiveMemoryAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -81,6 +82,8 @@ class ArchiveMemoryAdapter(
             holder.ivPeopleIcon.visibility = View.GONE
             holder.tvPeople.visibility = View.GONE
         }
+
+        holder.itemView.setOnClickListener { onItemClick?.invoke(item) }
 
         // 태그
         holder.chipGroupTags.removeAllViews()
