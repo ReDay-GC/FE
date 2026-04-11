@@ -6,15 +6,24 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
+import android.util.Patterns
+import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.data.remote.SignupRequest
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 class SignupActivity : AppCompatActivity() {
 
@@ -29,6 +38,7 @@ class SignupActivity : AppCompatActivity() {
     private lateinit var cbPrivacy: CheckBox
     private lateinit var btnSignup: MaterialButton
     private lateinit var tvLogin: TextView
+    private lateinit var progressBar: ProgressBar
 
     private var isPwdVisible = false
     private var isPwdConfirmVisible = false
@@ -48,6 +58,7 @@ class SignupActivity : AppCompatActivity() {
         cbPrivacy = findViewById(R.id.cb_privacy)
         btnSignup = findViewById(R.id.btn_signup)
         tvLogin = findViewById(R.id.tv_login)
+        progressBar = findViewById(R.id.progress_bar)
 
         setupTextWatchers()
         setupPasswordToggles()
@@ -165,14 +176,71 @@ class SignupActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         btnSignup.setOnClickListener {
-            // TODO: 실제 회원가입 API 연동 시 여기서 처리
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            val name = etName.text.toString().trim()
+            val email = etEmail.text.toString().trim()
+            val password = etPassword.text.toString()
+            val passwordConfirm = etPasswordConfirm.text.toString()
+
+            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                etEmail.error = "올바른 이메일 형식을 입력해주세요."
+                return@setOnClickListener
+            }
+            if (password.length < 8) {
+                etPassword.error = "비밀번호는 8자 이상이어야 합니다."
+                return@setOnClickListener
+            }
+            if (password != passwordConfirm) {
+                etPasswordConfirm.error = "비밀번호가 일치하지 않습니다."
+                return@setOnClickListener
+            }
+
+            performSignup(name, email, password, passwordConfirm)
         }
 
         tvLogin.setOnClickListener {
             finish()
         }
+    }
+
+    private fun performSignup(
+        name: String,
+        email: String,
+        password: String,
+        passwordConfirm: String
+    ) {
+        setLoading(true)
+        lifecycleScope.launch {
+            try {
+                RetrofitClient.authApi.signup(
+                    SignupRequest(
+                        name = name,
+                        email = email,
+                        password = password,
+                        passwordConfirm = passwordConfirm,
+                        termsAgreed = cbTerms.isChecked,
+                        privacyAgreed = cbPrivacy.isChecked
+                    )
+                )
+                setLoading(false)
+                startActivity(Intent(this@SignupActivity, MainActivity::class.java))
+                finish()
+            } catch (e: HttpException) {
+                setLoading(false)
+                when (e.code()) {
+                    400 -> Toast.makeText(this@SignupActivity, "입력값을 확인해주세요.", Toast.LENGTH_SHORT).show()
+                    409 -> Toast.makeText(this@SignupActivity, "이미 사용 중인 이메일입니다.", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(this@SignupActivity, "회원가입에 실패했습니다. (${e.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                setLoading(false)
+                Toast.makeText(this@SignupActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setLoading(loading: Boolean) {
+        progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+        btnSignup.isEnabled = !loading
     }
 
     companion object {

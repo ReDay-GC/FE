@@ -6,7 +6,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private val BASE_URL = "http://15.164.100.137:8000/"
+    private val BASE_URL = "http://54.180.97.48:8080/"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -14,12 +14,19 @@ object RetrofitClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    val memoryApi: MemoryApiService by lazy {
+    private val retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(MemoryApiService::class.java)
+    }
+
+    val memoryApi: MemoryApiService by lazy {
+        retrofit.create(MemoryApiService::class.java)
+    }
+
+    val authApi: AuthApiService by lazy {
+        retrofit.create(AuthApiService::class.java)
     }
 }

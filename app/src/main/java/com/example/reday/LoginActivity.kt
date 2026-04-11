@@ -6,11 +6,20 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.example.reday.data.remote.LoginRequest
+import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.utils.TokenManager
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 class LoginActivity : AppCompatActivity() {
 
@@ -19,6 +28,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var btnLogin: MaterialButton
     private lateinit var btnTogglePassword: ImageButton
     private lateinit var tvSignup: TextView
+    private lateinit var progressBar: ProgressBar
 
     private var isPasswordVisible = false
 
@@ -31,6 +41,7 @@ class LoginActivity : AppCompatActivity() {
         btnLogin = findViewById(R.id.btn_login)
         btnTogglePassword = findViewById(R.id.btn_toggle_password)
         tvSignup = findViewById(R.id.tv_signup)
+        progressBar = findViewById(R.id.progress_bar)
 
         setupTextWatchers()
         setupPasswordToggle()
@@ -69,14 +80,7 @@ class LoginActivity : AppCompatActivity() {
         btnLogin.setOnClickListener {
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString()
-
-            if (email == DUMMY_EMAIL && password == DUMMY_PASSWORD) {
-                startActivity(Intent(this, MainActivity::class.java))
-                finish()
-            } else {
-                etEmail.error = "이메일 또는 비밀번호가 올바르지 않습니다"
-                etPassword.error = " "
-            }
+            performLogin(email, password)
         }
 
         tvSignup.setOnClickListener {
@@ -84,8 +88,30 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    companion object {
-        private const val DUMMY_EMAIL = "test@reday.com"
-        private const val DUMMY_PASSWORD = "test1234"
+    private fun performLogin(email: String, password: String) {
+        setLoading(true)
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.authApi.login(LoginRequest(email, password))
+                TokenManager.saveToken(this@LoginActivity, response.data.accessToken)
+                setLoading(false)
+                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                finish()
+            } catch (e: HttpException) {
+                setLoading(false)
+                when (e.code()) {
+                    400 -> Toast.makeText(this@LoginActivity, "이메일 또는 비밀번호가 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
+                    else -> Toast.makeText(this@LoginActivity, "로그인에 실패했습니다. (${e.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                setLoading(false)
+                Toast.makeText(this@LoginActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setLoading(loading: Boolean) {
+        progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+        btnLogin.isEnabled = !loading
     }
 }
