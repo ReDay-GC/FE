@@ -2,15 +2,21 @@ package com.example.reday
 
 import android.graphics.BitmapFactory
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.example.reday.utils.toEmotionEmoji
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.ViewCompat
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.core.widget.ImageViewCompat
 import com.example.reday.data.model.MemoryUiModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MemoryCardAdapter(
     private var items: List<MemoryUiModel> = emptyList(),
@@ -38,9 +44,9 @@ class MemoryCardAdapter(
         holder.tvTitle.text = item.title
         holder.tvCount.text = item.fragmentCount.toString()
 
-        if (!item.emotion.isNullOrBlank()) {
-            // 이모지만 추출 (첫 번째 문자)
-            holder.tvEmotion.text = item.emotion.take(2).trim()
+        val emotionEmoji = item.emotion.toEmotionEmoji()
+        if (emotionEmoji != null) {
+            holder.tvEmotion.text = emotionEmoji
             holder.tvEmotion.visibility = View.VISIBLE
         } else {
             holder.tvEmotion.visibility = View.GONE
@@ -65,12 +71,23 @@ class MemoryCardAdapter(
         holder.itemView.setOnClickListener { onItemClick?.invoke(item) }
 
         if (!item.thumbnailPath.isNullOrBlank()) {
-            val bitmap = loadBitmapWithCorrectOrientation(item.thumbnailPath!!)
-            if (bitmap != null) {
-                holder.ivThumbnail.setImageBitmap(bitmap)
-                ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
-            } else {
-                setDefaultThumbnail(holder.ivThumbnail)
+            val thumbnailPath = item.thumbnailPath!!
+            setDefaultThumbnail(holder.ivThumbnail)
+            val scope = (holder.itemView.context as? LifecycleOwner)?.lifecycleScope
+            scope?.launch {
+                val bitmap = withContext(Dispatchers.IO) {
+                    loadBitmapWithCorrectOrientation(thumbnailPath)
+                }
+                if (bitmap != null) {
+                    holder.ivThumbnail.setImageBitmap(bitmap)
+                    ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
+                }
+            } ?: run {
+                val bitmap = loadBitmapWithCorrectOrientation(thumbnailPath)
+                if (bitmap != null) {
+                    holder.ivThumbnail.setImageBitmap(bitmap)
+                    ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
+                }
             }
         } else {
             setDefaultThumbnail(holder.ivThumbnail)

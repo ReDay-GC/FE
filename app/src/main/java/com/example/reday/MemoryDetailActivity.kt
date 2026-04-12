@@ -154,10 +154,13 @@ class MemoryDetailActivity : AppCompatActivity() {
             // 요약
             tvSummary.text = entity.summary
 
-            // 태그
-            val tags = parseTags(entity.tags)
+            // 태그 — 상세 API에서 조회
+            val tags = entity.serverId?.let { serverId ->
+                memoryRepository.getMemoryDetail(serverId)
+                    ?.tags?.map { it.tagName }
+            } ?: parseTags(entity.tags)
             chipGroupTags.removeAllViews()
-            tags.forEach { tag ->
+            tags?.forEach { tag ->
                 chipGroupTags.addView(createTagChip(tag))
             }
 

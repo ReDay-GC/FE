@@ -388,7 +388,14 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     .filter { it.fragmentType == FragmentType.PHOTO && it.photoUrl != null }
                     .mapNotNull { f ->
                         try {
-                            val bytes = java.io.File(f.photoUrl!!).readBytes()
+                            val url = f.photoUrl!!
+                            val bytes = withContext(Dispatchers.IO) {
+                                if (url.startsWith("http")) {
+                                    java.net.URL(url).openStream().use { it.readBytes() }
+                                } else {
+                                    java.io.File(url).readBytes()
+                                }
+                            }
                             android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                         } catch (e: Exception) { null }
                     }

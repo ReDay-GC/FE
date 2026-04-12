@@ -108,7 +108,7 @@ class AnalysisFragment : Fragment() {
 
     private fun loadData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val allMemories = memoryRepository.getAllMemories().first()
+            val allMemories = memoryRepository.getAllMemories()
 
             if (allMemories.isEmpty()) {
                 layoutEmpty.visibility = View.VISIBLE
@@ -166,7 +166,7 @@ class AnalysisFragment : Fragment() {
 
             try {
                 val yearMonth = currentYearMonth
-                val memories = memoryRepository.getAllMemories().first()
+                val memories = memoryRepository.getAllMemories()
                     .filter { it.date.startsWith(yearMonth) }
 
                 if (memories.isEmpty()) {

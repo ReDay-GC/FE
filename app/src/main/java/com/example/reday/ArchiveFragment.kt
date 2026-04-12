@@ -83,10 +83,9 @@ class ArchiveFragment : Fragment() {
 
     private fun loadMemories() {
         lifecycleScope.launch {
-            repository.getMemoriesByMonth(currentYear, currentMonth).collectLatest { entities ->
-                allItems = MemoryMapper.fromMemoryEntityList(entities)
-                showList(allItems)
-            }
+            val entities = repository.getMemoriesByMonth(currentYear, currentMonth)
+            allItems = MemoryMapper.fromMemoryEntityList(entities)
+            showList(allItems)
         }
     }
 

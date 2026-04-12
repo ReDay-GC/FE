@@ -62,4 +62,8 @@ object RetrofitClient {
     val recordApi: RecordApiService by lazy {
         retrofit.create(RecordApiService::class.java)
     }
+
+    val springMemoryApi: SpringMemoryApiService by lazy {
+        retrofit.create(SpringMemoryApiService::class.java)
+    }
 }

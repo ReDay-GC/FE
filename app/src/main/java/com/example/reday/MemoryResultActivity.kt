@@ -234,7 +234,9 @@ class MemoryResultActivity : AppCompatActivity() {
             holder.ivThumbnail.setImageDrawable(null)
             fragment.photoUrl?.let { url ->
                 lifecycleScope.launch {
-                    val bm = loadBitmapWithCorrectOrientation(url)
+                    val bm = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        loadBitmapWithCorrectOrientation(url)
+                    }
                     if (bm != null) holder.ivThumbnail.setImageBitmap(bm)
                 }
             }

@@ -2,6 +2,7 @@ package com.example.reday
 
 import com.bumptech.glide.Glide
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.example.reday.utils.toEmotionEmoji
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -362,8 +363,9 @@ class CalendarFragment : Fragment() {
             tvDetailTitle.text = memory.title
 
             // 감정 이모지
-            if (!memory.emotion.isNullOrBlank()) {
-                tvDetailEmotion.text = memory.emotion.take(2).trim()
+            val emotionEmoji = memory.emotion.toEmotionEmoji()
+            if (emotionEmoji != null) {
+                tvDetailEmotion.text = emotionEmoji
                 tvDetailEmotion.visibility = View.VISIBLE
             } else {
                 tvDetailEmotion.visibility = View.GONE

@@ -22,7 +22,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -76,7 +75,7 @@ class HomeFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val memories = memoryRepository.getAllMemories().first().take(1)
+                val memories = memoryRepository.getAllMemories().take(1)
                 if (memories.isEmpty()) {
                     prefs.edit().remove("date").remove("comment").apply()
                     return@launch
@@ -188,18 +187,17 @@ class HomeFragment : Fragment() {
 
         // 최근 기억 목록 (AI 생성 후 저장된 기억만)
         viewLifecycleOwner.lifecycleScope.launch {
-            memoryRepository.getAllMemories().collectLatest { entities ->
-                val memories = MemoryMapper.fromMemoryEntityList(entities, limit = 3)
-                val emptyCard = view.findViewById<View>(R.id.card_empty_memories)
-                val recyclerView = view.findViewById<RecyclerView>(R.id.rv_memories)
-                if (memories.isEmpty()) {
-                    emptyCard.visibility = View.VISIBLE
-                    recyclerView.visibility = View.GONE
-                } else {
-                    emptyCard.visibility = View.GONE
-                    recyclerView.visibility = View.VISIBLE
-                    adapter.submitList(memories)
-                }
+            val entities = memoryRepository.getAllMemories()
+            val memories = MemoryMapper.fromMemoryEntityList(entities, limit = 3)
+            val emptyCard = view.findViewById<View>(R.id.card_empty_memories)
+            val recyclerView = view.findViewById<RecyclerView>(R.id.rv_memories)
+            if (memories.isEmpty()) {
+                emptyCard.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                emptyCard.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+                adapter.submitList(memories)
             }
         }
     }

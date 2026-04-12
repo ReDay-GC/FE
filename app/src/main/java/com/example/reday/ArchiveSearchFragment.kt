@@ -111,10 +111,9 @@ class ArchiveSearchFragment : Fragment() {
 
         // 전체 기억 로드
         lifecycleScope.launch {
-            repository.getAllMemories().collectLatest { entities ->
-                allItems = MemoryMapper.fromMemoryEntityList(entities)
-                applyFilter(etSearch.text?.toString() ?: "")
-            }
+            val entities = repository.getAllMemories()
+            allItems = MemoryMapper.fromMemoryEntityList(entities)
+            applyFilter(etSearch.text?.toString() ?: "")
         }
 
         // 키보드 자동 표시

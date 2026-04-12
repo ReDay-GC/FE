@@ -116,7 +116,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private fun loadLocationGroups() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val memoryDates = memoryRepository.getAllMemoryDates()
+            val memoryDates = memoryRepository.getAllMemories().map { it.date }
             if (memoryDates.isEmpty()) return@launch
             val fragments = repository.getFragmentsWithLocationByDates(memoryDates)
             val map = googleMap ?: return@launch
