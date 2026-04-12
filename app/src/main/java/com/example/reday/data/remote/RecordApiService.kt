@@ -38,6 +38,17 @@ data class RecordItemData(
     val createdAt: String
 )
 
+data class GetRecordDatesResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: RecordDatesData
+)
+
+data class RecordDatesData(
+    val dates: List<String>
+)
+
 data class SaveTextRecordRequest(
     val recordDate: String,
     val textContent: String,
@@ -68,6 +79,12 @@ interface RecordApiService {
 
     @GET("api/records")
     suspend fun getRecordsByDate(@Query("date") date: String): GetRecordsResponse
+
+    @GET("api/records/dates")
+    suspend fun getRecordDates(
+        @Query("year") year: Int,
+        @Query("month") month: Int
+    ): GetRecordDatesResponse
 
     @DELETE("api/records/{recordId}")
     suspend fun deleteRecord(@Path("recordId") recordId: Long): SaveRecordResponse

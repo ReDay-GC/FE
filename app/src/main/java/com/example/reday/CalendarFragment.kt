@@ -1,5 +1,6 @@
 package com.example.reday
 
+import com.bumptech.glide.Glide
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import android.os.Bundle
 import android.view.Gravity
@@ -44,6 +45,7 @@ class CalendarFragment : Fragment() {
 
     private var recordingDays: Set<Int> = emptySet()
     private var memoryDays: Set<Int> = emptySet()
+    private var currentDetailJob: kotlinx.coroutines.Job? = null
 
     // 기억 상세 카드 뷰
     private lateinit var cardMemoryDetail: View
@@ -263,10 +265,17 @@ class CalendarFragment : Fragment() {
             cell.setOnClickListener {
                 selectedDay = day
                 renderCalendar()
-                when {
-                    day in memoryDays -> loadMemoryDetail(day)
-                    day in recordingDays -> loadRecordingDayDetail(day)
-                    else -> showEmptyDayCard(day)
+                val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
+                currentDetailJob?.cancel()
+                currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
+                    repository.syncFragmentsByDate(dateStr)
+                    val hasFragments = repository.getFragmentsByDate(dateStr).first().isNotEmpty()
+                    if (hasFragments) loadAndRender()
+                    when {
+                        day in memoryDays -> loadMemoryDetail(day)
+                        hasFragments -> loadRecordingDayDetail(day)
+                        else -> showEmptyDayCard(day)
+                    }
                 }
             }
         }
@@ -289,7 +298,9 @@ class CalendarFragment : Fragment() {
 
     private fun loadRecordingDayDetail(day: Int) {
         val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
-        viewLifecycleOwner.lifecycleScope.launch {
+        currentDetailJob?.cancel()
+        currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
+            repository.syncFragmentsByDate(dateStr)
             repository.getFragmentsByDate(dateStr).collectLatest { fragments ->
                 if (fragments.isEmpty()) {
                     hideAllDetailCards()
@@ -320,7 +331,8 @@ class CalendarFragment : Fragment() {
 
     private fun loadMemoryDetail(day: Int) {
         val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
-        viewLifecycleOwner.lifecycleScope.launch {
+        currentDetailJob?.cancel()
+        currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
             val entity = memoryRepository.getMemoryByDate(dateStr) ?: run {
                 hideAllDetailCards()
                 return@launch
@@ -579,17 +591,15 @@ class CalendarFragment : Fragment() {
             FragmentType.PHOTO -> ImageView(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(48.dp, 48.dp)
                 if (!fragment.photoUrl.isNullOrBlank()) {
-                    val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                    if (bm != null) {
-                        setImageBitmap(bm)
-                        scaleType = ImageView.ScaleType.CENTER_CROP
-                        setBackgroundResource(R.drawable.bg_photo_preview_rounded)
-                        clipToOutline = true
-                    } else {
-                        setImageResource(R.drawable.ic_photo_fragment)
-                        setBackgroundResource(R.drawable.bg_record_icon_photo)
-                        setPadding(12.dp, 12.dp, 12.dp, 12.dp)
-                    }
+                    val url = fragment.photoUrl!!
+                    val source: Any = if (url.startsWith("http")) url else java.io.File(url)
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    clipToOutline = true
+                    Glide.with(this@CalendarFragment)
+                        .load(source)
+                        .centerCrop()
+                        .error(R.drawable.ic_photo_fragment)
+                        .into(this)
                 } else {
                     setImageResource(R.drawable.ic_photo_fragment)
                     setBackgroundResource(R.drawable.bg_record_icon_photo)

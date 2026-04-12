@@ -942,7 +942,20 @@ class AddMemoryFragment : Fragment() {
         if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
             val url = record.photoUrl!!
             val source: Any = if (url.startsWith("http")) url else java.io.File(url)
-            Glide.with(this).load(source).into(ivPhotoDetail)
+            Log.d("PhotoDebug", "photoUrl=$url, exists=${if (url.startsWith("http")) "remote" else java.io.File(url).exists().toString()}")
+            Glide.with(this)
+                .load(source)
+                .listener(object : com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable> {
+                    override fun onLoadFailed(e: com.bumptech.glide.load.engine.GlideException?, model: Any?, target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>, isFirstResource: Boolean): Boolean {
+                        Log.e("PhotoDebug", "Glide 로드 실패: ${e?.message}")
+                        return false
+                    }
+                    override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>?, dataSource: com.bumptech.glide.load.DataSource, isFirstResource: Boolean): Boolean {
+                        Log.d("PhotoDebug", "Glide 로드 성공")
+                        return false
+                    }
+                })
+                .into(ivPhotoDetail)
             ivPhotoDetail.visibility = View.VISIBLE
             if (!record.contentText.isNullOrBlank()) {
                 tvFullContent.text = record.contentText

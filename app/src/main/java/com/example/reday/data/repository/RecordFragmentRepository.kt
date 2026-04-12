@@ -241,6 +241,22 @@ class RecordFragmentRepository(
     }
 
     suspend fun getRecordDatesByMonth(year: Int, month: Int): Set<Int> {
+        return try {
+            val response = api.getRecordDates(year, month)
+            if (response.success) {
+                response.data.dates.mapNotNull { dateStr ->
+                    dateStr.split("-").getOrNull(2)?.toIntOrNull()
+                }.toSet()
+            } else {
+                emptySet()
+            }
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "월별 날짜 서버 조회 실패: ${e.message}")
+            emptySet()
+        }
+    }
+
+    private suspend fun getRecordDatesByMonthLocal(year: Int, month: Int): Set<Int> {
         val yearMonth = "%04d-%02d".format(year, month)
         return dao.getDistinctDatesByMonth(yearMonth)
             .mapNotNull { dateStr ->

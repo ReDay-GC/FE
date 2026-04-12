@@ -6,10 +6,12 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private val BASE_URL = "http://13.209.98.126:8080/"
+    private val SPRING_BASE_URL = "http://13.209.98.126:8080/"
+    private val AI_BASE_URL = "http://13.209.98.126:8000/"
 
     var accessToken: String? = null
 
+    // Spring Boot 서버용 클라이언트 (auth 토큰 포함)
     private val client by lazy {
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -24,16 +26,33 @@ object RetrofitClient {
             .build()
     }
 
+    // Python AI 서버용 클라이언트 (토큰 불필요)
+    private val aiClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
     private val retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(SPRING_BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
+    private val aiRetrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(AI_BASE_URL)
+            .client(aiClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
     val memoryApi: MemoryApiService by lazy {
-        retrofit.create(MemoryApiService::class.java)
+        aiRetrofit.create(MemoryApiService::class.java)
     }
 
     val authApi: AuthApiService by lazy {
