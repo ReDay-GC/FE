@@ -304,13 +304,11 @@ class AddMemoryFragment : Fragment() {
             icToggle.rotation = if (isRecordsExpanded) 180f else 0f
         }
 
-        // DB에서 기록 목록 실시간 구독 (서버 sync 후 갱신)
+        // 서버에서 기록 목록 조회
         val date = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
         viewLifecycleOwner.lifecycleScope.launch {
-            repository.syncFragmentsByDate(date)
-            repository.getFragmentsByDate(date).collect { records ->
-                updateRecordsList(view, records)
-            }
+            val records = repository.getFragmentsByDate(date)
+            updateRecordsList(view, records)
         }
 
         // 기록 유형 버튼

@@ -72,13 +72,15 @@ class MemoryFragmentActivity : AppCompatActivity() {
         val db = AppDatabase.getInstance(this)
         repository = RecordFragmentRepository(db.recordFragmentDao())
 
+        loadFragments()
+    }
+
+    private fun loadFragments() {
         lifecycleScope.launch {
-            repository.syncFragmentsByDate(date)
-            repository.getFragmentsByDate(date).collect { frags ->
-                fragments = frags
-                tvBannerTitle.text = "${frags.size}개의 기억 조각이 있어요"
-                buildTimeline()
-            }
+            val frags = repository.getFragmentsByDate(currentDate)
+            fragments = frags
+            tvBannerTitle.text = "${frags.size}개의 기억 조각이 있어요"
+            buildTimeline()
         }
     }
 
@@ -472,6 +474,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
             dialog.dismiss()
             lifecycleScope.launch {
                 repository.deleteFragment(fragment)
+                loadFragments()
             }
         }
         dialog.show()

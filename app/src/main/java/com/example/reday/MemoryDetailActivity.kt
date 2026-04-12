@@ -22,7 +22,6 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -163,7 +162,7 @@ class MemoryDetailActivity : AppCompatActivity() {
             }
 
             // 기록 조각 타임라인
-            val fragments = fragmentRepository.getFragmentsByDate(date).first()
+            val fragments = fragmentRepository.getFragmentsByDate(date)
             tvFragmentCount.text = "${fragments.size}개"
             buildTimeline(fragments)
         }

@@ -25,8 +25,6 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
@@ -268,8 +266,7 @@ class CalendarFragment : Fragment() {
                 val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
                 currentDetailJob?.cancel()
                 currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
-                    repository.syncFragmentsByDate(dateStr)
-                    val hasFragments = repository.getFragmentsByDate(dateStr).first().isNotEmpty()
+                    val hasFragments = repository.getFragmentsByDate(dateStr).isNotEmpty()
                     if (hasFragments) loadAndRender()
                     when {
                         day in memoryDays -> loadMemoryDetail(day)
@@ -300,31 +297,29 @@ class CalendarFragment : Fragment() {
         val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
         currentDetailJob?.cancel()
         currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
-            repository.syncFragmentsByDate(dateStr)
-            repository.getFragmentsByDate(dateStr).collectLatest { fragments ->
-                if (fragments.isEmpty()) {
-                    hideAllDetailCards()
-                    return@collectLatest
-                }
+            val fragments = repository.getFragmentsByDate(dateStr)
+            if (fragments.isEmpty()) {
+                hideAllDetailCards()
+                return@launch
+            }
 
-                cardMemoryDetail.visibility = View.GONE
-                cardEmptyDay.visibility = View.GONE
+            cardMemoryDetail.visibility = View.GONE
+            cardEmptyDay.visibility = View.GONE
 
-                tvRecordingDayDate.text = "${currentMonth + 1}월 ${day}일"
-                tvRecordingDesc.text = "${fragments.size}개의 기억 조각이 저장되어 있습니다\nAI를 생성하면 하나의 완성된 기억이 됩니다"
+            tvRecordingDayDate.text = "${currentMonth + 1}월 ${day}일"
+            tvRecordingDesc.text = "${fragments.size}개의 기억 조각이 저장되어 있습니다\nAI를 생성하면 하나의 완성된 기억이 됩니다"
 
-                llRecordingFragments.removeAllViews()
-                fragments.forEach { fragment ->
-                    llRecordingFragments.addView(createFragmentItemView(fragment))
-                }
+            llRecordingFragments.removeAllViews()
+            fragments.forEach { fragment ->
+                llRecordingFragments.addView(createFragmentItemView(fragment))
+            }
 
-                cardRecordingDay.visibility = View.VISIBLE
+            cardRecordingDay.visibility = View.VISIBLE
 
-                btnGenerateAi.setOnClickListener {
-                    val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
-                    intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
-                    startActivity(intent)
-                }
+            btnGenerateAi.setOnClickListener {
+                val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java)
+                intent.putExtra(MemoryFragmentActivity.EXTRA_DATE, dateStr)
+                startActivity(intent)
             }
         }
     }
@@ -388,7 +383,7 @@ class CalendarFragment : Fragment() {
             buildMetaRow(entity)
 
             // 기록 조각 목록
-            val fragments = repository.getFragmentsByDate(dateStr).first()
+            val fragments = repository.getFragmentsByDate(dateStr)
             llDetailFragments.removeAllViews()
             fragments.forEach { fragment ->
                 llDetailFragments.addView(createDetailFragmentItem(fragment))

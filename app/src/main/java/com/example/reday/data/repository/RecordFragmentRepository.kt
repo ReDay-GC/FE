@@ -4,8 +4,10 @@ import android.util.Log
 import com.example.reday.data.local.dao.RecordFragmentDao
 import com.example.reday.data.local.entity.RecordFragmentEntity
 import com.example.reday.data.mapper.RecordFragmentMapper
+import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.remote.RecordApiService
+import com.example.reday.data.remote.RecordItemData
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.remote.SaveTextRecordRequest
 import kotlinx.coroutines.flow.Flow
@@ -36,8 +38,35 @@ class RecordFragmentRepository(
         this
     }
 
-    fun getFragmentsByDate(date: String): Flow<List<RecordFragmentUiModel>> =
-        dao.getByDate(date).map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }
+    suspend fun getFragmentsByDate(date: String): List<RecordFragmentUiModel> {
+        return try {
+            val response = api.getRecordsByDate(date)
+            if (response.success) response.data.map { it.toUiModel() }
+            else emptyList()
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "날짜별 기록 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun RecordItemData.toUiModel(): RecordFragmentUiModel = RecordFragmentUiModel(
+        localId = recordId,
+        serverId = recordId,
+        fragmentType = when (recordType) {
+            "PHOTO" -> FragmentType.PHOTO
+            "VOICE" -> FragmentType.VOICE
+            else -> FragmentType.TEXT
+        },
+        contentText = textContent,
+        photoUrl = if (recordType == "PHOTO") fileUrl else null,
+        voiceUrl = if (recordType == "VOICE") fileUrl else null,
+        durationSec = voiceDurationSeconds,
+        createdAt = recordedAt ?: createdAt,
+        date = recordDate,
+        locationName = address,
+        latitude = latitude,
+        longitude = longitude
+    )
 
     fun getAllFragments(): Flow<List<RecordFragmentUiModel>> =
         dao.getAll().map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }

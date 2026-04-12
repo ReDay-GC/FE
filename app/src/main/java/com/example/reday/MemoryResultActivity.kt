@@ -136,9 +136,8 @@ class MemoryResultActivity : AppCompatActivity() {
         memoryRepository = MemoryRepository(db.memoryDao())
 
         lifecycleScope.launch {
-            fragmentRepository.getFragmentsByDate(date).collect { frags ->
-                photoFragments = frags.filter { it.fragmentType == FragmentType.PHOTO }
-            }
+            val frags = fragmentRepository.getFragmentsByDate(date)
+            photoFragments = frags.filter { it.fragmentType == FragmentType.PHOTO }
         }
 
         renderAll()
