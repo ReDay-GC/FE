@@ -73,6 +73,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
         repository = RecordFragmentRepository(db.recordFragmentDao())
 
         lifecycleScope.launch {
+            repository.syncFragmentsByDate(date)
             repository.getFragmentsByDate(date).collect { frags ->
                 fragments = frags
                 tvBannerTitle.text = "${frags.size}개의 기억 조각이 있어요"

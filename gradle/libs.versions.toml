@@ -34,6 +34,7 @@ google-maps = { group = "com.google.android.gms", name = "play-services-maps", v
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version = "v3.1.0" }
+glide = { group = "com.github.bumptech.glide", name = "glide", version = "4.16.0" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

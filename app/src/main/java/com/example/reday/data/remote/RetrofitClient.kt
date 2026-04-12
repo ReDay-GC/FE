@@ -6,13 +6,23 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private val BASE_URL = "http://54.180.97.48:8080/"
+    private val BASE_URL = "http://13.209.98.126:8080/"
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
+    var accessToken: String? = null
+
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .apply { accessToken?.let { addHeader("Authorization", "Bearer $it") } }
+                    .build()
+                chain.proceed(request)
+            }
+            .build()
+    }
 
     private val retrofit by lazy {
         Retrofit.Builder()
@@ -28,5 +38,9 @@ object RetrofitClient {
 
     val authApi: AuthApiService by lazy {
         retrofit.create(AuthApiService::class.java)
+    }
+
+    val recordApi: RecordApiService by lazy {
+        retrofit.create(RecordApiService::class.java)
     }
 }

@@ -233,7 +233,7 @@ class SignupActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 setLoading(false)
-                Toast.makeText(this@SignupActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@SignupActivity, "네트워크 오류: ${e.javaClass.simpleName} - ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }

@@ -41,6 +41,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.exifinterface.media.ExifInterface
 import android.content.ContentUris
 import android.provider.MediaStore
+import com.bumptech.glide.Glide
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -303,9 +304,10 @@ class AddMemoryFragment : Fragment() {
             icToggle.rotation = if (isRecordsExpanded) 180f else 0f
         }
 
-        // DB에서 기록 목록 실시간 구독
+        // DB에서 기록 목록 실시간 구독 (서버 sync 후 갱신)
         val date = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
         viewLifecycleOwner.lifecycleScope.launch {
+            repository.syncFragmentsByDate(date)
             repository.getFragmentsByDate(date).collect { records ->
                 updateRecordsList(view, records)
             }
@@ -938,13 +940,10 @@ class AddMemoryFragment : Fragment() {
         val tvFullContent = itemView.findViewById<TextView>(R.id.tv_full_content)
 
         if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
-            val bitmap = loadBitmapWithCorrectOrientation(record.photoUrl!!)
-            if (bitmap != null) {
-                ivPhotoDetail.setImageBitmap(bitmap)
-                ivPhotoDetail.visibility = View.VISIBLE
-            } else {
-                ivPhotoDetail.visibility = View.GONE
-            }
+            val url = record.photoUrl!!
+            val source: Any = if (url.startsWith("http")) url else java.io.File(url)
+            Glide.with(this).load(source).into(ivPhotoDetail)
+            ivPhotoDetail.visibility = View.VISIBLE
             if (!record.contentText.isNullOrBlank()) {
                 tvFullContent.text = record.contentText
                 tvFullContent.visibility = View.VISIBLE
