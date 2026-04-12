@@ -118,6 +118,10 @@ class MemoryDetailActivity : AppCompatActivity() {
         dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
             dialog.dismiss()
             lifecycleScope.launch {
+                // 기록 조각 먼저 삭제 (서버 + 로컬)
+                val fragments = fragmentRepository.getFragmentsByDate(date)
+                fragments.forEach { fragmentRepository.deleteFragment(it) }
+                // 기억 삭제 (서버 + 로컬)
                 memoryRepository.deleteMemoryByDate(date)
                 finish()
             }
@@ -131,7 +135,9 @@ class MemoryDetailActivity : AppCompatActivity() {
 
             // 히어로 사진
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
-                val bitmap = loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
+                val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
+                }
                 if (bitmap != null) ivHero.setImageBitmap(bitmap)
             }
 
@@ -247,7 +253,9 @@ class MemoryDetailActivity : AppCompatActivity() {
                         clipToOutline = true
                     }
                     lifecycleScope.launch {
-                        val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        val bm = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        }
                         if (bm != null) imageView.setImageBitmap(bm)
                     }
                     content.addView(imageView)

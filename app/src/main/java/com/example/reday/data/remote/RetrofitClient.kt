@@ -6,8 +6,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private val SPRING_BASE_URL = "http://13.209.98.126:8080/"
-    private val AI_BASE_URL = "http://13.209.98.126:8000/"
+    private val SPRING_BASE_URL = "http://15.164.99.114:8080/"
+    private val AI_BASE_URL = "http://15.164.99.114:8000/"
 
     var accessToken: String? = null
 

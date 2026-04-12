@@ -16,7 +16,8 @@ data class MemoryItemData(
     val memoryDate: String,
     val emotion: String?,
     val thumbnailUrl: String?,
-    val location: String?
+    val location: String?,
+    val recordCount: Int = 0
 )
 
 data class MemoryDetailResponse(

@@ -345,13 +345,14 @@ class CalendarFragment : Fragment() {
 
             // 썸네일
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
-                val bitmap = loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
-                if (bitmap != null) {
-                    ivDetailThumbnail.setImageBitmap(bitmap)
-                    ImageViewCompat.setImageTintList(ivDetailThumbnail, null)
-                } else {
-                    showDefaultThumbnail()
-                }
+                val url = entity.representativePhotoUrl!!
+                val source: Any = if (url.startsWith("http")) url else java.io.File(url)
+                Glide.with(this@CalendarFragment)
+                    .load(source)
+                    .centerCrop()
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .into(ivDetailThumbnail)
+                ImageViewCompat.setImageTintList(ivDetailThumbnail, null)
             } else {
                 showDefaultThumbnail()
             }
@@ -492,14 +493,19 @@ class CalendarFragment : Fragment() {
                 })
                 row.addView(textCol)
                 if (!fragment.photoUrl.isNullOrBlank()) {
-                    row.addView(ImageView(requireContext()).apply {
+                    val thumbIv = ImageView(requireContext()).apply {
                         layoutParams = LinearLayout.LayoutParams(64.dp, 64.dp)
                         scaleType = ImageView.ScaleType.CENTER_CROP
                         setBackgroundResource(R.drawable.bg_photo_preview_rounded)
                         clipToOutline = true
-                        val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                        if (bm != null) setImageBitmap(bm)
-                    })
+                    }
+                    val url = fragment.photoUrl!!
+                    val source: Any = if (url.startsWith("http")) url else java.io.File(url)
+                    Glide.with(this@CalendarFragment)
+                        .load(source)
+                        .centerCrop()
+                        .into(thumbIv)
+                    row.addView(thumbIv)
                 }
                 card.addView(row)
                 return card

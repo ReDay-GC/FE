@@ -142,7 +142,7 @@ class MemoryRepository(
         tags = "[]",
         locations = Gson().toJson(listOfNotNull(location)),
         people = "[]",
-        fragmentCount = 0,
+        fragmentCount = recordCount,
         representativeFragmentId = null,
         representativePhotoUrl = thumbnailUrl,
         representativeLocationName = location,
