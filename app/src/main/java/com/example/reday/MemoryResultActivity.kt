@@ -194,6 +194,8 @@ class MemoryResultActivity : AppCompatActivity() {
                 embedding = currentEmbedding,
                 createdAt = LocalDateTime.now().toString()
             )
+            // 같은 날짜 기억이 이미 있으면 삭제 후 새로 생성 (덮어쓰기)
+            memoryRepository.deleteMemoryByDate(currentDate)
             memoryRepository.saveMemory(entity, currentRecordIds)
             getSharedPreferences("daily_comment", MODE_PRIVATE).edit().remove("date").apply()
             val yearMonth = currentDate.substring(0, 7)
