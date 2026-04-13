@@ -19,14 +19,13 @@
         <!-- 썸네일 영역 -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="200dp">
 
             <ImageView
                 android:id="@+id/iv_thumbnail"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:scaleType="fitCenter"
-                android:adjustViewBounds="true"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
                 android:background="@color/brown_200" />
 
             <!-- 그라데이션 오버레이 -->

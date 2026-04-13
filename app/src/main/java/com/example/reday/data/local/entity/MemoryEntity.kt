@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "memories")
 data class MemoryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val serverId: Long? = null,
     val date: String,                        // "yyyy-MM-dd"
     val title: String,
     val summary: String,

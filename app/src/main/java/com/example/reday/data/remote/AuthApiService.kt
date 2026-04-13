@@ -31,7 +31,8 @@ data class LoginRequest(
 )
 
 data class LoginResponseData(
-    val accessToken: String
+    val accessToken: String,
+    val userId: Long? = null
 )
 
 data class LoginResponse(

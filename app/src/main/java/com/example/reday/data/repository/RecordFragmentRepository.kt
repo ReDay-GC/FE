@@ -1,25 +1,98 @@
 package com.example.reday.data.repository
 
-import com.example.reday.data.local.dao.RecordFragmentDao
-import com.example.reday.data.local.entity.RecordFragmentEntity
-import com.example.reday.data.mapper.RecordFragmentMapper
+import android.util.Log
+import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import com.example.reday.data.remote.RecordApiService
+import com.example.reday.data.remote.LocationRecordData
+import com.example.reday.data.remote.RecordItemData
+import com.example.reday.data.remote.RecordSummaryData
+import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.data.remote.SaveTextRecordRequest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
-class RecordFragmentRepository(private val dao: RecordFragmentDao) {
+class RecordFragmentRepository(
+    private val api: RecordApiService = RetrofitClient.recordApi
+) {
 
-    fun getFragmentsByDate(date: String): Flow<List<RecordFragmentUiModel>> =
-        dao.getByDate(date).map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }
+    private val apiDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-    fun getAllFragments(): Flow<List<RecordFragmentUiModel>> =
-        dao.getAll().map { list -> list.map { RecordFragmentMapper.entityToUiModel(it) } }
+    private fun String.toPlainRequestBody(): RequestBody =
+        toRequestBody("text/plain".toMediaTypeOrNull())
 
-    suspend fun getFragmentsWithLocation(): List<RecordFragmentUiModel> =
-        dao.getAllWithLocation().map { RecordFragmentMapper.entityToUiModel(it) }
+    private fun String.formatForApi(): String = try {
+        val dt = LocalDateTime.parse(this.take(19))
+        dt.format(apiDateFormatter)
+    } catch (e: Exception) {
+        this
+    }
 
-    suspend fun getFragmentsWithLocationByDates(dates: List<String>): List<RecordFragmentUiModel> =
-        dao.getWithLocationByDates(dates).map { RecordFragmentMapper.entityToUiModel(it) }
+    suspend fun getFragmentsByDate(date: String): List<RecordFragmentUiModel> {
+        return try {
+            val response = api.getRecordsByDate(date)
+            if (response.success) response.data.map { it.toUiModel() }
+            else emptyList()
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "날짜별 기록 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun RecordItemData.toUiModel(): RecordFragmentUiModel = RecordFragmentUiModel(
+        localId = recordId,
+        serverId = recordId,
+        fragmentType = when (recordType) {
+            "PHOTO" -> FragmentType.PHOTO
+            "VOICE" -> FragmentType.VOICE
+            else -> FragmentType.TEXT
+        },
+        contentText = textContent,
+        photoUrl = if (recordType == "PHOTO") fileUrl else null,
+        voiceUrl = if (recordType == "VOICE") fileUrl else null,
+        durationSec = voiceDurationSeconds,
+        createdAt = recordedAt ?: createdAt,
+        date = recordDate,
+        locationName = address,
+        latitude = latitude,
+        longitude = longitude
+    )
+
+    suspend fun getFragmentsWithLocationFromServer(): List<RecordFragmentUiModel> {
+        return try {
+            val response = api.getLocationRecords()
+            if (response.success) response.data.map { it.toUiModel() }
+            else emptyList()
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "위치 기록 서버 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun LocationRecordData.toUiModel(): RecordFragmentUiModel = RecordFragmentUiModel(
+        localId = recordId,
+        serverId = recordId,
+        fragmentType = when (recordType) {
+            "PHOTO" -> FragmentType.PHOTO
+            "VOICE" -> FragmentType.VOICE
+            else -> FragmentType.TEXT
+        },
+        contentText = null,
+        photoUrl = if (recordType == "PHOTO") fileUrl else null,
+        voiceUrl = if (recordType == "VOICE") fileUrl else null,
+        durationSec = null,
+        createdAt = recordedAt ?: recordDate,
+        date = recordDate,
+        locationName = address,
+        latitude = latitude,
+        longitude = longitude
+    )
 
     suspend fun saveTextFragment(
         contentText: String,
@@ -28,17 +101,22 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
         locationName: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
-    ): Long {
-        val entity = RecordFragmentEntity(
-            fragmentType = "TEXT",
-            contentText = contentText,
-            createdAt = createdAt,
-            date = date,
-            locationName = locationName,
-            latitude = latitude,
-            longitude = longitude
-        )
-        return dao.insert(entity)
+    ) {
+        try {
+            api.saveText(
+                SaveTextRecordRequest(
+                    recordDate = date,
+                    textContent = contentText,
+                    address = locationName,
+                    latitude = latitude,
+                    longitude = longitude,
+                    recordedAt = createdAt.formatForApi()
+                )
+            )
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "텍스트 서버 저장 실패: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun savePhotoFragment(
@@ -49,18 +127,32 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
         locationName: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
-    ): Long {
-        val entity = RecordFragmentEntity(
-            fragmentType = "PHOTO",
-            photoUrl = photoUrl,
-            contentText = contentText,
-            createdAt = createdAt,
-            date = date,
-            locationName = locationName,
-            latitude = latitude,
-            longitude = longitude
-        )
-        return dao.insert(entity)
+    ) {
+        try {
+            val file = File(photoUrl)
+            val ext = file.extension.lowercase()
+            val mimeType = when (ext) {
+                "png" -> "image/png"
+                "gif" -> "image/gif"
+                else -> "image/jpeg"
+            }
+            val photoPart = MultipartBody.Part.createFormData(
+                "photo", file.name, file.asRequestBody(mimeType.toMediaTypeOrNull())
+            )
+            val params = mutableMapOf<String, RequestBody>(
+                "recordDate" to date.toPlainRequestBody()
+            )
+            contentText?.let { params["textContent"] = it.toPlainRequestBody() }
+            locationName?.let { params["address"] = it.toPlainRequestBody() }
+            latitude?.let { params["latitude"] = it.toString().toPlainRequestBody() }
+            longitude?.let { params["longitude"] = it.toString().toPlainRequestBody() }
+            params["recordedAt"] = createdAt.formatForApi().toPlainRequestBody()
+
+            api.savePhoto(photoPart, params)
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "사진 서버 저장 실패: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun saveVoiceFragment(
@@ -71,30 +163,67 @@ class RecordFragmentRepository(private val dao: RecordFragmentDao) {
         locationName: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
-    ): Long {
-        val entity = RecordFragmentEntity(
-            fragmentType = "VOICE",
-            voiceUrl = voiceUrl,
-            durationSec = durationSec,
-            contentText = contentText,
-            createdAt = java.time.LocalDateTime.now().toString(),
-            date = date,
-            locationName = locationName,
-            latitude = latitude,
-            longitude = longitude
-        )
-        return dao.insert(entity)
+    ) {
+        val createdAt = LocalDateTime.now().format(apiDateFormatter)
+        try {
+            val file = File(voiceUrl)
+            val ext = file.extension.lowercase()
+            val mimeType = when (ext) {
+                "mp3" -> "audio/mpeg"
+                "wav" -> "audio/wav"
+                else -> "audio/m4a"
+            }
+            val audioPart = MultipartBody.Part.createFormData(
+                "audio", file.name, file.asRequestBody(mimeType.toMediaTypeOrNull())
+            )
+            val params = mutableMapOf<String, RequestBody>(
+                "recordDate" to date.toPlainRequestBody(),
+                "recordedAt" to createdAt.toPlainRequestBody(),
+                "voiceDurationSeconds" to durationSec.toString().toPlainRequestBody()
+            )
+            contentText?.let { params["textContent"] = it.toPlainRequestBody() }
+            locationName?.let { params["address"] = it.toPlainRequestBody() }
+            latitude?.let { params["latitude"] = it.toString().toPlainRequestBody() }
+            longitude?.let { params["longitude"] = it.toString().toPlainRequestBody() }
+
+            api.saveVoice(audioPart, params)
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "음성 서버 저장 실패: ${e.message}")
+            throw e
+        }
     }
 
     suspend fun getRecordDatesByMonth(year: Int, month: Int): Set<Int> {
-        val yearMonth = "%04d-%02d".format(year, month)
-        return dao.getDistinctDatesByMonth(yearMonth)
-            .mapNotNull { dateStr ->
-                dateStr.split("-").getOrNull(2)?.toIntOrNull()
-            }.toSet()
+        return try {
+            val response = api.getRecordDates(year, month)
+            if (response.success) {
+                response.data.dates.mapNotNull { dateStr ->
+                    dateStr.split("-").getOrNull(2)?.toIntOrNull()
+                }.toSet()
+            } else emptySet()
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "월별 날짜 서버 조회 실패: ${e.message}")
+            emptySet()
+        }
+    }
+
+    suspend fun getRecordSummary(): RecordSummaryData? {
+        return try {
+            val response = api.getRecordSummary()
+            if (response.success) response.data else null
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "기록 요약 조회 실패: ${e.message}")
+            null
+        }
     }
 
     suspend fun deleteFragment(model: RecordFragmentUiModel) {
-        dao.delete(RecordFragmentMapper.uiModelToEntity(model))
+        model.serverId?.let { serverId ->
+            try {
+                api.deleteRecord(serverId)
+            } catch (e: Exception) {
+                Log.e("RecordRepo", "서버 기록 삭제 실패: ${e.message}")
+            }
+        }
     }
 }

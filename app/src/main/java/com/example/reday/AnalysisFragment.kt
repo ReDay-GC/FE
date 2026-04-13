@@ -12,15 +12,16 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
-import com.example.reday.data.local.entity.MemoryEntity
-import com.example.reday.data.model.FragmentType
+import com.example.reday.data.remote.ActivityStatItem
 import com.example.reday.data.remote.GenerateInsightRequest
 import com.example.reday.data.remote.MemorySummary
+import com.example.reday.data.remote.MonthlyAnalysisData
+import com.example.reday.data.remote.PeopleStatItem
+import com.example.reday.data.remote.PlaceStatItem
+import com.example.reday.data.remote.RecordTypeStatItem
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.MemoryRepository
-import com.example.reday.data.repository.MonthlyInsightRepository
-import com.example.reday.data.repository.RecordFragmentRepository
+import com.example.reday.utils.TokenManager
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.XAxis
@@ -31,22 +32,15 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
-import android.location.Geocoder
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 class AnalysisFragment : Fragment() {
 
     private lateinit var memoryRepository: MemoryRepository
-    private lateinit var insightRepository: MonthlyInsightRepository
-    private lateinit var fragmentRepository: RecordFragmentRepository
 
     private lateinit var layoutEmpty: View
     private lateinit var layoutContent: View
@@ -66,10 +60,7 @@ class AnalysisFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = AppDatabase.getInstance(requireContext())
-        memoryRepository = MemoryRepository(db.memoryDao())
-        insightRepository = MonthlyInsightRepository(db.monthlyInsightDao())
-        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(
@@ -102,15 +93,20 @@ class AnalysisFragment : Fragment() {
         view.findViewById<View>(R.id.btn_regenerate_insight).setOnClickListener {
             generateInsight()
         }
+    }
 
+    override fun onResume() {
+        super.onResume()
         loadData()
     }
 
     private fun loadData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val allMemories = memoryRepository.getAllMemories().first()
+            val today = LocalDate.now()
+            val analysisData = memoryRepository.getMonthlyAnalysis(today.year, today.monthValue)
 
-            if (allMemories.isEmpty()) {
+            val totalMemories = analysisData?.memoryTrend?.sumOf { it.count } ?: 0
+            if (analysisData == null || totalMemories == 0) {
                 layoutEmpty.visibility = View.VISIBLE
                 layoutContent.visibility = View.GONE
                 return@launch
@@ -119,42 +115,19 @@ class AnalysisFragment : Fragment() {
             layoutEmpty.visibility = View.GONE
             layoutContent.visibility = View.VISIBLE
 
-            val memoryDates = allMemories.map { it.date }
-            val memoryFragments = fragmentRepository.getFragmentsWithLocationByDates(memoryDates)
-            val allFragments = fragmentRepository.getAllFragments().first()
-                .filter { it.date in memoryDates }
+            setupMonthlyChart(analysisData.memoryTrend)
+            setupActivityChart(analysisData.topActivities)
+            setupRecordTypeChart(analysisData.recordTypeStats)
+            setupPlaces(analysisData.topPlaces)
+            setupPeople(analysisData.topPeople)
 
-            setupMonthlyChart(allMemories)
-            setupActivityChart(allMemories)
-            setupRecordTypeChart(
-                photo = allFragments.count { it.fragmentType == FragmentType.PHOTO },
-                text = allFragments.count { it.fragmentType == FragmentType.TEXT },
-                voice = allFragments.count { it.fragmentType == FragmentType.VOICE }
-            )
-            setupPlaces(memoryFragments)
-            setupPeople(allMemories)
-            loadInsight()
-        }
-    }
-
-    private suspend fun loadInsight() {
-        val prefs = requireContext().getSharedPreferences("insight_prefs", android.content.Context.MODE_PRIVATE)
-        val needsRegen = prefs.getBoolean("needs_regen", false)
-        val regenMonth = prefs.getString("needs_regen_month", "")
-
-        if (needsRegen && regenMonth == currentYearMonth) {
-            prefs.edit().putBoolean("needs_regen", false).apply()
-            generateInsight()
-            return
-        }
-
-        val saved = insightRepository.getInsight(currentYearMonth)
-        if (saved != null) {
-            showInsightContent(saved.insightText)
-        } else {
-            layoutInsightEmpty.visibility = View.VISIBLE
-            layoutInsightContent.visibility = View.GONE
-            layoutInsightLoading.visibility = View.GONE
+            if (!analysisData.monthlyInsight.isNullOrBlank()) {
+                showInsightContent(analysisData.monthlyInsight)
+            } else {
+                layoutInsightEmpty.visibility = View.VISIBLE
+                layoutInsightContent.visibility = View.GONE
+                layoutInsightLoading.visibility = View.GONE
+            }
         }
     }
 
@@ -166,7 +139,8 @@ class AnalysisFragment : Fragment() {
 
             try {
                 val yearMonth = currentYearMonth
-                val memories = memoryRepository.getAllMemories().first()
+                val userId = TokenManager.getUserId(requireContext())
+                val memories = memoryRepository.getAllMemories()
                     .filter { it.date.startsWith(yearMonth) }
 
                 if (memories.isEmpty()) {
@@ -177,11 +151,19 @@ class AnalysisFragment : Fragment() {
                 }
 
                 val summaries = memories.map { it.toMemorySummary() }
-                val request = GenerateInsightRequest(year_month = yearMonth, memories = summaries)
+                val request = GenerateInsightRequest(
+                    year_month = yearMonth,
+                    memories = summaries,
+                    user_id = userId
+                )
                 val response = RetrofitClient.memoryApi.generateInsight(request)
-
-                insightRepository.saveInsight(yearMonth, response.insight)
                 showInsightContent(response.insight)
+
+                // 인사이트 생성 후 서버 데이터 갱신 (topActivities, topPeople 포함)
+                val today = LocalDate.now()
+                val updated = memoryRepository.getMonthlyAnalysis(today.year, today.monthValue)
+                updated?.topActivities?.let { setupActivityChart(it) }
+                updated?.topPeople?.let { setupPeople(it) }
 
             } catch (e: Exception) {
                 layoutInsightLoading.visibility = View.GONE
@@ -202,15 +184,15 @@ class AnalysisFragment : Fragment() {
 
     // ── 차트 ──
 
-    private fun setupMonthlyChart(memories: List<MemoryEntity>) {
-        val today = LocalDate.now()
-        val months = (5 downTo 0).map { today.minusMonths(it.toLong()) }
-        val labels = months.map { "${it.monthValue}월" }
+    private fun setupMonthlyChart(trend: List<com.example.reday.data.remote.MemoryTrendItem>) {
+        if (trend.isEmpty()) {
+            chartMonthly.visibility = View.GONE
+            return
+        }
 
-        val entries = months.mapIndexed { index, date ->
-            val ym = date.format(DateTimeFormatter.ofPattern("yyyy-MM"))
-            val count = memories.count { it.date.startsWith(ym) }
-            BarEntry(index.toFloat(), count.toFloat())
+        val labels = trend.map { "${it.month}월" }
+        val entries = trend.mapIndexed { index, item ->
+            BarEntry(index.toFloat(), item.count.toFloat())
         }
 
         val barColor = ContextCompat.getColor(requireContext(), R.color.main_200)
@@ -248,20 +230,8 @@ class AnalysisFragment : Fragment() {
         }
     }
 
-    private fun setupActivityChart(memories: List<MemoryEntity>) {
-        val tagCounts = mutableMapOf<String, Int>()
-        val gson = Gson()
-        val type = object : TypeToken<List<String>>() {}.type
-
-        memories.forEach { memory ->
-            try {
-                val tags = gson.fromJson<List<String>>(memory.tags, type) ?: emptyList()
-                tags.forEach { tag -> tagCounts[tag] = (tagCounts[tag] ?: 0) + 1 }
-            } catch (e: Exception) { /* skip */ }
-        }
-
-        val top = tagCounts.entries.sortedByDescending { it.value }.take(6)
-        if (top.isEmpty()) {
+    private fun setupActivityChart(activities: List<ActivityStatItem>?) {
+        if (activities.isNullOrEmpty()) {
             chartActivity.visibility = View.GONE
             return
         }
@@ -275,33 +245,46 @@ class AnalysisFragment : Fragment() {
             ContextCompat.getColor(requireContext(), R.color.brown_300)
         )
 
-        val total = top.sumOf { it.value }.toFloat()
-        val entries = top.map { (tag, count) ->
-            PieEntry(count.toFloat(), "$tag ${(count / total * 100).toInt()}%")
+        val entries = activities.map { item ->
+            PieEntry(item.percentage.toFloat(), "${item.activityType} ${item.percentage}%")
         }
 
         setupPieChart(chartActivity, entries, colors)
     }
 
-    private fun setupRecordTypeChart(photo: Int, text: Int, voice: Int) {
-        val total = photo + text + voice
+    private fun setupRecordTypeChart(stats: List<RecordTypeStatItem>) {
+        val total = stats.sumOf { it.count }
         if (total == 0) {
             chartRecordType.visibility = View.GONE
             return
         }
 
-        val entries = mutableListOf<PieEntry>()
-        if (photo > 0) entries.add(PieEntry(photo.toFloat(), "사진 ${(photo * 100 / total)}%"))
-        if (text > 0) entries.add(PieEntry(text.toFloat(), "텍스트 ${(text * 100 / total)}%"))
-        if (voice > 0) entries.add(PieEntry(voice.toFloat(), "음성 ${(voice * 100 / total)}%"))
-
-        val colors = listOf(
-            ContextCompat.getColor(requireContext(), R.color.main_200),
-            ContextCompat.getColor(requireContext(), R.color.brown_400),
-            ContextCompat.getColor(requireContext(), R.color.sub_200)
+        val colorMap = mapOf(
+            "PHOTO" to ContextCompat.getColor(requireContext(), R.color.main_200),
+            "TEXT" to ContextCompat.getColor(requireContext(), R.color.brown_400),
+            "VOICE" to ContextCompat.getColor(requireContext(), R.color.sub_200)
         )
+        val labelMap = mapOf("PHOTO" to "사진", "TEXT" to "텍스트", "VOICE" to "음성")
+
+        val filtered = stats.filter { it.count > 0 }
+        val entries = filtered.map { stat ->
+            PieEntry(stat.count.toFloat(), "${labelMap[stat.recordType] ?: stat.recordType} ${stat.percentage.toInt()}%")
+        }
+        val colors = filtered.map { colorMap[it.recordType] ?: Color.GRAY }
 
         setupPieChart(chartRecordType, entries, colors)
+    }
+
+    private fun setupPlaces(places: List<PlaceStatItem>) {
+        val items = places.map { it.place to it.count }
+        val barColor = ContextCompat.getColor(requireContext(), R.color.sub_200)
+        fillRankLayout(layoutPlaces, items, barColor)
+    }
+
+    private fun setupPeople(people: List<PeopleStatItem>?) {
+        val items = people?.map { it.name to it.count } ?: emptyList()
+        val barColor = ContextCompat.getColor(requireContext(), R.color.main_200)
+        fillRankLayout(layoutPeople, items, barColor)
     }
 
     private fun setupPieChart(chart: PieChart, entries: List<PieEntry>, colors: List<Int>) {
@@ -323,89 +306,6 @@ class AnalysisFragment : Fragment() {
             setTouchEnabled(false)
             invalidate()
         }
-    }
-
-    private suspend fun setupPlaces(fragments: List<com.example.reday.data.model.RecordFragmentUiModel>) {
-        val located = fragments.filter {
-            it.latitude != null && it.longitude != null && !it.locationName.isNullOrBlank()
-        }
-
-        if (located.isEmpty()) {
-            fillRankLayout(layoutPlaces, emptyList(), ContextCompat.getColor(requireContext(), R.color.sub_200))
-            return
-        }
-
-        // 좌표 기반 클러스터링 (300m 이내 = 같은 장소)
-        data class Cluster(
-            val centerLat: Double,
-            val centerLng: Double,
-            val names: MutableList<String> = mutableListOf()
-        )
-
-        val clusters = mutableListOf<Cluster>()
-
-        located.forEach { fragment ->
-            val lat = fragment.latitude!!
-            val lng = fragment.longitude!!
-            val name = fragment.locationName!!
-
-            val nearby = clusters.find { haversineDistance(it.centerLat, it.centerLng, lat, lng) <= 300.0 }
-            if (nearby != null) {
-                nearby.names.add(name)
-            } else {
-                clusters.add(Cluster(lat, lng, mutableListOf(name)))
-            }
-        }
-
-        // 각 클러스터의 대표 이름: 좌표 역지오코딩으로 동/구 수준 지역명, 실패 시 가장 빈도 높은 입력값
-        val geocoder = Geocoder(requireContext(), Locale.KOREA)
-        val top = clusters.map { cluster ->
-            val areaName = withContext(Dispatchers.IO) {
-                try {
-                    val address = geocoder.getFromLocation(cluster.centerLat, cluster.centerLng, 1)?.firstOrNull()
-                    // 우선순위: thoroughfare(동/로) → subLocality(동) → subAdminArea(구) → 입력값 폴백
-                    address?.thoroughfare
-                        ?: address?.subLocality
-                        ?: address?.subAdminArea
-                        ?: cluster.names.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
-                        ?: cluster.names.first()
-                } catch (e: Exception) {
-                    cluster.names.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
-                        ?: cluster.names.first()
-                }
-            }
-            areaName to cluster.names.size
-        }.sortedByDescending { it.second }.take(4)
-
-        val barColor = ContextCompat.getColor(requireContext(), R.color.sub_200)
-        fillRankLayout(layoutPlaces, top, barColor)
-    }
-
-    private fun haversineDistance(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
-        val R = 6371000.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLng = Math.toRadians(lng2 - lng1)
-        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dLng / 2) * Math.sin(dLng / 2)
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    }
-
-    private fun setupPeople(memories: List<MemoryEntity>) {
-        val peopleCounts = mutableMapOf<String, Int>()
-        val gson = Gson()
-        val type = object : TypeToken<List<String>>() {}.type
-
-        memories.forEach { memory ->
-            try {
-                val people = gson.fromJson<List<String>>(memory.people, type) ?: emptyList()
-                people.forEach { person -> peopleCounts[person] = (peopleCounts[person] ?: 0) + 1 }
-            } catch (e: Exception) { /* skip */ }
-        }
-
-        val top = peopleCounts.entries.sortedByDescending { it.value }.take(4).map { it.key to it.value }
-        val barColor = ContextCompat.getColor(requireContext(), R.color.main_200)
-        fillRankLayout(layoutPeople, top, barColor)
     }
 
     private fun fillRankLayout(
@@ -442,7 +342,7 @@ class AnalysisFragment : Fragment() {
         }
     }
 
-    private fun MemoryEntity.toMemorySummary(): MemorySummary {
+    private fun com.example.reday.data.local.entity.MemoryEntity.toMemorySummary(): MemorySummary {
         val gson = Gson()
         val listType = object : TypeToken<List<String>>() {}.type
         val tags = try { gson.fromJson<List<String>>(this.tags, listType) ?: emptyList() } catch (e: Exception) { emptyList() }

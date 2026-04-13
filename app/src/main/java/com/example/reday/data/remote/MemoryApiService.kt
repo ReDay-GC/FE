@@ -28,14 +28,14 @@ data class GenerateMemoryResponse(
     val embedding: List<Float> = emptyList()
 )
 
-data class MemoryEmbeddingItem(
+data class SaveEmbeddingRequest(
     val memory_id: Long,
-    val embedding: List<Float>
+    val embedding: String  // List<Float> JSON
 )
 
 data class SearchSemanticRequest(
     val query: String,
-    val memories: List<MemoryEmbeddingItem>
+    val memory_ids: List<Long>
 )
 
 data class SearchSemanticResponse(
@@ -48,7 +48,8 @@ data class TranscribeResponse(
 
 data class GenerateInsightRequest(
     val year_month: String,             // "2026-03"
-    val memories: List<MemorySummary>
+    val memories: List<MemorySummary>,
+    val user_id: Long? = null
 )
 
 data class MemorySummary(
@@ -107,6 +108,9 @@ interface MemoryApiService {
 
     @POST("daily-comment")
     suspend fun dailyComment(@Body request: DailyCommentRequest): DailyCommentResponse
+
+    @POST("save-embedding")
+    suspend fun saveEmbedding(@Body request: SaveEmbeddingRequest)
 
     @POST("search-semantic")
     suspend fun searchSemantic(@Body request: SearchSemanticRequest): SearchSemanticResponse

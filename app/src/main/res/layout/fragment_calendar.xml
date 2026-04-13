@@ -375,9 +375,8 @@
                     <ImageView
                         android:id="@+id/iv_detail_thumbnail"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:scaleType="fitCenter"
-                        android:adjustViewBounds="true"
+                        android:layout_height="160dp"
+                        android:scaleType="centerCrop"
                         android:background="@color/brown_200"
                         android:contentDescription="기억 썸네일" />
 

@@ -9,7 +9,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.repository.MemoryRepository
@@ -33,8 +32,7 @@ class ArchiveFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val db = AppDatabase.getInstance(requireContext())
-        repository = MemoryRepository(db.memoryDao())
+        repository = MemoryRepository()
 
         val cal = Calendar.getInstance()
         currentYear = cal.get(Calendar.YEAR)
@@ -83,10 +81,9 @@ class ArchiveFragment : Fragment() {
 
     private fun loadMemories() {
         lifecycleScope.launch {
-            repository.getMemoriesByMonth(currentYear, currentMonth).collectLatest { entities ->
-                allItems = MemoryMapper.fromMemoryEntityList(entities)
-                showList(allItems)
-            }
+            val entities = repository.getMemoriesByMonth(currentYear, currentMonth)
+            allItems = MemoryMapper.fromMemoryEntityList(entities)
+            showList(allItems)
         }
     }
 

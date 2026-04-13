@@ -21,11 +21,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.reday.data.local.AppDatabase
-import com.example.reday.data.mapper.MemoryMapper
-import com.example.reday.data.model.MapLocationGroup
+import com.example.reday.data.remote.MapLocationData
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
+import kotlinx.coroutines.Job
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -50,8 +49,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var tvPanelCount: TextView
     private lateinit var rvMapMemories: RecyclerView
 
-    // Marker → LocationGroup 매핑
-    private val markerGroupMap = mutableMapOf<String, MapLocationGroup>()
+    // Marker → LocationData 매핑
+    private val markerLocationMap = mutableMapOf<String, MapLocationData>()
+    private var panelJob: Job? = null
 
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -61,9 +61,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = AppDatabase.getInstance(requireContext())
-        repository = RecordFragmentRepository(db.recordFragmentDao())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        repository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(
@@ -106,8 +105,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         map.setOnMapClickListener { hideLocationPanel() }
 
         map.setOnMarkerClickListener { marker ->
-            val group = markerGroupMap[marker.id] ?: return@setOnMarkerClickListener false
-            showLocationPanel(group)
+            val locationData = markerLocationMap[marker.id] ?: return@setOnMarkerClickListener false
+            showLocationPanel(locationData)
             true
         }
 
@@ -116,20 +115,19 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private fun loadLocationGroups() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val memoryDates = memoryRepository.getAllMemoryDates()
-            if (memoryDates.isEmpty()) return@launch
-            val fragments = repository.getFragmentsWithLocationByDates(memoryDates)
+            val locationGroups = memoryRepository.getMapLocations()
             val map = googleMap ?: return@launch
-
-            val groups = MemoryMapper.groupByLocation(fragments)
-            if (groups.isEmpty()) return@launch
+            if (locationGroups.isEmpty()) return@launch
 
             val boundsBuilder = LatLngBounds.Builder()
+            var hasValidLocation = false
 
-            groups.forEach { group ->
-                val position = LatLng(group.latitude, group.longitude)
-                val markerBitmap = createMarkerBitmap(group.totalFragmentCount)
-                // 앵커: 핀 꼬리 끝 = 비트맵 하단 중앙 (핀 X 중심 / 비트맵 너비)
+            locationGroups.forEach { locationData ->
+                val lat = locationData.latitude ?: return@forEach
+                val lng = locationData.longitude ?: return@forEach
+
+                val position = LatLng(lat, lng)
+                val markerBitmap = createMarkerBitmap(locationData.memoryCount)
                 val d = resources.displayMetrics.density
                 val pinW = 26 * d
                 val badgeR = 9 * d
@@ -143,31 +141,40 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                         .anchor(anchorX, 1.0f)
                 ) ?: return@forEach
 
-                markerGroupMap[marker.id] = group
+                markerLocationMap[marker.id] = locationData
                 boundsBuilder.include(position)
+                hasValidLocation = true
             }
 
-            try {
-                val bounds = boundsBuilder.build()
-                map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150))
-            } catch (e: Exception) {
-                val first = groups.first()
-                map.animateCamera(
-                    CameraUpdateFactory.newLatLngZoom(LatLng(first.latitude, first.longitude), 15f)
-                )
+            if (hasValidLocation) {
+                try {
+                    val bounds = boundsBuilder.build()
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150))
+                } catch (e: Exception) {
+                    val first = locationGroups.firstOrNull { it.latitude != null } ?: return@launch
+                    map.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(LatLng(first.latitude!!, first.longitude!!), 15f)
+                    )
+                }
             }
         }
     }
 
-    private fun showLocationPanel(group: MapLocationGroup) {
-        tvPanelLocationName.text = group.locationName
-        tvPanelCount.text = "${group.memories.size}개"
-        rvMapMemories.adapter = MapMemoryAdapter(group.memories) { memory ->
-            val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
-            intent.putExtra(MemoryDetailActivity.EXTRA_DATE, memory.date)
-            startActivity(intent)
-        }
+    private fun showLocationPanel(locationData: MapLocationData) {
+        tvPanelLocationName.text = locationData.location
+        tvPanelCount.text = "${locationData.memoryCount}개"
+        rvMapMemories.adapter = MapMemoryAdapter(emptyList()) { }
         panelLocation.isVisible = true
+
+        panelJob?.cancel()
+        panelJob = viewLifecycleOwner.lifecycleScope.launch {
+            val memories = memoryRepository.getMapLocationMemories(locationData.location)
+            rvMapMemories.adapter = MapMemoryAdapter(memories) { memory ->
+                val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
+                intent.putExtra(MemoryDetailActivity.EXTRA_DATE, memory.date)
+                startActivity(intent)
+            }
+        }
     }
 
     private fun hideLocationPanel() {

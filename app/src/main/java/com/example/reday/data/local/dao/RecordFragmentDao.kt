@@ -22,6 +22,9 @@ interface RecordFragmentDao {
     @Query("SELECT * FROM record_fragments WHERE localId = :localId")
     suspend fun getById(localId: Long): RecordFragmentEntity?
 
+    @Query("SELECT * FROM record_fragments WHERE serverId = :serverId LIMIT 1")
+    suspend fun getByServerId(serverId: Long): RecordFragmentEntity?
+
     @Query("SELECT DISTINCT date FROM record_fragments WHERE date LIKE :yearMonth || '%'")
     suspend fun getDistinctDatesByMonth(yearMonth: String): List<String>
 

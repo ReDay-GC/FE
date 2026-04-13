@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
@@ -22,7 +21,6 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -67,9 +65,8 @@ class MemoryDetailActivity : AppCompatActivity() {
             showMoreMenu(date)
         }
 
-        val db = AppDatabase.getInstance(this)
-        memoryRepository = MemoryRepository(db.memoryDao())
-        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository()
+        fragmentRepository = RecordFragmentRepository()
 
         loadData(date)
     }
@@ -119,6 +116,10 @@ class MemoryDetailActivity : AppCompatActivity() {
         dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
             dialog.dismiss()
             lifecycleScope.launch {
+                // 기록 조각 먼저 삭제 (서버 + 로컬)
+                val fragments = fragmentRepository.getFragmentsByDate(date)
+                fragments.forEach { fragmentRepository.deleteFragment(it) }
+                // 기억 삭제 (서버 + 로컬)
                 memoryRepository.deleteMemoryByDate(date)
                 finish()
             }
@@ -132,7 +133,9 @@ class MemoryDetailActivity : AppCompatActivity() {
 
             // 히어로 사진
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
-                val bitmap = loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
+                val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
+                }
                 if (bitmap != null) ivHero.setImageBitmap(bitmap)
             }
 
@@ -155,15 +158,18 @@ class MemoryDetailActivity : AppCompatActivity() {
             // 요약
             tvSummary.text = entity.summary
 
-            // 태그
-            val tags = parseTags(entity.tags)
+            // 태그 — 상세 API에서 조회
+            val tags = entity.serverId?.let { serverId ->
+                memoryRepository.getMemoryDetail(serverId)
+                    ?.tags?.map { it.tagName }
+            } ?: parseTags(entity.tags)
             chipGroupTags.removeAllViews()
-            tags.forEach { tag ->
+            tags?.forEach { tag ->
                 chipGroupTags.addView(createTagChip(tag))
             }
 
             // 기록 조각 타임라인
-            val fragments = fragmentRepository.getFragmentsByDate(date).first()
+            val fragments = fragmentRepository.getFragmentsByDate(date)
             tvFragmentCount.text = "${fragments.size}개"
             buildTimeline(fragments)
         }
@@ -245,7 +251,9 @@ class MemoryDetailActivity : AppCompatActivity() {
                         clipToOutline = true
                     }
                     lifecycleScope.launch {
-                        val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        val bm = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        }
                         if (bm != null) imageView.setImageBitmap(bm)
                     }
                     content.addView(imageView)

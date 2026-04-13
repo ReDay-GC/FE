@@ -26,7 +26,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.remote.RetrofitClient
@@ -41,6 +40,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.exifinterface.media.ExifInterface
 import android.content.ContentUris
 import android.provider.MediaStore
+import com.bumptech.glide.Glide
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -208,8 +208,7 @@ class AddMemoryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val db = AppDatabase.getInstance(requireContext())
-        repository = RecordFragmentRepository(db.recordFragmentDao())
+        repository = RecordFragmentRepository()
 
         // 현재 위치 체크박스
         view.findViewById<CheckBox>(R.id.cb_current_location).setOnCheckedChangeListener { _, isChecked ->
@@ -303,12 +302,11 @@ class AddMemoryFragment : Fragment() {
             icToggle.rotation = if (isRecordsExpanded) 180f else 0f
         }
 
-        // DB에서 기록 목록 실시간 구독
+        // 서버에서 기록 목록 조회
         val date = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
         viewLifecycleOwner.lifecycleScope.launch {
-            repository.getFragmentsByDate(date).collect { records ->
-                updateRecordsList(view, records)
-            }
+            val records = repository.getFragmentsByDate(date)
+            updateRecordsList(view, records)
         }
 
         // 기록 유형 버튼
@@ -938,13 +936,23 @@ class AddMemoryFragment : Fragment() {
         val tvFullContent = itemView.findViewById<TextView>(R.id.tv_full_content)
 
         if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
-            val bitmap = loadBitmapWithCorrectOrientation(record.photoUrl!!)
-            if (bitmap != null) {
-                ivPhotoDetail.setImageBitmap(bitmap)
-                ivPhotoDetail.visibility = View.VISIBLE
-            } else {
-                ivPhotoDetail.visibility = View.GONE
-            }
+            val url = record.photoUrl!!
+            val source: Any = if (url.startsWith("http")) url else java.io.File(url)
+            Log.d("PhotoDebug", "photoUrl=$url, exists=${if (url.startsWith("http")) "remote" else java.io.File(url).exists().toString()}")
+            Glide.with(this)
+                .load(source)
+                .listener(object : com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable> {
+                    override fun onLoadFailed(e: com.bumptech.glide.load.engine.GlideException?, model: Any?, target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>, isFirstResource: Boolean): Boolean {
+                        Log.e("PhotoDebug", "Glide 로드 실패: ${e?.message}")
+                        return false
+                    }
+                    override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>?, dataSource: com.bumptech.glide.load.DataSource, isFirstResource: Boolean): Boolean {
+                        Log.d("PhotoDebug", "Glide 로드 성공")
+                        return false
+                    }
+                })
+                .into(ivPhotoDetail)
+            ivPhotoDetail.visibility = View.VISIBLE
             if (!record.contentText.isNullOrBlank()) {
                 tvFullContent.text = record.contentText
                 tvFullContent.visibility = View.VISIBLE

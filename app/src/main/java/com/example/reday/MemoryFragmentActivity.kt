@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.remote.FragmentInput
@@ -69,15 +68,17 @@ class MemoryFragmentActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        val db = AppDatabase.getInstance(this)
-        repository = RecordFragmentRepository(db.recordFragmentDao())
+        repository = RecordFragmentRepository()
 
+        loadFragments()
+    }
+
+    private fun loadFragments() {
         lifecycleScope.launch {
-            repository.getFragmentsByDate(date).collect { frags ->
-                fragments = frags
-                tvBannerTitle.text = "${frags.size}개의 기억 조각이 있어요"
-                buildTimeline()
-            }
+            val frags = repository.getFragmentsByDate(currentDate)
+            fragments = frags
+            tvBannerTitle.text = "${frags.size}개의 기억 조각이 있어요"
+            buildTimeline()
         }
     }
 
@@ -385,7 +386,14 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     .filter { it.fragmentType == FragmentType.PHOTO && it.photoUrl != null }
                     .mapNotNull { f ->
                         try {
-                            val bytes = java.io.File(f.photoUrl!!).readBytes()
+                            val url = f.photoUrl!!
+                            val bytes = withContext(Dispatchers.IO) {
+                                if (url.startsWith("http")) {
+                                    java.net.URL(url).openStream().use { it.readBytes() }
+                                } else {
+                                    java.io.File(url).readBytes()
+                                }
+                            }
                             android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
                         } catch (e: Exception) { null }
                     }
@@ -441,6 +449,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                         }
                     }.filterNotNull().distinct()
                 }
+                val recordIds = fragments.mapNotNull { it.serverId }
                 val intent = android.content.Intent(this@MemoryFragmentActivity, MemoryResultActivity::class.java).apply {
                     putExtra(MemoryResultActivity.EXTRA_DATE, currentDate)
                     putExtra(MemoryResultActivity.EXTRA_TITLE, response.title)
@@ -450,6 +459,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     putStringArrayListExtra(MemoryResultActivity.EXTRA_PEOPLE, ArrayList(response.people))
                     putExtra(MemoryResultActivity.EXTRA_FRAGMENT_COUNT, fragments.size)
                     putExtra(MemoryResultActivity.EXTRA_EMOTION, response.emotion)
+                    putExtra(MemoryResultActivity.EXTRA_RECORD_IDS, LongArray(recordIds.size) { recordIds[it] })
                     if (response.embedding.isNotEmpty()) {
                         putExtra(MemoryResultActivity.EXTRA_EMBEDDING, com.google.gson.Gson().toJson(response.embedding))
                     }
@@ -471,6 +481,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
             dialog.dismiss()
             lifecycleScope.launch {
                 repository.deleteFragment(fragment)
+                loadFragments()
             }
         }
         dialog.show()
