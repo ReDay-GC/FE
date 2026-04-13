@@ -18,7 +18,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.local.entity.MemoryEntity
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
@@ -133,9 +132,8 @@ class MemoryResultActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.btn_add_person).setOnClickListener { addPerson() }
 
-        val db = AppDatabase.getInstance(this)
-        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        fragmentRepository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
 
         lifecycleScope.launch {
             val frags = fragmentRepository.getFragmentsByDate(date)

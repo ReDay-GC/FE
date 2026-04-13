@@ -20,7 +20,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.remote.ParseSearchRequest
@@ -68,8 +67,7 @@ class ArchiveSearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val db = AppDatabase.getInstance(requireContext())
-        repository = MemoryRepository(db.memoryDao())
+        repository = MemoryRepository()
 
         adapter = SearchResultAdapter(emptyList()) { memory ->
             val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
@@ -115,8 +113,7 @@ class ArchiveSearchFragment : Fragment() {
             val entities = repository.getAllMemories()
             allItems = MemoryMapper.fromMemoryEntityList(entities)
 
-            val serverTags = repository.getAllTags()
-            setupTagChips(view, serverTags.ifEmpty { fallbackTags })
+            setupTagChips(view, fallbackTags)
         }
 
         showResults(emptyList(), isInitial = true)

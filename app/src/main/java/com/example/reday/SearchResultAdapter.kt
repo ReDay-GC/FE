@@ -1,6 +1,5 @@
 package com.example.reday
 
-import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.reday.data.model.MemoryUiModel
 import com.google.android.material.chip.Chip
 
@@ -36,10 +36,11 @@ class SearchResultAdapter(
         val item = items[position]
 
         // 썸네일
-        if (item.thumbnailPath != null) {
-            val bitmap = BitmapFactory.decodeFile(item.thumbnailPath)
-            if (bitmap != null) holder.ivThumbnail.setImageBitmap(bitmap)
-            else holder.ivThumbnail.setImageResource(android.R.color.transparent)
+        if (!item.thumbnailPath.isNullOrBlank()) {
+            Glide.with(holder.itemView.context)
+                .load(item.thumbnailPath)
+                .centerCrop()
+                .into(holder.ivThumbnail)
         } else {
             holder.ivThumbnail.setImageResource(android.R.color.transparent)
         }

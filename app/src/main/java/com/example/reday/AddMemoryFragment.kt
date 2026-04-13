@@ -26,7 +26,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.remote.RetrofitClient
@@ -209,8 +208,7 @@ class AddMemoryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val db = AppDatabase.getInstance(requireContext())
-        repository = RecordFragmentRepository(db.recordFragmentDao())
+        repository = RecordFragmentRepository()
 
         // 현재 위치 체크박스
         view.findViewById<CheckBox>(R.id.cb_current_location).setOnCheckedChangeListener { _, isChecked ->

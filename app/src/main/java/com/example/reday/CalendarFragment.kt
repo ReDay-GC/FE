@@ -15,7 +15,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.local.entity.MemoryEntity
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.FragmentType
@@ -74,9 +73,8 @@ class CalendarFragment : Fragment() {
         currentYear = cal.get(Calendar.YEAR)
         currentMonth = cal.get(Calendar.MONTH)
 
-        val db = AppDatabase.getInstance(requireContext())
-        repository = RecordFragmentRepository(db.recordFragmentDao())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        repository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(

@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
@@ -66,9 +65,8 @@ class MemoryDetailActivity : AppCompatActivity() {
             showMoreMenu(date)
         }
 
-        val db = AppDatabase.getInstance(this)
-        memoryRepository = MemoryRepository(db.memoryDao())
-        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
+        memoryRepository = MemoryRepository()
+        fragmentRepository = RecordFragmentRepository()
 
         loadData(date)
     }

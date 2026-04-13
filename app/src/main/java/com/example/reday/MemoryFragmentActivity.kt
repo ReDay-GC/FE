@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.remote.FragmentInput
@@ -69,8 +68,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        val db = AppDatabase.getInstance(this)
-        repository = RecordFragmentRepository(db.recordFragmentDao())
+        repository = RecordFragmentRepository()
 
         loadFragments()
     }

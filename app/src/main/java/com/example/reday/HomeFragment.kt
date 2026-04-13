@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.remote.DailyCommentRequest
 import com.example.reday.data.remote.MemoryForComment
@@ -37,9 +36,8 @@ class HomeFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = AppDatabase.getInstance(requireContext())
-        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        fragmentRepository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(
@@ -176,13 +174,12 @@ class HomeFragment : Fragment() {
 
         // 오늘의 기록 조각 수 (기록 추가 여부 표시용)
         viewLifecycleOwner.lifecycleScope.launch {
-            fragmentRepository.getAllFragments().collectLatest { allFragments ->
-                val todayCount = allFragments.count { it.date == today }
-                view.findViewById<TextView>(R.id.tv_record_count).text = "${todayCount}개 기록"
-                val tvHint = view.findViewById<TextView>(R.id.tv_add_record_hint)
-                tvHint.text = if (todayCount > 0) "+ 이어서 기록을 추가해보세요" else "+ 첫 기록을 추가해보세요"
-                tvHint.setOnClickListener { startAddMemoryForToday() }
-            }
+            val todayFragments = fragmentRepository.getFragmentsByDate(today)
+            val todayCount = todayFragments.size
+            view.findViewById<TextView>(R.id.tv_record_count).text = "${todayCount}개 기록"
+            val tvHint = view.findViewById<TextView>(R.id.tv_add_record_hint)
+            tvHint.text = if (todayCount > 0) "+ 이어서 기록을 추가해보세요" else "+ 첫 기록을 추가해보세요"
+            tvHint.setOnClickListener { startAddMemoryForToday() }
         }
 
         // 최근 기억 목록 (AI 생성 후 저장된 기억만)

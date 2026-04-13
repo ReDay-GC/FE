@@ -14,7 +14,6 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
 import kotlinx.coroutines.launch
@@ -58,9 +57,8 @@ class DateSelectFragment : Fragment() {
         currentYear = cal.get(Calendar.YEAR)
         currentMonth = cal.get(Calendar.MONTH)
 
-        val db = AppDatabase.getInstance(requireContext())
-        fragmentRepository = RecordFragmentRepository(db.recordFragmentDao())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        fragmentRepository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(

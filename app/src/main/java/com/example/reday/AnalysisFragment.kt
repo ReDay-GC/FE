@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.remote.ActivityStatItem
 import com.example.reday.data.remote.GenerateInsightRequest
 import com.example.reday.data.remote.MemorySummary
@@ -61,8 +60,7 @@ class AnalysisFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = AppDatabase.getInstance(requireContext())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(

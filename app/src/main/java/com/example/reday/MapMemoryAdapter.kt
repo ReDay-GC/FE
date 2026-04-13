@@ -6,10 +6,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
-import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.reday.data.model.MemoryUiModel
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
 
 class MapMemoryAdapter(
     private val memories: List<MemoryUiModel>,
@@ -33,11 +32,12 @@ class MapMemoryAdapter(
         holder.tvTitle.text = memory.title
 
         if (!memory.thumbnailPath.isNullOrEmpty()) {
-            val bitmap = loadBitmapWithCorrectOrientation(memory.thumbnailPath)
-            if (bitmap != null) {
-                ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
-                holder.ivThumbnail.setImageBitmap(bitmap)
-            }
+            Glide.with(holder.itemView.context)
+                .load(memory.thumbnailPath)
+                .centerCrop()
+                .into(holder.ivThumbnail)
+        } else {
+            holder.ivThumbnail.setImageResource(android.R.color.transparent)
         }
 
         if (!memory.previewText.isNullOrEmpty()) {

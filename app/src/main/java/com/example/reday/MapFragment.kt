@@ -21,7 +21,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.remote.MapLocationData
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
@@ -62,9 +61,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val db = AppDatabase.getInstance(requireContext())
-        repository = RecordFragmentRepository(db.recordFragmentDao())
-        memoryRepository = MemoryRepository(db.memoryDao())
+        repository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
     }
 
     override fun onCreateView(
