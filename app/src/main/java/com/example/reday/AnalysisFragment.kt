@@ -1,5 +1,6 @@
 package com.example.reday
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -41,6 +42,7 @@ import java.time.format.DateTimeFormatter
 class AnalysisFragment : Fragment() {
 
     private lateinit var memoryRepository: MemoryRepository
+    private var isGeneratingInsight = false
 
     private lateinit var layoutEmpty: View
     private lateinit var layoutContent: View
@@ -121,8 +123,29 @@ class AnalysisFragment : Fragment() {
             setupPlaces(analysisData.topPlaces)
             setupPeople(analysisData.topPeople)
 
-            if (!analysisData.monthlyInsight.isNullOrBlank()) {
-                showInsightContent(analysisData.monthlyInsight)
+            // 이번 달 기억 수
+            val thisMonthCount = analysisData.memoryTrend
+                .firstOrNull { it.year == today.year && it.month == today.monthValue }
+                ?.count ?: 0
+
+            val yearMonth = currentYearMonth
+            val lastCount = getLastInsightMemoryCount(yearMonth)
+
+            val shouldAutoGenerate = when {
+                analysisData.monthlyInsight.isNullOrBlank() -> true   // 인사이트 없음 → 생성 필요
+                lastCount == -1 -> {
+                    // 인사이트는 있지만 로컬 추적 기록 없음 → 현재 수 저장 후 유지
+                    saveLastInsightMemoryCount(yearMonth, thisMonthCount)
+                    false
+                }
+                thisMonthCount > lastCount -> true   // 새 기억 추가됨 → 재생성 필요
+                else -> false
+            }
+
+            if (shouldAutoGenerate && !isGeneratingInsight) {
+                generateInsight()
+            } else if (!analysisData.monthlyInsight.isNullOrBlank()) {
+                showInsightContent(analysisData.monthlyInsight!!)
             } else {
                 layoutInsightEmpty.visibility = View.VISIBLE
                 layoutInsightContent.visibility = View.GONE
@@ -132,6 +155,8 @@ class AnalysisFragment : Fragment() {
     }
 
     private fun generateInsight() {
+        if (isGeneratingInsight) return
+        isGeneratingInsight = true
         viewLifecycleOwner.lifecycleScope.launch {
             layoutInsightEmpty.visibility = View.GONE
             layoutInsightContent.visibility = View.GONE
@@ -157,6 +182,10 @@ class AnalysisFragment : Fragment() {
                     user_id = userId
                 )
                 val response = RetrofitClient.memoryApi.generateInsight(request)
+
+                // 인사이트 생성 기준 기억 수 저장
+                saveLastInsightMemoryCount(yearMonth, memories.size)
+
                 showInsightContent(response.insight)
 
                 // 인사이트 생성 후 서버 데이터 갱신 (topActivities, topPeople 포함)
@@ -169,8 +198,20 @@ class AnalysisFragment : Fragment() {
                 layoutInsightLoading.visibility = View.GONE
                 layoutInsightEmpty.visibility = View.VISIBLE
                 Toast.makeText(requireContext(), "인사이트 생성에 실패했어요", Toast.LENGTH_SHORT).show()
+            } finally {
+                isGeneratingInsight = false
             }
         }
+    }
+
+    private fun getLastInsightMemoryCount(yearMonth: String): Int {
+        val prefs = requireContext().getSharedPreferences("analysis_prefs", Context.MODE_PRIVATE)
+        return prefs.getInt("${yearMonth}_count", -1)
+    }
+
+    private fun saveLastInsightMemoryCount(yearMonth: String, count: Int) {
+        val prefs = requireContext().getSharedPreferences("analysis_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putInt("${yearMonth}_count", count).apply()
     }
 
     private fun showInsightContent(text: String) {
