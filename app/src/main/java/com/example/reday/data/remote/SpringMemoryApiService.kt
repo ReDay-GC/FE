@@ -17,7 +17,10 @@ data class MemoryItemData(
     val emotion: String?,
     val thumbnailUrl: String?,
     val location: String?,
-    val recordCount: Int = 0
+    val recordCount: Int = 0,
+    val tags: List<String> = emptyList(),
+    val people: List<String> = emptyList(),
+    val embedding: String? = null  // AI 생성 임베딩 벡터 JSON
 )
 
 data class MemoryDetailResponse(
@@ -69,7 +72,9 @@ data class CreateMemoryRequest(
     val thumbnailUrl: String?,
     val location: String?,
     val tags: List<String>,
-    val people: List<String>
+    val people: List<String>,
+    val recordIds: List<Long> = emptyList(),
+    val embedding: String? = null
 )
 
 data class CreateMemoryResponse(
@@ -86,6 +91,94 @@ data class DeleteMemoryResponse(
     val data: Any?
 )
 
+data class MemoryByDateResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: List<MemoryItemData>
+)
+
+data class MemoryCalendarResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: MemoryCalendarData
+)
+
+data class MemoryCalendarData(
+    val datesWithMemory: List<String>
+)
+
+data class TagListData(val tags: List<String>)
+
+data class TagListResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: TagListData
+)
+
+// ── 월간 분석 ──
+
+data class MemoryTrendItem(
+    val year: Int,
+    val month: Int,
+    val count: Int
+)
+
+data class RecordTypeStatItem(
+    val recordType: String,
+    val count: Int,
+    val percentage: Double
+)
+
+data class ActivityStatItem(
+    val activityType: String,
+    val percentage: Int
+)
+
+data class PlaceStatItem(
+    val rank: Int,
+    val place: String,
+    val count: Int
+)
+
+data class PeopleStatItem(
+    val rank: Int,
+    val name: String,
+    val count: Int
+)
+
+data class MonthlyAnalysisData(
+    val monthlyInsight: String?,
+    val memoryTrend: List<MemoryTrendItem>,
+    val recordTypeStats: List<RecordTypeStatItem>,
+    val topActivities: List<ActivityStatItem>?,
+    val topPlaces: List<PlaceStatItem>,
+    val topPeople: List<PeopleStatItem>?
+)
+
+data class MonthlyAnalysisResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: MonthlyAnalysisData?
+)
+
+data class MapLocationData(
+    val location: String,
+    val memoryCount: Int,
+    val latitude: Double?,
+    val longitude: Double?
+)
+
+data class GetMapLocationsResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: List<MapLocationData>
+)
+
 interface SpringMemoryApiService {
 
     @GET("api/memories")
@@ -99,4 +192,39 @@ interface SpringMemoryApiService {
 
     @DELETE("api/memories/{memoryId}")
     suspend fun deleteMemory(@Path("memoryId") memoryId: Long): DeleteMemoryResponse
+
+    @GET("api/memories/date")
+    suspend fun getMemoriesByDate(@Query("date") date: String): MemoryByDateResponse
+
+    @GET("api/memories/calendar")
+    suspend fun getMemoryCalendar(
+        @Query("year") year: Int,
+        @Query("month") month: Int
+    ): MemoryCalendarResponse
+
+    @GET("api/memories/map")
+    suspend fun getMapLocations(): GetMapLocationsResponse
+
+    @GET("api/memories/map/location")
+    suspend fun getMapLocationMemories(@Query("location") location: String): MemoryByDateResponse
+
+    @GET("api/analysis/monthly")
+    suspend fun getMonthlyAnalysis(
+        @Query("year") year: Int,
+        @Query("month") month: Int
+    ): MonthlyAnalysisResponse
+
+    // ── 검색 ──
+
+    @GET("api/memories/tags")
+    suspend fun getAllTags(): TagListResponse
+
+    @GET("api/memories/search")
+    suspend fun searchMemoriesByKeyword(@Query("keyword") keyword: String): MemoryListResponse
+
+    @GET("api/memories/search/tag")
+    suspend fun getMemoriesByTag(@Query("tagName") tagName: String): MemoryListResponse
+
+    @GET("api/memories/search/location")
+    suspend fun getMemoriesByLocation(@Query("location") location: String): MemoryListResponse
 }

@@ -49,6 +49,24 @@ data class RecordDatesData(
     val dates: List<String>
 )
 
+data class GetLocationRecordsResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: List<LocationRecordData>
+)
+
+data class LocationRecordData(
+    val recordId: Long,
+    val recordType: String,
+    val fileUrl: String?,
+    val address: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    val recordDate: String,
+    val recordedAt: String?
+)
+
 data class SaveTextRecordRequest(
     val recordDate: String,
     val textContent: String,
@@ -88,4 +106,23 @@ interface RecordApiService {
 
     @DELETE("api/records/{recordId}")
     suspend fun deleteRecord(@Path("recordId") recordId: Long): SaveRecordResponse
+
+    @GET("api/records/locations")
+    suspend fun getLocationRecords(): GetLocationRecordsResponse
+
+    @GET("api/records/summary")
+    suspend fun getRecordSummary(): GetRecordSummaryResponse
 }
+
+data class RecordSummaryData(
+    val photoCount: Int,
+    val textCount: Int,
+    val voiceCount: Int
+)
+
+data class GetRecordSummaryResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: RecordSummaryData
+)

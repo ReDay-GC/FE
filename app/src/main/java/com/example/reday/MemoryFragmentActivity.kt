@@ -451,6 +451,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                         }
                     }.filterNotNull().distinct()
                 }
+                val recordIds = fragments.mapNotNull { it.serverId }
                 val intent = android.content.Intent(this@MemoryFragmentActivity, MemoryResultActivity::class.java).apply {
                     putExtra(MemoryResultActivity.EXTRA_DATE, currentDate)
                     putExtra(MemoryResultActivity.EXTRA_TITLE, response.title)
@@ -460,6 +461,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     putStringArrayListExtra(MemoryResultActivity.EXTRA_PEOPLE, ArrayList(response.people))
                     putExtra(MemoryResultActivity.EXTRA_FRAGMENT_COUNT, fragments.size)
                     putExtra(MemoryResultActivity.EXTRA_EMOTION, response.emotion)
+                    putExtra(MemoryResultActivity.EXTRA_RECORD_IDS, LongArray(recordIds.size) { recordIds[it] })
                     if (response.embedding.isNotEmpty()) {
                         putExtra(MemoryResultActivity.EXTRA_EMBEDDING, com.google.gson.Gson().toJson(response.embedding))
                     }

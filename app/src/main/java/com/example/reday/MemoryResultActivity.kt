@@ -61,6 +61,7 @@ class MemoryResultActivity : AppCompatActivity() {
     private var currentFragmentCount: Int = 0
     private var currentEmotion: String? = null
     private var currentEmbedding: String? = null
+    private var currentRecordIds: List<Long> = emptyList()
     private var photoFragments: List<RecordFragmentUiModel> = emptyList()
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
@@ -82,6 +83,7 @@ class MemoryResultActivity : AppCompatActivity() {
         currentFragmentCount = fragmentCount
         currentEmotion = intent.getStringExtra(EXTRA_EMOTION)
         currentEmbedding = intent.getStringExtra(EXTRA_EMBEDDING)
+        currentRecordIds = intent.getLongArrayExtra(EXTRA_RECORD_IDS)?.toList() ?: emptyList()
 
         selectedTags.addAll(tags.filter { it in ALL_TAGS })
         locationList.addAll(locations.distinct().filter { it.isNotBlank() })
@@ -194,7 +196,7 @@ class MemoryResultActivity : AppCompatActivity() {
                 embedding = currentEmbedding,
                 createdAt = LocalDateTime.now().toString()
             )
-            memoryRepository.saveMemory(entity)
+            memoryRepository.saveMemory(entity, currentRecordIds)
             getSharedPreferences("daily_comment", MODE_PRIVATE).edit().remove("date").apply()
             val yearMonth = currentDate.substring(0, 7)
             getSharedPreferences("insight_prefs", MODE_PRIVATE).edit()
@@ -459,5 +461,6 @@ class MemoryResultActivity : AppCompatActivity() {
         const val EXTRA_FRAGMENT_COUNT = "extra_fragment_count"
         const val EXTRA_EMBEDDING = "extra_embedding"
         const val EXTRA_EMOTION = "extra_emotion"
+        const val EXTRA_RECORD_IDS = "extra_record_ids"
     }
 }

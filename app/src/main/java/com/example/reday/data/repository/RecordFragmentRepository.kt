@@ -7,7 +7,9 @@ import com.example.reday.data.mapper.RecordFragmentMapper
 import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.remote.RecordApiService
+import com.example.reday.data.remote.LocationRecordData
 import com.example.reday.data.remote.RecordItemData
+import com.example.reday.data.remote.RecordSummaryData
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.remote.SaveTextRecordRequest
 import kotlinx.coroutines.flow.Flow
@@ -76,6 +78,37 @@ class RecordFragmentRepository(
 
     suspend fun getFragmentsWithLocationByDates(dates: List<String>): List<RecordFragmentUiModel> =
         dao.getWithLocationByDates(dates).map { RecordFragmentMapper.entityToUiModel(it) }
+
+    // 서버에서 위치 있는 기록 조각 전체 조회 (지도용)
+    suspend fun getFragmentsWithLocationFromServer(): List<RecordFragmentUiModel> {
+        return try {
+            val response = api.getLocationRecords()
+            if (response.success) response.data.map { it.toUiModel() }
+            else emptyList()
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "위치 기록 서버 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun LocationRecordData.toUiModel(): RecordFragmentUiModel = RecordFragmentUiModel(
+        localId = recordId,
+        serverId = recordId,
+        fragmentType = when (recordType) {
+            "PHOTO" -> FragmentType.PHOTO
+            "VOICE" -> FragmentType.VOICE
+            else -> FragmentType.TEXT
+        },
+        contentText = null,
+        photoUrl = if (recordType == "PHOTO") fileUrl else null,
+        voiceUrl = if (recordType == "VOICE") fileUrl else null,
+        durationSec = null,
+        createdAt = recordedAt ?: recordDate,
+        date = recordDate,
+        locationName = address,
+        latitude = latitude,
+        longitude = longitude
+    )
 
     suspend fun saveTextFragment(
         contentText: String,
@@ -291,6 +324,17 @@ class RecordFragmentRepository(
             .mapNotNull { dateStr ->
                 dateStr.split("-").getOrNull(2)?.toIntOrNull()
             }.toSet()
+    }
+
+    // 기록 타입별 수 요약 (분석 차트용)
+    suspend fun getRecordSummary(): RecordSummaryData? {
+        return try {
+            val response = api.getRecordSummary()
+            if (response.success) response.data else null
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "기록 요약 조회 실패: ${e.message}")
+            null
+        }
     }
 
     suspend fun deleteFragment(model: RecordFragmentUiModel) {

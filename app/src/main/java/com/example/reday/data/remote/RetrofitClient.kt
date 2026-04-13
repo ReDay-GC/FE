@@ -1,6 +1,7 @@
 package com.example.reday.data.remote
 
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -10,6 +11,10 @@ object RetrofitClient {
     private val AI_BASE_URL = "http://15.164.99.114:8000/"
 
     var accessToken: String? = null
+
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
 
     // Spring Boot 서버용 클라이언트 (auth 토큰 포함)
     private val client by lazy {
@@ -23,6 +28,7 @@ object RetrofitClient {
                     .build()
                 chain.proceed(request)
             }
+            .addInterceptor(loggingInterceptor)
             .build()
     }
 

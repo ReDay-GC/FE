@@ -3,9 +3,15 @@ package com.example.reday.data.repository
 import android.util.Log
 import com.example.reday.data.local.dao.MemoryDao
 import com.example.reday.data.local.entity.MemoryEntity
+import com.example.reday.data.mapper.MemoryMapper
+import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.remote.CreateMemoryRequest
+import com.example.reday.data.remote.MapLocationData
 import com.example.reday.data.remote.MemoryDetailData
+import com.example.reday.data.remote.MonthlyAnalysisData
+import com.example.reday.data.remote.MemoryItemData
 import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.data.remote.SaveEmbeddingRequest
 import com.example.reday.data.remote.SpringMemoryApiService
 import com.google.gson.Gson
 
@@ -15,7 +21,7 @@ class MemoryRepository(
 ) {
 
     // 기억 저장: 서버 POST 후 serverId를 로컬에도 캐싱
-    suspend fun saveMemory(entity: MemoryEntity): Long {
+    suspend fun saveMemory(entity: MemoryEntity, recordIds: List<Long> = emptyList()): Long {
         val gson = Gson()
         val tags = try { gson.fromJson(entity.tags, Array<String>::class.java).toList() } catch (e: Exception) { emptyList() }
         val people = try { gson.fromJson(entity.people, Array<String>::class.java).toList() } catch (e: Exception) { emptyList() }
@@ -32,12 +38,24 @@ class MemoryRepository(
                 thumbnailUrl = safeThumbUrl,
                 location = entity.representativeLocationName,
                 tags = tags,
-                people = people
+                people = people,
+                recordIds = recordIds
             )
             Log.d("MemoryRepo", "저장 요청: ${Gson().toJson(request)}")
             val response = api.createMemory(request)
             if (response.success && response.data != null) {
-                dao.deleteAndInsert(entity.copy(serverId = response.data.memoryId))
+                val serverId = response.data.memoryId
+                dao.deleteAndInsert(entity.copy(serverId = serverId))
+                // AI 서버에 임베딩 저장
+                entity.embedding?.let { embedding ->
+                    try {
+                        RetrofitClient.memoryApi.saveEmbedding(
+                            SaveEmbeddingRequest(memory_id = serverId, embedding = embedding)
+                        )
+                    } catch (e: Exception) {
+                        Log.e("MemoryRepo", "임베딩 AI 저장 실패: ${e.message}")
+                    }
+                }
             } else {
                 dao.deleteAndInsert(entity)
             }
@@ -59,25 +77,28 @@ class MemoryRepository(
         }
     }
 
-    // 날짜별 기억 (서버 전체 조회 후 필터)
+    // 날짜별 기억 (서버 직접 조회)
     suspend fun getMemoryByDate(date: String): MemoryEntity? {
         return try {
-            getAllMemories().firstOrNull { it.date == date }
+            val response = api.getMemoriesByDate(date)
+            if (response.success) response.data.firstOrNull()?.toEntity() else null
         } catch (e: Exception) {
             Log.e("MemoryRepo", "날짜별 기억 조회 실패: ${e.message}")
             null
         }
     }
 
-    // 월별 기억 날짜 Set (캘린더 점 표시용)
+    // 월별 기억 날짜 Set (캘린더 점 표시용 — /api/memories/calendar 직접 조회)
     suspend fun getMemoryDatesByMonth(year: Int, month: Int): Set<Int> {
-        val prefix = "%04d-%02d".format(year, month)
         return try {
-            getAllMemories()
-                .filter { it.date.startsWith(prefix) }
-                .mapNotNull { it.date.split("-").getOrNull(2)?.toIntOrNull() }
-                .toSet()
+            val response = api.getMemoryCalendar(year, month)
+            if (response.success) {
+                response.data.datesWithMemory
+                    .mapNotNull { it.split("-").getOrNull(2)?.toIntOrNull() }
+                    .toSet()
+            } else emptySet()
         } catch (e: Exception) {
+            Log.e("MemoryRepo", "월별 기억 날짜 조회 실패: ${e.message}")
             emptySet()
         }
     }
@@ -117,6 +138,84 @@ class MemoryRepository(
         dao.deleteByDate(date)
     }
 
+    // 지도용 위치 목록 (lat/lng + 기억 수)
+    suspend fun getMapLocations(): List<MapLocationData> {
+        return try {
+            val response = api.getMapLocations()
+            if (response.success) response.data else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "지도 위치 목록 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // 장소명으로 기억 목록 조회 (마커 클릭 패널용)
+    suspend fun getMapLocationMemories(location: String): List<MemoryUiModel> {
+        return try {
+            val response = api.getMapLocationMemories(location)
+            if (response.success) response.data.map { MemoryMapper.fromMemoryEntity(it.toEntity()) }
+            else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "장소별 기억 목록 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // 태그 목록 (서버)
+    suspend fun getAllTags(): List<String> {
+        return try {
+            val response = api.getAllTags()
+            if (response.success) response.data.tags else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "태그 목록 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // 키워드 검색 (서버)
+    suspend fun searchByKeyword(keyword: String): List<MemoryEntity> {
+        return try {
+            val response = api.searchMemoriesByKeyword(keyword)
+            if (response.success) response.data.map { it.toEntity() } else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "키워드 검색 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // 태그별 기억 조회 (서버)
+    suspend fun getMemoriesByTag(tagName: String): List<MemoryEntity> {
+        return try {
+            val response = api.getMemoriesByTag(tagName)
+            if (response.success) response.data.map { it.toEntity() } else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "태그별 기억 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // 장소별 기억 조회 (서버)
+    suspend fun getMemoriesByLocation(location: String): List<MemoryEntity> {
+        return try {
+            val response = api.getMemoriesByLocation(location)
+            if (response.success) response.data.map { it.toEntity() } else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "장소별 기억 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
+    // 월간 분석 데이터 (서버)
+    suspend fun getMonthlyAnalysis(year: Int, month: Int): MonthlyAnalysisData? {
+        return try {
+            val response = api.getMonthlyAnalysis(year, month)
+            if (response.success) response.data else null
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "월간 분석 조회 실패: ${e.message}")
+            null
+        }
+    }
+
     // 임베딩 (AI 서버용, 로컬 캐시)
     suspend fun getEmbeddingById(id: Long): String? = dao.getEmbeddingById(id)
 
@@ -139,9 +238,9 @@ class MemoryRepository(
         date = memoryDate,
         title = title,
         summary = summary,
-        tags = "[]",
+        tags = Gson().toJson(tags),
         locations = Gson().toJson(listOfNotNull(location)),
-        people = "[]",
+        people = Gson().toJson(people),
         fragmentCount = recordCount,
         representativeFragmentId = null,
         representativePhotoUrl = thumbnailUrl,

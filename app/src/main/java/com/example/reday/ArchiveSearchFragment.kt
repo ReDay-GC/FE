@@ -23,23 +23,23 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.local.AppDatabase
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.MemoryUiModel
-import com.example.reday.data.remote.MemoryEmbeddingItem
 import com.example.reday.data.remote.ParseSearchRequest
 import com.example.reday.data.remote.ParseSearchResponse
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.remote.SearchSemanticRequest
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.example.reday.data.repository.MemoryRepository
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class ArchiveSearchFragment : Fragment() {
 
     private lateinit var repository: MemoryRepository
     private lateinit var adapter: SearchResultAdapter
+
+    // AI 검색용 전체 기억 목록
     private var allItems: List<MemoryUiModel> = emptyList()
 
     private var isFilterOpen = false
@@ -47,7 +47,9 @@ class ArchiveSearchFragment : Fragment() {
     private var aiFilter: ParseSearchResponse? = null
     private var semanticRankedIds: List<Long> = emptyList()
 
-    private val allTags = listOf("여행", "카페", "산책", "쇼핑", "문화생활", "운동", "유흥", "자연", "식사", "휴식", "공부")
+    private val fallbackTags = listOf("여행", "카페", "산책", "쇼핑", "문화생활", "운동", "유흥", "자연", "식사", "휴식", "공부")
+
+    private var searchJob: Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -79,28 +81,27 @@ class ArchiveSearchFragment : Fragment() {
             adapter = this@ArchiveSearchFragment.adapter
         }
 
-        // 뒤로가기
         view.findViewById<View>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
 
-        // 필터 버튼
         setupFilterButton(view)
 
-        // 태그 칩 생성
-        setupTagChips(view)
-
-        // 검색 입력
         val etSearch = view.findViewById<EditText>(R.id.et_search)
 
-        // 텍스트 변경 시 → 기존 단순 검색
+        // 텍스트 변경 → 서버 키워드 검색 (300ms 디바운스)
         etSearch.addTextChangedListener {
             aiFilter = null
             semanticRankedIds = emptyList()
-            applyFilter(etSearch.text?.toString() ?: "")
+            val query = it?.toString() ?: ""
+            searchJob?.cancel()
+            searchJob = viewLifecycleOwner.lifecycleScope.launch {
+                delay(300)
+                performServerSearch(query, selectedTags)
+            }
         }
 
-        // 키보드 검색 버튼 → AI 자연어 검색
+        // Enter → AI 자연어 검색
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val query = etSearch.text?.toString()?.trim() ?: ""
@@ -109,26 +110,63 @@ class ArchiveSearchFragment : Fragment() {
             } else false
         }
 
-        // 전체 기억 로드
-        lifecycleScope.launch {
+        // 전체 기억 로드 (AI 시맨틱 검색용) + 태그 목록
+        viewLifecycleOwner.lifecycleScope.launch {
             val entities = repository.getAllMemories()
             allItems = MemoryMapper.fromMemoryEntityList(entities)
-            applyFilter(etSearch.text?.toString() ?: "")
+
+            val serverTags = repository.getAllTags()
+            setupTagChips(view, serverTags.ifEmpty { fallbackTags })
         }
 
-        // 키보드 자동 표시
+        showResults(emptyList(), isInitial = true)
+
         etSearch.requestFocus()
         val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         etSearch.postDelayed({ imm.showSoftInput(etSearch, InputMethodManager.SHOW_IMPLICIT) }, 100)
     }
 
+    // ── 서버 검색 ──
+
+    private fun performServerSearch(keyword: String, tags: Set<String>) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (keyword.isBlank() && tags.isEmpty()) {
+                showResults(emptyList(), isInitial = true)
+                return@launch
+            }
+
+            val results: List<MemoryUiModel> = when {
+                keyword.isNotBlank() && tags.isNotEmpty() -> {
+                    // 키워드 검색 후 태그로 클라이언트 필터
+                    val entities = repository.searchByKeyword(keyword)
+                    val uiModels = MemoryMapper.fromMemoryEntityList(entities)
+                    uiModels.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
+                }
+                keyword.isNotBlank() -> {
+                    MemoryMapper.fromMemoryEntityList(repository.searchByKeyword(keyword))
+                }
+                tags.isNotEmpty() -> {
+                    // 태그별 조회 후 union (중복 제거)
+                    val tagResults = tags.flatMap { tag ->
+                        repository.getMemoriesByTag(tag)
+                    }.distinctBy { it.date }
+                    MemoryMapper.fromMemoryEntityList(tagResults)
+                }
+                else -> emptyList()
+            }
+
+            showResults(results)
+        }
+    }
+
+    // ── AI 자연어 검색 ──
+
     private fun triggerAiSearch(query: String) {
         val pbLoading = view?.findViewById<ProgressBar>(R.id.pb_ai_search)
         pbLoading?.isVisible = true
 
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
-                // 자연어 파싱 + 의미 검색 병렬 실행
                 val parseJob = launch {
                     try {
                         aiFilter = RetrofitClient.memoryApi.parseSearch(ParseSearchRequest(query))
@@ -137,35 +175,112 @@ class ArchiveSearchFragment : Fragment() {
 
                 val semanticJob = launch {
                     try {
-                        val gson = Gson()
-                        val floatListType = object : TypeToken<List<Float>>() {}.type
-                        val embeddingItems = allItems.mapNotNull { memory ->
-                            val embeddingJson = repository.getEmbeddingById(memory.id) ?: return@mapNotNull null
-                            val vector = try {
-                                gson.fromJson<List<Float>>(embeddingJson, floatListType)
-                            } catch (e: Exception) { return@mapNotNull null }
-                            if (vector.isNotEmpty()) MemoryEmbeddingItem(memory.id, vector) else null
-                        }
-                        if (embeddingItems.isNotEmpty()) {
+                        val memoryIds = allItems.map { it.id }.filter { it > 0 }
+                        if (memoryIds.isNotEmpty()) {
                             val result = RetrofitClient.memoryApi.searchSemantic(
-                                SearchSemanticRequest(query, embeddingItems)
+                                SearchSemanticRequest(query, memoryIds)
                             )
                             semanticRankedIds = result.ranked_ids
                         }
-                    } catch (e: Exception) { /* 폴백: semanticRankedIds 빈 리스트 유지 */ }
+                    } catch (e: Exception) { /* 폴백 */ }
                 }
 
                 parseJob.join()
                 semanticJob.join()
-                applyFilter(query)
+                applyAiFilter(query)
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "AI 검색에 실패했어요. 일반 검색으로 대신할게요.", Toast.LENGTH_SHORT).show()
-                applyFilter(query)
+                performServerSearch(query, selectedTags)
             } finally {
                 pbLoading?.isVisible = false
             }
         }
     }
+
+    private fun applyAiFilter(query: String) {
+        val positiveEmotions = setOf("😊 즐거운", "🥰 설레는", "😌 평온한", "🤩 신나는")
+        val negativeEmotions = setOf("😤 지친", "😢 힘든")
+
+        val filtered = allItems.filter { item ->
+            val ai = aiFilter
+
+            val matchesQuery = if (ai != null) {
+                val matchesPeople = ai.people.isEmpty() ||
+                    ai.people.any { p -> item.people.any { it.contains(p, ignoreCase = true) || p.contains(it, ignoreCase = true) } }
+                val matchesTags = ai.tags.isEmpty() ||
+                    ai.tags.any { t -> item.tags.contains(t) }
+                val matchesLocations = ai.locations.isEmpty() ||
+                    ai.locations.any { l -> item.locationName?.contains(l, ignoreCase = true) == true }
+                val matchesYearMonth = ai.yearMonth == null ||
+                    item.date.startsWith(ai.yearMonth)
+                val matchesKeywords = ai.keywords.isEmpty() ||
+                    ai.keywords.any { k ->
+                        item.title.contains(k, ignoreCase = true) ||
+                        item.previewText?.contains(k, ignoreCase = true) == true ||
+                        item.locationName?.contains(k, ignoreCase = true) == true ||
+                        item.people.any { p -> p.contains(k, ignoreCase = true) } ||
+                        item.tags.any { t -> t.contains(k, ignoreCase = true) }
+                    }
+                matchesPeople && matchesTags && matchesLocations && matchesYearMonth && matchesKeywords
+            } else {
+                query.isBlank() || item.title.contains(query, ignoreCase = true)
+            }
+
+            val matchesSentiment = when (aiFilter?.sentiment) {
+                "긍정" -> item.emotion in positiveEmotions
+                "부정" -> item.emotion in negativeEmotions
+                else -> true
+            }
+
+            val matchesTags = selectedTags.isEmpty() ||
+                selectedTags.any { tag -> item.tags.contains(tag) }
+
+            val passesContent = if (semanticRankedIds.isNotEmpty()) {
+                item.id in semanticRankedIds
+            } else {
+                matchesQuery
+            }
+
+            matchesTags && passesContent && matchesSentiment
+        }
+
+        val sorted = if (semanticRankedIds.isNotEmpty()) {
+            val rankMap = semanticRankedIds.mapIndexed { idx, id -> id to idx }.toMap()
+            filtered.sortedBy { rankMap[it.id] ?: Int.MAX_VALUE }
+        } else filtered
+
+        showResults(sorted)
+    }
+
+    // ── 공통 결과 표시 ──
+
+    private fun showResults(items: List<MemoryUiModel>, isInitial: Boolean = false) {
+        adapter.updateList(if (isInitial) emptyList() else items)
+        val tvTitle = view?.findViewById<TextView>(R.id.tv_empty_title)
+        val tvSubtitle = view?.findViewById<TextView>(R.id.tv_empty_subtitle)
+
+        when {
+            isInitial -> {
+                tvTitle?.text = "기억을 검색해보세요"
+                tvSubtitle?.text = "제목, 장소, 태그, 사람 등으로 검색할 수 있어요"
+                view?.findViewById<View>(R.id.layout_empty)?.visibility = View.VISIBLE
+                view?.findViewById<View>(R.id.layout_result)?.visibility = View.GONE
+            }
+            items.isEmpty() -> {
+                tvTitle?.text = "검색 결과가 없습니다"
+                tvSubtitle?.text = "다른 검색이나 필터를 시도해보세요"
+                view?.findViewById<View>(R.id.layout_empty)?.visibility = View.VISIBLE
+                view?.findViewById<View>(R.id.layout_result)?.visibility = View.GONE
+            }
+            else -> {
+                view?.findViewById<View>(R.id.layout_empty)?.visibility = View.GONE
+                view?.findViewById<View>(R.id.layout_result)?.visibility = View.VISIBLE
+                view?.findViewById<TextView>(R.id.tv_result_count)?.text = "총 ${items.size}개의 검색 결과"
+            }
+        }
+    }
+
+    // ── 필터 / 태그 칩 ──
 
     private fun setupFilterButton(view: View) {
         val btnFilter = view.findViewById<FrameLayout>(R.id.btn_filter)
@@ -188,9 +303,10 @@ class ArchiveSearchFragment : Fragment() {
         }
     }
 
-    private fun setupTagChips(view: View) {
+    private fun setupTagChips(view: View, tags: List<String>) {
         val chipGroup = view.findViewById<ChipGroup>(R.id.chip_group_filter_tags)
-        allTags.forEach { tag ->
+        chipGroup.removeAllViews()
+        tags.forEach { tag ->
             val chip = createFilterChip(tag)
             chipGroup.addView(chip)
         }
@@ -210,7 +326,11 @@ class ArchiveSearchFragment : Fragment() {
                 if (isChecked) selectedTags.add(tag) else selectedTags.remove(tag)
                 updateChipStyle(this, isChecked)
                 val etSearch = view?.findViewById<EditText>(R.id.et_search)
-                applyFilter(etSearch?.text?.toString() ?: "")
+                val query = etSearch?.text?.toString() ?: ""
+                searchJob?.cancel()
+                searchJob = viewLifecycleOwner.lifecycleScope.launch {
+                    performServerSearch(query, selectedTags)
+                }
             }
         }
     }
@@ -226,96 +346,6 @@ class ArchiveSearchFragment : Fragment() {
             chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
             chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(
                 ContextCompat.getColor(requireContext(), R.color.brown_300))
-        }
-    }
-
-    private fun applyFilter(query: String) {
-        val isInitial = query.isBlank() && selectedTags.isEmpty()
-
-        val filtered = if (isInitial) emptyList()
-        else allItems.filter { item ->
-            val ai = aiFilter
-
-            val positiveEmotions = setOf("😊 즐거운", "🥰 설레는", "😌 평온한", "🤩 신나는")
-            val negativeEmotions = setOf("😤 지친", "😢 힘든")
-
-            val matchesQuery = if (ai != null) {
-                // AI 파싱 결과로 필터링
-                val matchesPeople = ai.people.isEmpty() ||
-                    ai.people.any { p -> item.people.any { it.contains(p, ignoreCase = true) || p.contains(it, ignoreCase = true) } }
-                val matchesTags = ai.tags.isEmpty() ||
-                    ai.tags.any { t -> item.tags.contains(t) }
-                val matchesLocations = ai.locations.isEmpty() ||
-                    ai.locations.any { l -> item.locationName?.contains(l, ignoreCase = true) == true }
-                val matchesYearMonth = ai.yearMonth == null ||
-                    item.date.startsWith(ai.yearMonth)
-                val matchesKeywords = ai.keywords.isEmpty() ||
-                    ai.keywords.any { k ->
-                        item.title.contains(k, ignoreCase = true) ||
-                        item.previewText?.contains(k, ignoreCase = true) == true ||
-                        item.locationName?.contains(k, ignoreCase = true) == true ||
-                        item.people.any { p -> p.contains(k, ignoreCase = true) } ||
-                        item.tags.any { t -> t.contains(k, ignoreCase = true) }
-                    }
-                matchesPeople && matchesTags && matchesLocations && matchesYearMonth && matchesKeywords
-            } else {
-                // 기존 단순 검색
-                query.isBlank() ||
-                    item.title.contains(query, ignoreCase = true) ||
-                    item.previewText?.contains(query, ignoreCase = true) == true ||
-                    item.tags.any { it.contains(query, ignoreCase = true) } ||
-                    item.people.any { it.contains(query, ignoreCase = true) } ||
-                    item.locationName?.contains(query, ignoreCase = true) == true
-            }
-
-            // sentiment 필터: semantic/keyword 경로 모두 적용
-            val matchesSentiment = when (ai?.sentiment) {
-                "긍정" -> item.emotion in positiveEmotions
-                "부정" -> item.emotion in negativeEmotions
-                else -> true
-            }
-
-            val matchesTags = selectedTags.isEmpty() ||
-                selectedTags.any { tag -> item.tags.contains(tag) }
-
-            val passesContent = if (semanticRankedIds.isNotEmpty()) {
-                item.id in semanticRankedIds
-            } else {
-                matchesQuery
-            }
-
-            matchesTags && passesContent && matchesSentiment
-        }
-
-        // 의미 검색 결과가 있으면 유사도 순으로 정렬
-        val sorted = if (semanticRankedIds.isNotEmpty()) {
-            val rankMap = semanticRankedIds.mapIndexed { idx, id -> id to idx }.toMap()
-            filtered.sortedBy { rankMap[it.id] ?: Int.MAX_VALUE }
-        } else filtered
-
-        adapter.updateList(sorted)
-
-        val tvTitle = view?.findViewById<TextView>(R.id.tv_empty_title)
-        val tvSubtitle = view?.findViewById<TextView>(R.id.tv_empty_subtitle)
-
-        when {
-            isInitial -> {
-                tvTitle?.text = "기억을 검색해보세요"
-                tvSubtitle?.text = "제목, 장소, 태그, 사람 등으로 검색할 수 있어요"
-                view?.findViewById<View>(R.id.layout_empty)?.visibility = View.VISIBLE
-                view?.findViewById<View>(R.id.layout_result)?.visibility = View.GONE
-            }
-            filtered.isEmpty() -> {
-                tvTitle?.text = "검색 결과가 없습니다"
-                tvSubtitle?.text = "다른 검색이나 필터를 시도해보세요"
-                view?.findViewById<View>(R.id.layout_empty)?.visibility = View.VISIBLE
-                view?.findViewById<View>(R.id.layout_result)?.visibility = View.GONE
-            }
-            else -> {
-                view?.findViewById<View>(R.id.layout_empty)?.visibility = View.GONE
-                view?.findViewById<View>(R.id.layout_result)?.visibility = View.VISIBLE
-                view?.findViewById<TextView>(R.id.tv_result_count)?.text = "총 ${filtered.size}개의 검색 결과"
-            }
         }
     }
 }

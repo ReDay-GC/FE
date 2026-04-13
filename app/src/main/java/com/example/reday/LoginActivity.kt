@@ -94,6 +94,7 @@ class LoginActivity : AppCompatActivity() {
             try {
                 val response = RetrofitClient.authApi.login(LoginRequest(email, password))
                 TokenManager.saveToken(this@LoginActivity, response.data.accessToken)
+                response.data.userId?.let { TokenManager.saveUserId(this@LoginActivity, it) }
                 RetrofitClient.accessToken = response.data.accessToken
                 setLoading(false)
                 startActivity(Intent(this@LoginActivity, MainActivity::class.java))
