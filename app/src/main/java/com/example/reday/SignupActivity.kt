@@ -21,6 +21,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.remote.SignupRequest
+import com.example.reday.utils.TokenManager
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -211,7 +212,7 @@ class SignupActivity : AppCompatActivity() {
         setLoading(true)
         lifecycleScope.launch {
             try {
-                RetrofitClient.authApi.signup(
+                val response = RetrofitClient.authApi.signup(
                     SignupRequest(
                         name = name,
                         email = email,
@@ -221,6 +222,8 @@ class SignupActivity : AppCompatActivity() {
                         privacyAgreed = cbPrivacy.isChecked
                     )
                 )
+                TokenManager.saveUserName(this@SignupActivity, response.data.name)
+                TokenManager.saveUserEmail(this@SignupActivity, response.data.email)
                 setLoading(false)
                 startActivity(Intent(this@SignupActivity, MainActivity::class.java))
                 finish()
