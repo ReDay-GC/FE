@@ -9,16 +9,36 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.reday.data.remote.NotificationDto
+import com.example.reday.data.remote.RetrofitClient
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 class NotificationFragment : Fragment() {
 
     private lateinit var adapter: NotificationAdapter
+    private lateinit var rvNotifications: RecyclerView
+    private lateinit var layoutEmpty: LinearLayout
+    private lateinit var layoutFilter: LinearLayout
+    private lateinit var filterDivider: View
+    private lateinit var chipAll: TextView
+    private lateinit var chipSystem: TextView
+    private lateinit var chipMy: TextView
+    private lateinit var btnOnlyUnread: View
+    private lateinit var ivOnlyUnreadIcon: ImageView
+
     private var currentFilter = FilterType.ALL
     private var onlyUnread = false
+    private var allItems: List<NotificationUiModel> = emptyList()
 
-    private enum class FilterType { ALL, SYSTEM, MY }
+    private enum class FilterType(val apiCategory: String) {
+        ALL("ALL"), SYSTEM("SYSTEM"), MY("MY")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,103 +51,25 @@ class NotificationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val rvNotifications = view.findViewById<RecyclerView>(R.id.rv_notifications)
-        val layoutEmpty = view.findViewById<LinearLayout>(R.id.layout_empty)
-        val layoutFilter = view.findViewById<LinearLayout>(R.id.layout_filter)
-        val filterDivider = view.findViewById<View>(R.id.filter_divider)
-        val chipAll = view.findViewById<TextView>(R.id.chip_all)
-        val chipSystem = view.findViewById<TextView>(R.id.chip_system)
-        val chipMy = view.findViewById<TextView>(R.id.chip_my)
-        val btnOnlyUnread = view.findViewById<View>(R.id.btn_only_unread)
-        val ivOnlyUnreadIcon = view.findViewById<ImageView>(R.id.iv_only_unread_icon)
+        rvNotifications = view.findViewById(R.id.rv_notifications)
+        layoutEmpty = view.findViewById(R.id.layout_empty)
+        layoutFilter = view.findViewById(R.id.layout_filter)
+        filterDivider = view.findViewById(R.id.filter_divider)
+        chipAll = view.findViewById(R.id.chip_all)
+        chipSystem = view.findViewById(R.id.chip_system)
+        chipMy = view.findViewById(R.id.chip_my)
+        btnOnlyUnread = view.findViewById(R.id.btn_only_unread)
+        ivOnlyUnreadIcon = view.findViewById(R.id.iv_only_unread_icon)
 
-        val allItems = listOf(
-            NotificationUiModel(1, NotificationType.AI_GENERATE, "AI 생성을 잊으셨나요?",
-                "어제 추가한 기억이 아직 AI 생성되지 않았어요. 지금 완성해보세요!", "1시간 전", false),
-            NotificationUiModel(2, NotificationType.INQUIRY, "문의하신 내용에 답변이 도착...",
-                "\"앱 사용 방법 문의\"에 대한 답변을 확인해보세요", "18시간 전", false),
-            NotificationUiModel(3, NotificationType.NOTICE, "새 공지사항이 등록되었어요",
-                "새로운 기능이 추가되었어요. 지금 바로 써보세요!", "어제", true),
-            NotificationUiModel(4, NotificationType.REMINDER, "오늘의 기억을 남겨보세요",
-                "오늘 하루도 소중한 순간들이 있었을 거예요. 기억을 기록해보세요 📝", "어제", true),
-            NotificationUiModel(5, NotificationType.NOTICE, "Re:Day 정기 점검 안내",
-                "3월 25일 02:00~04:00 정기 점검이 예정되어 있습니다", "2일 전", true),
-            NotificationUiModel(6, NotificationType.AI_GENERATE, "AI 생성을 잊으셨나요?",
-                "3월 15일에 추가한 기억이 아직 완성되지 않았어요", "3일 전", true)
-        )
-
-        adapter = NotificationAdapter(allItems)
+        adapter = NotificationAdapter(emptyList()) { item ->
+            if (!item.isRead) markAsRead(item)
+        }
         rvNotifications.layoutManager = LinearLayoutManager(requireContext())
         rvNotifications.adapter = adapter
 
-        fun filteredItems(): List<NotificationUiModel> {
-            val base = when (currentFilter) {
-                FilterType.ALL -> allItems
-                FilterType.SYSTEM -> allItems.filter {
-                    it.type == NotificationType.NOTICE || it.type == NotificationType.INQUIRY
-                }
-                FilterType.MY -> allItems.filter {
-                    it.type == NotificationType.AI_GENERATE || it.type == NotificationType.REMINDER
-                }
-            }
-            return if (onlyUnread) base.filter { !it.isRead } else base
-        }
-
-        fun applyFilter() {
-            val items = filteredItems()
-            if (items.isEmpty()) {
-                rvNotifications.visibility = View.GONE
-                layoutEmpty.visibility = View.VISIBLE
-                layoutFilter.visibility = View.GONE
-                filterDivider.visibility = View.GONE
-            } else {
-                rvNotifications.visibility = View.VISIBLE
-                layoutEmpty.visibility = View.GONE
-                layoutFilter.visibility = View.VISIBLE
-                filterDivider.visibility = View.VISIBLE
-            }
-            adapter.updateItems(items)
-        }
-
-        fun updateChipUI() {
-            val ctx = requireContext()
-            chipAll.background = ContextCompat.getDrawable(ctx,
-                if (currentFilter == FilterType.ALL) R.drawable.bg_chip_selected else R.drawable.bg_chip_unselected)
-            chipAll.setTextColor(ContextCompat.getColor(ctx, R.color.brown_600))
-
-            chipSystem.background = ContextCompat.getDrawable(ctx,
-                if (currentFilter == FilterType.SYSTEM) R.drawable.bg_chip_selected_system else R.drawable.bg_chip_unselected)
-            chipSystem.setTextColor(ContextCompat.getColor(ctx,
-                if (currentFilter == FilterType.SYSTEM) R.color.brown_50 else R.color.brown_600))
-
-            chipMy.background = ContextCompat.getDrawable(ctx,
-                if (currentFilter == FilterType.MY) R.drawable.bg_chip_selected_my else R.drawable.bg_chip_unselected)
-            chipMy.setTextColor(ContextCompat.getColor(ctx,
-                if (currentFilter == FilterType.MY) R.color.brown_50 else R.color.brown_600))
-        }
-
-        fun updateOnlyUnreadUI() {
-            btnOnlyUnread.alpha = if (onlyUnread) 1.0f else 0.4f
-            ivOnlyUnreadIcon.setImageResource(R.drawable.ic_check_stroke)
-        }
-
-        chipAll.setOnClickListener {
-            currentFilter = FilterType.ALL
-            updateChipUI()
-            applyFilter()
-        }
-
-        chipSystem.setOnClickListener {
-            currentFilter = FilterType.SYSTEM
-            updateChipUI()
-            applyFilter()
-        }
-
-        chipMy.setOnClickListener {
-            currentFilter = FilterType.MY
-            updateChipUI()
-            applyFilter()
-        }
+        chipAll.setOnClickListener { changeFilter(FilterType.ALL) }
+        chipSystem.setOnClickListener { changeFilter(FilterType.SYSTEM) }
+        chipMy.setOnClickListener { changeFilter(FilterType.MY) }
 
         btnOnlyUnread.setOnClickListener {
             onlyUnread = !onlyUnread
@@ -139,8 +81,112 @@ class NotificationFragment : Fragment() {
             parentFragmentManager.popBackStack()
         }
 
-        applyFilter()
         updateChipUI()
         updateOnlyUnreadUI()
+        fetchNotifications()
+    }
+
+    private fun changeFilter(filter: FilterType) {
+        currentFilter = filter
+        updateChipUI()
+        fetchNotifications()
+    }
+
+    private fun fetchNotifications() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.notificationApi.getNotifications(currentFilter.apiCategory)
+                allItems = response.data.map { it.toUiModel() }
+                applyFilter()
+            } catch (_: Exception) {
+                applyFilter()
+            }
+        }
+    }
+
+    private fun markAsRead(item: NotificationUiModel) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                RetrofitClient.notificationApi.markAsRead(item.id)
+                // 로컬 상태 즉시 반영
+                allItems = allItems.map { if (it.id == item.id) it.copy(isRead = true) else it }
+                applyFilter()
+            } catch (_: Exception) {
+                // 실패 시 무시 (다음 새로고침 시 서버 상태 반영)
+            }
+        }
+    }
+
+    private fun applyFilter() {
+        val filtered = if (onlyUnread) allItems.filter { !it.isRead } else allItems
+        if (filtered.isEmpty()) {
+            rvNotifications.visibility = View.GONE
+            layoutEmpty.visibility = View.VISIBLE
+            layoutFilter.visibility = View.GONE
+            filterDivider.visibility = View.GONE
+        } else {
+            rvNotifications.visibility = View.VISIBLE
+            layoutEmpty.visibility = View.GONE
+            layoutFilter.visibility = View.VISIBLE
+            filterDivider.visibility = View.VISIBLE
+        }
+        adapter.updateItems(filtered)
+    }
+
+    private fun updateChipUI() {
+        val ctx = requireContext()
+        chipAll.background = ContextCompat.getDrawable(ctx,
+            if (currentFilter == FilterType.ALL) R.drawable.bg_chip_selected else R.drawable.bg_chip_unselected)
+        chipAll.setTextColor(ContextCompat.getColor(ctx, R.color.brown_600))
+
+        chipSystem.background = ContextCompat.getDrawable(ctx,
+            if (currentFilter == FilterType.SYSTEM) R.drawable.bg_chip_selected_system else R.drawable.bg_chip_unselected)
+        chipSystem.setTextColor(ContextCompat.getColor(ctx,
+            if (currentFilter == FilterType.SYSTEM) R.color.brown_50 else R.color.brown_600))
+
+        chipMy.background = ContextCompat.getDrawable(ctx,
+            if (currentFilter == FilterType.MY) R.drawable.bg_chip_selected_my else R.drawable.bg_chip_unselected)
+        chipMy.setTextColor(ContextCompat.getColor(ctx,
+            if (currentFilter == FilterType.MY) R.color.brown_50 else R.color.brown_600))
+    }
+
+    private fun updateOnlyUnreadUI() {
+        btnOnlyUnread.alpha = if (onlyUnread) 1.0f else 0.4f
+        ivOnlyUnreadIcon.setImageResource(R.drawable.ic_check_stroke)
+    }
+
+    private fun NotificationDto.toUiModel(): NotificationUiModel {
+        val type = when (this.type) {
+            "AI_GENERATION" -> NotificationType.AI_GENERATE
+            "DAILY_RECORD" -> NotificationType.REMINDER
+            "INQUIRY_ANSWER" -> NotificationType.INQUIRY
+            else -> NotificationType.NOTICE
+        }
+        return NotificationUiModel(
+            id = notificationId,
+            type = type,
+            title = title,
+            body = content,
+            timeLabel = formatRelativeTime(createdAt),
+            isRead = isRead
+        )
+    }
+
+    private fun formatRelativeTime(dateTime: String): String {
+        return try {
+            val parsed = LocalDateTime.parse(dateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val now = LocalDateTime.now()
+            val hours = ChronoUnit.HOURS.between(parsed, now)
+            val days = ChronoUnit.DAYS.between(parsed, now)
+            when {
+                hours < 1 -> "방금 전"
+                hours < 24 -> "${hours}시간 전"
+                days == 1L -> "어제"
+                days < 7 -> "${days}일 전"
+                else -> "${parsed.monthValue}.${parsed.dayOfMonth.toString().padStart(2, '0')}"
+            }
+        } catch (_: Exception) {
+            dateTime.take(10)
+        }
     }
 }

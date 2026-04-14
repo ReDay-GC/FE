@@ -5,8 +5,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.reday.data.remote.InquiryListDto
+import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.utils.TokenManager
+import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class InquiryFragment : Fragment() {
 
@@ -32,40 +39,67 @@ class InquiryFragment : Fragment() {
                 .commit()
         }
 
-        val items = listOf(
-            InquiryUiModel(
-                id = 1,
-                userName = "사용자",
-                date = "2024. 11. 29.",
-                title = "기억 생성 오류 문의",
-                content = "기억 생성 버튼을 눌러도 AI 생성이 시작되지 않습니다.",
-                answer = null
-            ),
-            InquiryUiModel(
-                id = 2,
-                userName = "사용자",
-                date = "2024. 11. 29.",
-                title = "앱 사용 방법 문의",
-                content = "기록 조각을 추가하는 방법을 알고 싶습니다.",
-                answer = InquiryAnswer(
-                    authorName = "Re:Day 팀",
-                    date = "2024. 11. 29.",
-                    content = "안녕하세요! 홈 화면 하단의 + 버튼을 눌러 기록 조각을 추가하실 수 있습니다."
-                )
-            )
-        )
-
         val rvInquiries = view.findViewById<RecyclerView>(R.id.rv_inquiries)
         val layoutEmpty = view.findViewById<View>(R.id.layout_empty)
 
-        if (items.isEmpty()) {
-            rvInquiries.visibility = View.GONE
-            layoutEmpty.visibility = View.VISIBLE
-        } else {
-            rvInquiries.visibility = View.VISIBLE
-            layoutEmpty.visibility = View.GONE
-            rvInquiries.layoutManager = LinearLayoutManager(requireContext())
-            rvInquiries.adapter = InquiryAdapter(items)
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.inquiryApi.getInquiries()
+                val userName = TokenManager.getUserName(requireContext()).ifBlank { "사용자" }
+                val items = response.data.map { it.toUiModel(userName) }
+
+                if (items.isEmpty()) {
+                    rvInquiries.visibility = View.GONE
+                    layoutEmpty.visibility = View.VISIBLE
+                } else {
+                    rvInquiries.visibility = View.VISIBLE
+                    layoutEmpty.visibility = View.GONE
+                    rvInquiries.layoutManager = LinearLayoutManager(requireContext())
+                    rvInquiries.adapter = InquiryAdapter(items) { inquiry ->
+                        val fragment = InquiryDetailFragment().apply {
+                            arguments = Bundle().apply {
+                                putLong(InquiryDetailFragment.ARG_INQUIRY_ID, inquiry.id)
+                                putString(InquiryDetailFragment.ARG_TITLE, inquiry.title)
+                            }
+                        }
+                        parentFragmentManager.beginTransaction()
+                            .replace(R.id.content_container, fragment)
+                            .addToBackStack(null)
+                            .commit()
+                    }
+                }
+            } catch (_: Exception) {
+                rvInquiries.visibility = View.GONE
+                layoutEmpty.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun InquiryListDto.toUiModel(userName: String): InquiryUiModel {
+        val answer = if (status == "ANSWERED" && replyContent != null) {
+            InquiryAnswer(
+                authorName = "Re:Day 팀",
+                date = "",
+                content = replyContent
+            )
+        } else null
+
+        return InquiryUiModel(
+            id = inquiryId,
+            userName = userName,
+            date = formatDate(createdAt),
+            title = title,
+            content = contentPreview,
+            answer = answer
+        )
+    }
+
+    private fun formatDate(dateTime: String): String {
+        return try {
+            val parsed = LocalDateTime.parse(dateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            "${parsed.year}. ${parsed.monthValue.toString().padStart(2, '0')}. ${parsed.dayOfMonth.toString().padStart(2, '0')}."
+        } catch (_: Exception) {
+            dateTime.take(10)
         }
     }
 }

@@ -23,7 +23,8 @@ data class NotificationUiModel(
 )
 
 class NotificationAdapter(
-    private var items: List<NotificationUiModel>
+    private var items: List<NotificationUiModel>,
+    private val onItemClick: (NotificationUiModel) -> Unit = {}
 ) : RecyclerView.Adapter<NotificationAdapter.ViewHolder>() {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -45,6 +46,8 @@ class NotificationAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = items[position]
         val ctx = holder.itemView.context
+
+        holder.card.setOnClickListener { onItemClick(item) }
 
         holder.tvTitle.text = item.title
         holder.tvBody.text = item.body

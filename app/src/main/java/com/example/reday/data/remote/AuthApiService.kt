@@ -1,6 +1,8 @@
 package com.example.reday.data.remote
 
+import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.POST
 
 data class SignupRequest(
@@ -48,4 +50,10 @@ interface AuthApiService {
 
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
+
+    @POST("api/auth/logout")
+    suspend fun logout(): Response<Unit>
+
+    @DELETE("api/auth/withdraw")
+    suspend fun withdraw(): Response<Unit>
 }
