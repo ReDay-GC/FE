@@ -112,6 +112,13 @@ class MainActivity : AppCompatActivity() {
                 .addToBackStack(null)
                 .commit()
         }
+
+        findViewById<View>(R.id.btn_notification).setOnClickListener {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.content_container, NotificationFragment())
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     private fun showFragment(fragment: Fragment) {

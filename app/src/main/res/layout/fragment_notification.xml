@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/brown_100">
+
+    <!-- 툴바 -->
+     <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/brown_50"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="10dp">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_chevron_left"
+            android:scaleType="fitCenter"
+            android:padding="8dp"
+            android:contentDescription="뒤로"
+            app:tint="@color/brown_700"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알림"
+            android:textColor="@color/brown_700"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 툴바 하단 구분선 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/inactive" />
+
+    <!-- 필터 탭 (목록이 있을 때만 VISIBLE) -->
+    <LinearLayout
+        android:id="@+id/layout_filter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/brown_50"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="14dp"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/chip_all"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="전체"
+            android:textColor="@color/brown_600"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:background="@drawable/bg_chip_selected" />
+
+        <TextView
+            android:id="@+id/chip_system"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="시스템"
+            android:textColor="@color/brown_600"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_chip_unselected" />
+
+        <TextView
+            android:id="@+id/chip_my"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="내 알림"
+            android:textColor="@color/brown_600"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_chip_unselected" />
+
+        <LinearLayout
+            android:id="@+id/btn_only_unread"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end|center_vertical"
+            android:orientation="horizontal"
+            android:alpha="0.4">
+
+            <TextView
+                android:id="@+id/tv_only_unread"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="새로운 알림만 보기 "
+                android:textColor="@color/brown_600"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/iv_only_unread_icon"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_check_stroke"
+                app:tint="@color/brown_600" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 필터 하단 구분선 -->
+    <View
+        android:id="@+id/filter_divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/inactive"
+        android:visibility="gone" />
+
+    <!-- 알림 목록 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_notifications"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="20dp"
+        android:clipToPadding="false"
+        android:visibility="gone" />
+
+    <!-- 빈 상태 -->
+    <LinearLayout
+        android:id="@+id/layout_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="20dp"
+        android:visibility="visible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="알람이 없어요"
+            android:textColor="@color/brown_700"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="새로운 알림이 오면\n여기에서 확인할 수 있어요"
+            android:textColor="@color/brown_500"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp" />
+
+    </LinearLayout>
+
+</LinearLayout>

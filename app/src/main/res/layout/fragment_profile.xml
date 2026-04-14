@@ -18,7 +18,7 @@
             android:id="@+id/btn_back"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:background="@drawable/bg_icon_button"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_left"
             android:scaleType="fitCenter"
             android:padding="8dp"
