@@ -8,11 +8,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.reday.data.remote.NoticeListDto
 import com.example.reday.data.remote.RetrofitClient
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.ZonedDateTime
 
 class NoticeFragment : Fragment() {
 
@@ -31,39 +31,49 @@ class NoticeFragment : Fragment() {
             parentFragmentManager.popBackStack()
         }
 
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipe_refresh)
         val rvNotices = view.findViewById<RecyclerView>(R.id.rv_notices)
         val layoutEmpty = view.findViewById<View>(R.id.layout_empty)
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.noticeApi.getNotices()
-                val items = response.data.map { it.toUiModel() }
+        swipeRefresh.setColorSchemeResources(R.color.main_200)
 
-                if (items.isEmpty()) {
+        fun loadNotices() {
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val response = RetrofitClient.noticeApi.getNotices()
+                    val items = response.data.map { it.toUiModel() }
+
+                    if (items.isEmpty()) {
+                        rvNotices.visibility = View.GONE
+                        layoutEmpty.visibility = View.VISIBLE
+                    } else {
+                        rvNotices.visibility = View.VISIBLE
+                        layoutEmpty.visibility = View.GONE
+                        rvNotices.layoutManager = LinearLayoutManager(requireContext())
+                        rvNotices.adapter = NoticeAdapter(items) { notice ->
+                            val fragment = NoticeDetailFragment().apply {
+                                arguments = Bundle().apply {
+                                    putLong(NoticeDetailFragment.ARG_NOTICE_ID, notice.id)
+                                    putString(NoticeDetailFragment.ARG_TITLE, notice.title)
+                                }
+                            }
+                            parentFragmentManager.beginTransaction()
+                                .replace(R.id.content_container, fragment)
+                                .addToBackStack(null)
+                                .commit()
+                        }
+                    }
+                } catch (_: Exception) {
                     rvNotices.visibility = View.GONE
                     layoutEmpty.visibility = View.VISIBLE
-                } else {
-                    rvNotices.visibility = View.VISIBLE
-                    layoutEmpty.visibility = View.GONE
-                    rvNotices.layoutManager = LinearLayoutManager(requireContext())
-                    rvNotices.adapter = NoticeAdapter(items) { notice ->
-                        val fragment = NoticeDetailFragment().apply {
-                            arguments = Bundle().apply {
-                                putLong(NoticeDetailFragment.ARG_NOTICE_ID, notice.id)
-                                putString(NoticeDetailFragment.ARG_TITLE, notice.title)
-                            }
-                        }
-                        parentFragmentManager.beginTransaction()
-                            .replace(R.id.content_container, fragment)
-                            .addToBackStack(null)
-                            .commit()
-                    }
+                } finally {
+                    swipeRefresh.isRefreshing = false
                 }
-            } catch (_: Exception) {
-                rvNotices.visibility = View.GONE
-                layoutEmpty.visibility = View.VISIBLE
             }
         }
+
+        swipeRefresh.setOnRefreshListener { loadNotices() }
+        loadNotices()
     }
 
     private fun NoticeListDto.toUiModel(): NoticeUiModel {
@@ -80,7 +90,7 @@ class NoticeFragment : Fragment() {
 
     private fun formatDate(dateTime: String): String {
         return try {
-            val parsed = LocalDateTime.parse(dateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val parsed = ZonedDateTime.parse(dateTime).toLocalDate()
             "${parsed.year}. ${parsed.monthValue.toString().padStart(2, '0')}. ${parsed.dayOfMonth.toString().padStart(2, '0')}."
         } catch (_: Exception) {
             dateTime.take(10)

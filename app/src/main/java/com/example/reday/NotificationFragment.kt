@@ -8,14 +8,17 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.reday.data.remote.NotificationDto
 import com.example.reday.data.remote.RetrofitClient
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -31,6 +34,7 @@ class NotificationFragment : Fragment() {
     private lateinit var chipMy: TextView
     private lateinit var btnOnlyUnread: View
     private lateinit var ivOnlyUnreadIcon: ImageView
+    private lateinit var swipeRefresh: SwipeRefreshLayout
 
     private var currentFilter = FilterType.ALL
     private var onlyUnread = false
@@ -60,6 +64,9 @@ class NotificationFragment : Fragment() {
         chipMy = view.findViewById(R.id.chip_my)
         btnOnlyUnread = view.findViewById(R.id.btn_only_unread)
         ivOnlyUnreadIcon = view.findViewById(R.id.iv_only_unread_icon)
+        swipeRefresh = view.findViewById(R.id.swipe_refresh)
+        swipeRefresh.setColorSchemeResources(R.color.main_200)
+        swipeRefresh.setOnRefreshListener { fetchNotifications() }
 
         adapter = NotificationAdapter(emptyList()) { item ->
             if (!item.isRead) markAsRead(item)
@@ -83,6 +90,10 @@ class NotificationFragment : Fragment() {
 
         updateChipUI()
         updateOnlyUnreadUI()
+    }
+
+    override fun onResume() {
+        super.onResume()
         fetchNotifications()
     }
 
@@ -96,10 +107,14 @@ class NotificationFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitClient.notificationApi.getNotifications(currentFilter.apiCategory)
+                Log.d("NotificationFragment", "API success: ${response.data.size}개")
                 allItems = response.data.map { it.toUiModel() }
                 applyFilter()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("NotificationFragment", "API 실패: ${e.javaClass.simpleName} - ${e.message}")
                 applyFilter()
+            } finally {
+                swipeRefresh.isRefreshing = false
             }
         }
     }
@@ -174,7 +189,7 @@ class NotificationFragment : Fragment() {
 
     private fun formatRelativeTime(dateTime: String): String {
         return try {
-            val parsed = LocalDateTime.parse(dateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val parsed = ZonedDateTime.parse(dateTime).toLocalDateTime()
             val now = LocalDateTime.now()
             val hours = ChronoUnit.HOURS.between(parsed, now)
             val days = ChronoUnit.DAYS.between(parsed, now)

@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 data class NoticeUiModel(
-    val id: Int,
+    val id: Long,
     val title: String,
     val preview: String,
     val time: String,

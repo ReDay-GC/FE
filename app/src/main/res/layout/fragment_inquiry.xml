@@ -48,46 +48,58 @@
         android:layout_height="1dp"
         android:background="@color/inactive" />
 
-    <!-- 목록 -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_inquiries"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="20dp"
-        android:clipToPadding="false"
-        android:visibility="gone" />
+        android:layout_weight="1">
 
-    <!-- 빈 상태 -->
-    <LinearLayout
-        android:id="@+id/layout_empty"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="20dp"
-        android:visibility="gone">
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="문의 내역이 없어요"
-            android:textColor="@color/brown_700"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            <!-- 목록 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_inquiries"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="20dp"
+                android:clipToPadding="false"
+                android:visibility="gone" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="궁금한 점이 있으면\n아래 버튼으로 문의해주세요"
-            android:textColor="@color/brown_500"
-            android:textSize="14sp"
-            android:gravity="center"
-            android:lineSpacingExtra="2dp" />
+            <!-- 빈 상태 -->
+            <LinearLayout
+                android:id="@+id/layout_empty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="20dp"
+                android:visibility="gone">
 
-    </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="문의 내역이 없어요"
+                    android:textColor="@color/brown_700"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="궁금한 점이 있으면\n아래 버튼으로 문의해주세요"
+                    android:textColor="@color/brown_500"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <!-- 하단 문의하기 버튼 -->
     <LinearLayout
