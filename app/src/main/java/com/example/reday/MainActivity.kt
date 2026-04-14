@@ -28,14 +28,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupBottomNavigation()
+        setupProfileButton()
 
-        // 백스택 변화에 따라 바텀 네비 표시/숨김
+        // 백스택 변화에 따라 바텀 네비 및 앱 헤더 표시/숨김
         supportFragmentManager.addOnBackStackChangedListener {
-            val shouldHideNav = supportFragmentManager.backStackEntryCount > 0
+            val shouldHide = supportFragmentManager.backStackEntryCount > 0
             val bottomNav = findViewById<View>(R.id.bottom_nav)
             val divider = findViewById<View>(R.id.bottom_nav_divider)
-            bottomNav?.visibility = if (shouldHideNav) View.GONE else View.VISIBLE
-            divider?.visibility = if (shouldHideNav) View.GONE else View.VISIBLE
+            val appHeader = findViewById<View>(R.id.app_header)
+            bottomNav?.visibility = if (shouldHide) View.GONE else View.VISIBLE
+            divider?.visibility = if (shouldHide) View.GONE else View.VISIBLE
+            appHeader?.visibility = if (shouldHide) View.GONE else View.VISIBLE
         }
     }
 
@@ -100,6 +103,22 @@ class MainActivity : AppCompatActivity() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         bottomNav.selectedItemId = R.id.nav_home
         showFragment(HomeFragment())
+    }
+
+    private fun setupProfileButton() {
+        findViewById<View>(R.id.btn_profile).setOnClickListener {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.content_container, ProfileFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+
+        findViewById<View>(R.id.btn_notification).setOnClickListener {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.content_container, NotificationFragment())
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     private fun showFragment(fragment: Fragment) {
