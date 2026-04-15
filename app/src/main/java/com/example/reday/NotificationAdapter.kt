@@ -19,7 +19,9 @@ data class NotificationUiModel(
     val title: String,
     val body: String,
     val timeLabel: String,
-    val isRead: Boolean
+    val isRead: Boolean,
+    val relatedId: Long? = null,
+    val date: String = ""  // YYYY-MM-DD
 )
 
 class NotificationAdapter(

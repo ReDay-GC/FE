@@ -68,10 +68,11 @@
 
             <View
                 android:id="@+id/badge_notification"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
                 android:layout_gravity="top|end"
-                android:layout_margin="4dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_dot_red"
                 android:visibility="gone" />
 

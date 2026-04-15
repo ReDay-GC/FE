@@ -33,7 +33,8 @@ data class NotificationDto(
     val title: String,
     val content: String,
     val isRead: Boolean,
-    val createdAt: String
+    val createdAt: String,
+    val relatedId: Long? = null
 )
 
 data class NotificationListResponse(

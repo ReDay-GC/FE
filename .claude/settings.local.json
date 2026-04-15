@@ -4,7 +4,8 @@
       "WebFetch(domain:www.figma.com)",
       "mcp__plugin_figma_figma__get_screenshot",
       "mcp__plugin_figma_figma__get_design_context",
-      "mcp__plugin_figma_figma__get_metadata"
+      "mcp__plugin_figma_figma__get_metadata",
+      "mcp__plugin_figma_figma__whoami"
     ]
   }
 }

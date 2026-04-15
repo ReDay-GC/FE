@@ -1,5 +1,6 @@
 package com.example.reday
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -70,7 +71,7 @@ class NotificationFragment : Fragment() {
 
         adapter = NotificationAdapter(emptyList()) { item ->
             if (!item.isRead) markAsRead(item)
-            android.widget.Toast.makeText(requireContext(), item.title, android.widget.Toast.LENGTH_SHORT).show()
+            navigateByType(item)
         }
         rvNotifications.layoutManager = LinearLayoutManager(requireContext())
         rvNotifications.adapter = adapter
@@ -135,16 +136,14 @@ class NotificationFragment : Fragment() {
 
     private fun applyFilter() {
         val filtered = if (onlyUnread) allItems.filter { !it.isRead } else allItems
+        layoutFilter.visibility = View.VISIBLE
+        filterDivider.visibility = View.VISIBLE
         if (filtered.isEmpty()) {
             rvNotifications.visibility = View.GONE
             layoutEmpty.visibility = View.VISIBLE
-            layoutFilter.visibility = View.GONE
-            filterDivider.visibility = View.GONE
         } else {
             rvNotifications.visibility = View.VISIBLE
             layoutEmpty.visibility = View.GONE
-            layoutFilter.visibility = View.VISIBLE
-            filterDivider.visibility = View.VISIBLE
         }
         adapter.updateItems(filtered)
     }
@@ -171,6 +170,82 @@ class NotificationFragment : Fragment() {
         ivOnlyUnreadIcon.setImageResource(R.drawable.ic_check_stroke)
     }
 
+    private fun navigateByType(item: NotificationUiModel) {
+        when (item.type) {
+            NotificationType.INQUIRY -> {
+                val fragment = item.relatedId?.let { id ->
+                    InquiryDetailFragment().apply {
+                        arguments = Bundle().apply {
+                            putLong(InquiryDetailFragment.ARG_INQUIRY_ID, id)
+                            putString(InquiryDetailFragment.ARG_TITLE, item.title)
+                        }
+                    }
+                } ?: run {
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        "문의 목록에서 해당 문의를 확인해주세요",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    InquiryFragment()
+                }
+                navigateToFragment(fragment)
+            }
+            NotificationType.NOTICE -> {
+                val fragment = item.relatedId?.let { id ->
+                    NoticeDetailFragment().apply {
+                        arguments = Bundle().apply {
+                            putLong(NoticeDetailFragment.ARG_NOTICE_ID, id)
+                            putString(NoticeDetailFragment.ARG_TITLE, item.title)
+                        }
+                    }
+                } ?: run {
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        "공지 목록에서 해당 공지를 확인해주세요",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    NoticeFragment()
+                }
+                navigateToFragment(fragment)
+            }
+            NotificationType.AI_GENERATE -> {
+                val memoryId = item.relatedId ?: return
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        val response = RetrofitClient.springMemoryApi.getMemoryDetail(memoryId)
+                        val date = response.data?.memoryDate ?: return@launch
+                        startActivity(
+                            Intent(requireContext(), MemoryFragmentActivity::class.java).apply {
+                                putExtra(MemoryFragmentActivity.EXTRA_DATE, date)
+                            }
+                        )
+                    } catch (_: Exception) {
+                        navigateToFragment(ArchiveFragment())
+                    }
+                }
+            }
+            NotificationType.REMINDER -> {
+                val parts = item.date.split("-")
+                if (parts.size == 3) {
+                    startActivity(
+                        Intent(requireContext(), AddMemoryActivity::class.java).apply {
+                            putExtra(AddMemoryActivity.EXTRA_YEAR, parts[0].toInt())
+                            putExtra(AddMemoryActivity.EXTRA_MONTH, parts[1].toInt())
+                            putExtra(AddMemoryActivity.EXTRA_DAY, parts[2].toInt())
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun navigateToFragment(fragment: Fragment) {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.content_container, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
+
     private fun NotificationDto.toUiModel(): NotificationUiModel {
         val type = when (this.type) {
             "AI_GENERATION" -> NotificationType.AI_GENERATE
@@ -185,7 +260,9 @@ class NotificationFragment : Fragment() {
             title = title,
             body = content,
             timeLabel = formatRelativeTime(createdAt),
-            isRead = isRead
+            isRead = isRead,
+            relatedId = relatedId,
+            date = createdAt.take(10)
         )
     }
 
