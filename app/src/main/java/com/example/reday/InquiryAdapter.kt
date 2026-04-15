@@ -14,7 +14,7 @@ data class InquiryAnswer(
 )
 
 data class InquiryUiModel(
-    val id: Int,
+    val id: Long,
     val userName: String,
     val date: String,
     val title: String,
@@ -23,7 +23,8 @@ data class InquiryUiModel(
 )
 
 class InquiryAdapter(
-    private val items: List<InquiryUiModel>
+    private val items: List<InquiryUiModel>,
+    private val onItemClick: (InquiryUiModel) -> Unit = {}
 ) : RecyclerView.Adapter<InquiryAdapter.InquiryViewHolder>() {
 
     inner class InquiryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -46,6 +47,8 @@ class InquiryAdapter(
 
     override fun onBindViewHolder(holder: InquiryViewHolder, position: Int) {
         val item = items[position]
+        holder.itemView.setOnClickListener { onItemClick(item) }
+
         holder.tvUserName.text = item.userName
         holder.tvDate.text = item.date
         holder.tvTitle.text = item.title

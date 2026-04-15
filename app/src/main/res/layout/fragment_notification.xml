@@ -134,45 +134,57 @@
         android:background="@color/inactive"
         android:visibility="gone" />
 
-    <!-- 알림 목록 -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_notifications"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="20dp"
-        android:clipToPadding="false"
-        android:visibility="gone" />
+        android:layout_weight="1">
 
-    <!-- 빈 상태 -->
-    <LinearLayout
-        android:id="@+id/layout_empty"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="20dp"
-        android:visibility="visible">
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="알람이 없어요"
-            android:textColor="@color/brown_700"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            <!-- 알림 목록 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_notifications"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="20dp"
+                android:clipToPadding="false"
+                android:visibility="gone" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="새로운 알림이 오면\n여기에서 확인할 수 있어요"
-            android:textColor="@color/brown_500"
-            android:textSize="14sp"
-            android:gravity="center"
-            android:lineSpacingExtra="2dp" />
+            <!-- 빈 상태 -->
+            <LinearLayout
+                android:id="@+id/layout_empty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="20dp"
+                android:visibility="visible">
 
-    </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="알람이 없어요"
+                    android:textColor="@color/brown_700"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="새로운 알림이 오면\n여기에서 확인할 수 있어요"
+                    android:textColor="@color/brown_500"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </LinearLayout>

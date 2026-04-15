@@ -10,9 +10,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import android.view.View
 import android.widget.TextView
+import androidx.lifecycle.lifecycleScope
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.utils.TokenManager
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,7 +41,11 @@ class MainActivity : AppCompatActivity() {
             bottomNav?.visibility = if (shouldHide) View.GONE else View.VISIBLE
             divider?.visibility = if (shouldHide) View.GONE else View.VISIBLE
             appHeader?.visibility = if (shouldHide) View.GONE else View.VISIBLE
+            // 알림 화면에서 나올 때 배지 재확인
+            if (!shouldHide) updateNotificationBadge()
         }
+
+        updateNotificationBadge()
     }
 
     private fun setupBottomNavigation() {
@@ -118,6 +124,19 @@ class MainActivity : AppCompatActivity() {
                 .replace(R.id.content_container, NotificationFragment())
                 .addToBackStack(null)
                 .commit()
+        }
+    }
+
+    fun updateNotificationBadge() {
+        lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.notificationApi.getNotifications("ALL")
+                val hasUnread = response.data.any { !it.isRead }
+                findViewById<View>(R.id.badge_notification)?.visibility =
+                    if (hasUnread) View.VISIBLE else View.GONE
+            } catch (_: Exception) {
+                // 실패 시 배지 유지
+            }
         }
     }
 
