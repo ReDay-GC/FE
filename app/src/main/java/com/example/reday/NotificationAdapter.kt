@@ -62,22 +62,22 @@ class NotificationAdapter(
                 R.drawable.bg_dot_main200
             )
             NotificationType.INQUIRY -> Quad(
-                R.drawable.bg_circle_sub200,
+                if (item.isRead) R.drawable.bg_circle_sub105 else R.drawable.bg_circle_sub200,
                 R.drawable.ic_memo_fragment,
                 R.color.sub_200,
-                R.drawable.bg_circle_sub200
+                R.drawable.bg_dot_sub200
             )
             NotificationType.NOTICE -> Quad(
-                R.drawable.bg_circle_sub105,
+                if (item.isRead) R.drawable.bg_circle_sub105 else R.drawable.bg_circle_sub200,
                 R.drawable.ic_bell,
-                R.color.inactive,
-                null
+                R.color.sub_200,
+                R.drawable.bg_dot_sub200
             )
             NotificationType.REMINDER -> Quad(
-                R.drawable.bg_circle_pink,
+                if (item.isRead) R.drawable.bg_circle_pink else R.drawable.bg_circle_main200,
                 R.drawable.ic_bell,
-                R.color.inactive,
-                null
+                R.color.main_200,
+                R.drawable.bg_dot_main200
             )
         }
 
@@ -100,12 +100,12 @@ class NotificationAdapter(
             }
         }
 
-        // 읽음 상태에 따라 제목 색상 조정
+        // 읽음 상태에 따라 제목/본문 색상 조정
         holder.tvTitle.setTextColor(
-            ContextCompat.getColor(
-                ctx,
-                if (item.isRead) R.color.brown_500 else R.color.brown_700
-            )
+            ContextCompat.getColor(ctx, if (item.isRead) R.color.brown_500 else R.color.brown_700)
+        )
+        holder.tvBody.setTextColor(
+            ContextCompat.getColor(ctx, if (item.isRead) R.color.brown_400 else R.color.brown_500)
         )
     }
 

@@ -70,6 +70,7 @@ class NotificationFragment : Fragment() {
 
         adapter = NotificationAdapter(emptyList()) { item ->
             if (!item.isRead) markAsRead(item)
+            android.widget.Toast.makeText(requireContext(), item.title, android.widget.Toast.LENGTH_SHORT).show()
         }
         rvNotifications.layoutManager = LinearLayoutManager(requireContext())
         rvNotifications.adapter = adapter
@@ -123,9 +124,9 @@ class NotificationFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 RetrofitClient.notificationApi.markAsRead(item.id)
-                // 로컬 상태 즉시 반영
                 allItems = allItems.map { if (it.id == item.id) it.copy(isRead = true) else it }
                 applyFilter()
+                (activity as? MainActivity)?.updateNotificationBadge()
             } catch (_: Exception) {
                 // 실패 시 무시 (다음 새로고침 시 서버 상태 반영)
             }
@@ -175,6 +176,7 @@ class NotificationFragment : Fragment() {
             "AI_GENERATION" -> NotificationType.AI_GENERATE
             "DAILY_RECORD" -> NotificationType.REMINDER
             "INQUIRY_ANSWER" -> NotificationType.INQUIRY
+            "NOTICE" -> NotificationType.NOTICE
             else -> NotificationType.NOTICE
         }
         return NotificationUiModel(
