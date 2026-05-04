@@ -124,7 +124,6 @@ class CalendarFragment : Fragment() {
             loadAndRender()
         }
 
-        loadAndRender()
     }
 
     override fun onResume() {
@@ -134,9 +133,13 @@ class CalendarFragment : Fragment() {
 
     private fun loadAndRender() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
-            memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
-            recordingDays = fragmentDays - memoryDays
+            try {
+                val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
+                memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
+                recordingDays = fragmentDays - memoryDays
+            } catch (e: Exception) {
+                // 데이터 로딩 실패 시에도 캘린더는 렌더링
+            }
             renderCalendar()
         }
     }

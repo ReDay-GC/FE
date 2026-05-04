@@ -142,7 +142,7 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- 이메일 -->
+                    <!-- 아이디 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -152,43 +152,76 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="이메일"
+                            android:text="아이디"
                             android:textSize="14sp"
                             android:textColor="@color/brown_600"
                             android:textStyle="bold" />
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="55dp"
+                            android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:background="@drawable/selector_signup_input_bg"
-                            android:addStatesFromChildren="true"
                             android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp">
+                            android:gravity="center_vertical">
 
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_email"
-                                android:contentDescription="@null" />
-
-                            <EditText
-                                android:id="@+id/et_email"
+                            <LinearLayout
                                 android:layout_width="0dp"
-                                android:layout_height="match_parent"
+                                android:layout_height="55dp"
                                 android:layout_weight="1"
-                                android:layout_marginStart="10dp"
-                                android:background="@android:color/transparent"
-                                android:hint="example@reday.com"
-                                android:textColorHint="@color/brown_300"
-                                android:textColor="@color/brown_800"
-                                android:textSize="16sp"
-                                android:inputType="textEmailAddress"
-                                android:singleLine="true"
-                                android:imeOptions="actionNext" />
+                                android:background="@drawable/selector_signup_input_bg"
+                                android:addStatesFromChildren="true"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:src="@drawable/ic_email"
+                                    android:contentDescription="@null" />
+
+                                <EditText
+                                    android:id="@+id/et_email"
+                                    android:layout_width="0dp"
+                                    android:layout_height="match_parent"
+                                    android:layout_weight="1"
+                                    android:layout_marginStart="10dp"
+                                    android:background="@android:color/transparent"
+                                    android:hint="6자 이상 입력"
+                                    android:textColorHint="@color/brown_300"
+                                    android:textColor="@color/brown_800"
+                                    android:textSize="16sp"
+                                    android:inputType="text"
+                                    android:singleLine="true"
+                                    android:imeOptions="actionNext" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_check_duplicate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="55dp"
+                                android:layout_marginStart="8dp"
+                                android:text="중복확인"
+                                android:textSize="14sp"
+                                android:textColor="@color/brown_50"
+                                app:backgroundTint="@color/brown_400"
+                                app:cornerRadius="12dp"
+                                app:elevation="0dp"
+                                android:paddingStart="14dp"
+                                android:paddingEnd="14dp" />
+
                         </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_duplicate_status"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:layout_marginStart="4dp"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
                     </LinearLayout>
 
                     <!-- 비밀번호 -->
@@ -230,7 +263,7 @@
                                 android:layout_weight="1"
                                 android:layout_marginStart="10dp"
                                 android:background="@android:color/transparent"
-                                android:hint="8자 이상 입력"
+                                android:hint="6자 이상 입력"
                                 android:textColorHint="@color/brown_300"
                                 android:textColor="@color/brown_800"
                                 android:textSize="16sp"
