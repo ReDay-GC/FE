@@ -3,7 +3,9 @@ package com.example.reday.data.remote
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 data class SignupRequest(
     val name: String,
@@ -44,7 +46,17 @@ data class LoginResponse(
     val data: LoginResponseData
 )
 
+data class CheckIdResponse(
+    val success: Boolean,
+    val code: Int,
+    val message: String,
+    val data: Boolean
+)
+
 interface AuthApiService {
+    @GET("api/auth/check-id")
+    suspend fun checkId(@Query("id") id: String): CheckIdResponse
+
     @POST("api/auth/signup")
     suspend fun signup(@Body request: SignupRequest): SignupResponse
 

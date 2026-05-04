@@ -37,16 +37,21 @@ class SignupActivity : AppCompatActivity() {
     private lateinit var cbTerms: CheckBox
     private lateinit var cbPrivacy: CheckBox
     private lateinit var btnSignup: MaterialButton
+    private lateinit var btnCheckDuplicate: MaterialButton
+    private lateinit var tvDuplicateStatus: TextView
     private lateinit var tvLogin: TextView
     private lateinit var progressBar: ProgressBar
 
     private var isPwdVisible = false
     private var isPwdConfirmVisible = false
+    private var isIdChecked = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_signup)
 
+        btnCheckDuplicate = findViewById(R.id.btn_check_duplicate)
+        tvDuplicateStatus = findViewById(R.id.tv_duplicate_status)
         etName = findViewById(R.id.et_name)
         etEmail = findViewById(R.id.et_email)
         etPassword = findViewById(R.id.et_password)
@@ -73,9 +78,19 @@ class SignupActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) = updateSignupButtonState()
         }
         etName.addTextChangedListener(watcher)
-        etEmail.addTextChangedListener(watcher)
         etPassword.addTextChangedListener(watcher)
         etPasswordConfirm.addTextChangedListener(watcher)
+
+        // 아이디가 변경되면 중복확인 상태 초기화
+        etEmail.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                isIdChecked = false
+                tvDuplicateStatus.visibility = View.GONE
+                updateSignupButtonState()
+            }
+        })
     }
 
     private fun setupPasswordToggles() {
@@ -169,12 +184,45 @@ class SignupActivity : AppCompatActivity() {
                 && etPassword.text.isNotEmpty()
                 && etPasswordConfirm.text.isNotEmpty()
         val agreementsChecked = cbTerms.isChecked && cbPrivacy.isChecked
-        val enabled = fieldsFilled && agreementsChecked
+        val enabled = fieldsFilled && agreementsChecked && isIdChecked
         btnSignup.isEnabled = enabled
         btnSignup.alpha = if (enabled) 1.0f else 0.5f
     }
 
     private fun setupClickListeners() {
+        btnCheckDuplicate.setOnClickListener {
+            val id = etEmail.text.toString().trim()
+            if (id.length < 6) {
+                etEmail.error = "아이디는 6자 이상이어야 합니다."
+                return@setOnClickListener
+            }
+            lifecycleScope.launch {
+                btnCheckDuplicate.isEnabled = false
+                try {
+                    val response = RetrofitClient.authApi.checkId(id)
+                    if (response.data) {
+                        isIdChecked = true
+                        tvDuplicateStatus.text = "사용 가능한 아이디입니다."
+                        tvDuplicateStatus.setTextColor(
+                            androidx.core.content.ContextCompat.getColor(
+                                this@SignupActivity, R.color.sub_200))
+                    } else {
+                        isIdChecked = false
+                        tvDuplicateStatus.text = "이미 사용 중인 아이디입니다."
+                        tvDuplicateStatus.setTextColor(
+                            androidx.core.content.ContextCompat.getColor(
+                                this@SignupActivity, R.color.red))
+                    }
+                    tvDuplicateStatus.visibility = View.VISIBLE
+                } catch (e: Exception) {
+                    Toast.makeText(this@SignupActivity, "중복 확인에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                } finally {
+                    btnCheckDuplicate.isEnabled = true
+                    updateSignupButtonState()
+                }
+            }
+        }
+
         btnSignup.setOnClickListener {
             val name = etName.text.toString().trim()
             val email = etEmail.text.toString().trim()
@@ -183,6 +231,10 @@ class SignupActivity : AppCompatActivity() {
 
             if (email.length < 6) {
                 etEmail.error = "아이디는 6자 이상이어야 합니다."
+                return@setOnClickListener
+            }
+            if (!isIdChecked) {
+                Toast.makeText(this, "아이디 중복확인을 해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (password.length < 6) {
