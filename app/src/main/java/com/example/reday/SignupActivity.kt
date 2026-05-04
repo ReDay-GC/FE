@@ -6,7 +6,6 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
-import android.util.Patterns
 import android.view.View
 import android.widget.CheckBox
 import android.widget.EditText
@@ -182,12 +181,12 @@ class SignupActivity : AppCompatActivity() {
             val password = etPassword.text.toString()
             val passwordConfirm = etPasswordConfirm.text.toString()
 
-            if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                etEmail.error = "올바른 이메일 형식을 입력해주세요."
+            if (email.length < 6) {
+                etEmail.error = "아이디는 6자 이상이어야 합니다."
                 return@setOnClickListener
             }
-            if (password.length < 8) {
-                etPassword.error = "비밀번호는 8자 이상이어야 합니다."
+            if (password.length < 6) {
+                etPassword.error = "비밀번호는 6자 이상이어야 합니다."
                 return@setOnClickListener
             }
             if (password != passwordConfirm) {
