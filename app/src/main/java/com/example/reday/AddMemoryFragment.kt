@@ -708,9 +708,26 @@ class AddMemoryFragment : Fragment() {
     private fun copyImageToInternalStorage(uri: Uri): String? {
         return try {
             val input = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val original = android.graphics.BitmapFactory.decodeStream(input) ?: return null
+
+            val maxSize = 1280
+            val ratio = minOf(maxSize.toFloat() / original.width, maxSize.toFloat() / original.height, 1f)
+            val resized = if (ratio < 1f) {
+                android.graphics.Bitmap.createScaledBitmap(
+                    original,
+                    (original.width * ratio).toInt(),
+                    (original.height * ratio).toInt(),
+                    true
+                )
+            } else original
+
             val fileName = "photo_${System.currentTimeMillis()}.jpg"
             val file = File(requireContext().filesDir, fileName)
-            file.outputStream().use { output -> input.copyTo(output) }
+            file.outputStream().use { out ->
+                resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+            }
+            if (resized != original) resized.recycle()
+            original.recycle()
             file.absolutePath
         } catch (e: Exception) {
             null

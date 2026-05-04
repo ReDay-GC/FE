@@ -179,7 +179,16 @@ class HomeFragment : Fragment() {
             view.findViewById<TextView>(R.id.tv_record_count).text = "${todayCount}개 기록"
             val tvHint = view.findViewById<TextView>(R.id.tv_add_record_hint)
             tvHint.text = if (todayCount > 0) "+ 이어서 기록을 추가해보세요" else "+ 첫 기록을 추가해보세요"
-            tvHint.setOnClickListener { startAddMemoryForToday() }
+            tvHint.setOnClickListener {
+                if (todayCount > 0) {
+                    val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java).apply {
+                        putExtra(MemoryFragmentActivity.EXTRA_DATE, today)
+                    }
+                    startActivity(intent)
+                } else {
+                    startAddMemoryForToday()
+                }
+            }
         }
 
         // 최근 기억 목록 (AI 생성 후 저장된 기억만)
