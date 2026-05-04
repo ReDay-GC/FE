@@ -86,11 +86,8 @@ class MemoryDetailActivity : AppCompatActivity() {
 
         dialog.findViewById<android.view.View>(R.id.btn_menu_add_fragment).setOnClickListener {
             dialog.dismiss()
-            val intent = android.content.Intent(this, AddMemoryActivity::class.java).apply {
-                putExtra(AddMemoryActivity.EXTRA_YEAR, parts[0].toIntOrNull() ?: return@setOnClickListener)
-                putExtra(AddMemoryActivity.EXTRA_MONTH, parts[1].toIntOrNull() ?: return@setOnClickListener)
-                putExtra(AddMemoryActivity.EXTRA_DAY, parts[2].toIntOrNull() ?: return@setOnClickListener)
-                putExtra(AddMemoryActivity.EXTRA_GO_TO_TIMELINE, true)
+            val intent = android.content.Intent(this, MemoryFragmentActivity::class.java).apply {
+                putExtra(MemoryFragmentActivity.EXTRA_DATE, date)
             }
             startActivity(intent)
         }
