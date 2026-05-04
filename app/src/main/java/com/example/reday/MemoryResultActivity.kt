@@ -61,6 +61,7 @@ class MemoryResultActivity : AppCompatActivity() {
     private var currentEmotion: String? = null
     private var currentEmbedding: String? = null
     private var currentRecordIds: List<Long> = emptyList()
+    private var existingMemoryId: Long? = null
     private var photoFragments: List<RecordFragmentUiModel> = emptyList()
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
@@ -83,6 +84,7 @@ class MemoryResultActivity : AppCompatActivity() {
         currentEmotion = intent.getStringExtra(EXTRA_EMOTION)
         currentEmbedding = intent.getStringExtra(EXTRA_EMBEDDING)
         currentRecordIds = intent.getLongArrayExtra(EXTRA_RECORD_IDS)?.toList() ?: emptyList()
+        existingMemoryId = intent.getLongExtra(EXTRA_EXISTING_MEMORY_ID, -1L).takeIf { it != -1L }
 
         selectedTags.addAll(tags.filter { it in ALL_TAGS })
         locationList.addAll(locations.distinct().filter { it.isNotBlank() })
@@ -178,6 +180,8 @@ class MemoryResultActivity : AppCompatActivity() {
 
     private fun saveMemory(representativeFragmentId: Long?, representativePhotoUrl: String?, representativeLocationName: String? = null) {
         lifecycleScope.launch {
+            existingMemoryId?.let { memoryRepository.deleteMemoryById(it) }
+
             val gson = Gson()
             val entity = MemoryEntity(
                 date = currentDate,
@@ -460,5 +464,6 @@ class MemoryResultActivity : AppCompatActivity() {
         const val EXTRA_EMBEDDING = "extra_embedding"
         const val EXTRA_EMOTION = "extra_emotion"
         const val EXTRA_RECORD_IDS = "extra_record_ids"
+        const val EXTRA_EXISTING_MEMORY_ID = "extra_existing_memory_id"
     }
 }

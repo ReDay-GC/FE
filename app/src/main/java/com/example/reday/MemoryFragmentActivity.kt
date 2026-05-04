@@ -19,6 +19,7 @@ import com.example.reday.data.remote.FragmentInput
 import com.example.reday.data.remote.GenerateMemoryRequest
 import com.example.reday.data.remote.GenerateMemoryResponse
 import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
 import com.example.reday.utils.loadBitmapWithCorrectOrientation
 import android.location.Geocoder
@@ -34,6 +35,7 @@ import java.time.format.DateTimeParseException
 class MemoryFragmentActivity : AppCompatActivity() {
 
     private lateinit var repository: RecordFragmentRepository
+    private lateinit var memoryRepository: MemoryRepository
     private lateinit var llTimeline: LinearLayout
     private lateinit var tvToolbarDate: TextView
     private lateinit var tvBannerTitle: TextView
@@ -41,6 +43,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
     private var currentDate: String = ""
     private var fragments: List<RecordFragmentUiModel> = emptyList()
     private val expandedStates = mutableMapOf<Long, Boolean>()
+    private var existingMemoryId: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +72,14 @@ class MemoryFragmentActivity : AppCompatActivity() {
         }
 
         repository = RecordFragmentRepository()
+        memoryRepository = MemoryRepository()
+    }
 
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            existingMemoryId = memoryRepository.getMemoryByDate(currentDate)?.serverId
+        }
         loadFragments()
     }
 
@@ -463,6 +473,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     if (response.embedding.isNotEmpty()) {
                         putExtra(MemoryResultActivity.EXTRA_EMBEDDING, com.google.gson.Gson().toJson(response.embedding))
                     }
+                    existingMemoryId?.let { putExtra(MemoryResultActivity.EXTRA_EXISTING_MEMORY_ID, it) }
                 }
                 startActivity(intent)
             }
