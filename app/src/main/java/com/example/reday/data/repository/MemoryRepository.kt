@@ -119,6 +119,14 @@ class MemoryRepository(
         }
     }
 
+    suspend fun deleteMemoryById(serverId: Long) {
+        try {
+            api.deleteMemory(serverId)
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "기억 서버 삭제 실패: ${e.message}")
+        }
+    }
+
     suspend fun getMapLocations(): List<MapLocationData> {
         return try {
             val response = api.getMapLocations()
