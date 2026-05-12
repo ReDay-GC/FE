@@ -391,77 +391,91 @@ class AddMemoryFragment : Fragment() {
             val locationName = etLocation.text.toString().takeIf { it.isNotBlank() }
 
             lifecycleScope.launch {
-                // 위치명은 있는데 좌표가 없으면 저장 전에 Geocoder로 변환
-                if (locationName != null && currentLatitude == null) {
-                    withContext(Dispatchers.IO) {
-                        try {
-                            val geocoder = Geocoder(requireContext(), Locale.KOREA)
-                            val result = geocoder.getFromLocationName(locationName, 1)?.firstOrNull()
-                            currentLatitude = result?.latitude
-                            currentLongitude = result?.longitude
-                        } catch (e: Exception) { /* 변환 실패 시 null 유지 */ }
+                try {
+                    // 위치명은 있는데 좌표가 없으면 저장 전에 Geocoder로 변환
+                    if (locationName != null && currentLatitude == null) {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val geocoder = Geocoder(requireContext(), Locale.KOREA)
+                                val result = geocoder.getFromLocationName(locationName, 1)?.firstOrNull()
+                                currentLatitude = result?.latitude
+                                currentLongitude = result?.longitude
+                            } catch (e: Exception) { /* 변환 실패 시 null 유지 */ }
+                        }
                     }
-                }
 
-                when (selectedType) {
-                    RecordType.TEXT -> {
-                        val text = etMemo.text.toString().trim()
-                        if (text.isEmpty()) {
-                            Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
+                    when (selectedType) {
+                        RecordType.TEXT -> {
+                            val text = etMemo.text.toString().trim()
+                            if (text.isEmpty()) {
+                                Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            repository.saveTextFragment(
+                                text, createdAt, date, locationName,
+                                latitude = currentLatitude, longitude = currentLongitude
+                            )
                         }
-                        repository.saveTextFragment(
-                            text, createdAt, date, locationName,
-                            latitude = currentLatitude, longitude = currentLongitude
-                        )
+                        RecordType.PHOTO -> {
+                            if (selectedPhotoUri == null) {
+                                Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
+                            val path = selectedPhotoPath ?: withContext(Dispatchers.IO) {
+                                copyImageToInternalStorage(selectedPhotoUri!!)
+                            }
+                            if (path == null) {
+                                Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            val memo = etMemo.text.toString().trim().takeIf { it.isNotBlank() }
+                            repository.savePhotoFragment(
+                                photoUrl = path,
+                                createdAt = createdAt,
+                                date = date,
+                                contentText = memo,
+                                locationName = locationName,
+                                latitude = currentLatitude,
+                                longitude = currentLongitude
+                            )
+                        }
+                        RecordType.VOICE -> {
+                            if (voiceState != VoiceUiState.COMPLETED && voiceState != VoiceUiState.PLAYING) {
+                                Toast.makeText(requireContext(), "먼저 녹음을 완료해주세요", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            val file = voiceFile ?: run { isSaving = false; return@launch }
+                            val sttText = view?.findViewById<EditText>(R.id.et_stt_result)?.text?.toString()?.trim()
+                            repository.saveVoiceFragment(
+                                voiceUrl = file.absolutePath,
+                                durationSec = elapsedSec,
+                                date = date,
+                                contentText = sttText?.ifEmpty { null },
+                                locationName = locationName,
+                                latitude = currentLatitude,
+                                longitude = currentLongitude
+                            )
+                        }
                     }
-                    RecordType.PHOTO -> {
-                        if (selectedPhotoUri == null) {
-                            Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
-                        }
-                        // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
-                        val path = selectedPhotoPath ?: withContext(Dispatchers.IO) {
-                            copyImageToInternalStorage(selectedPhotoUri!!)
-                        }
-                        if (path == null) {
-                            Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
-                        }
-                        val memo = etMemo.text.toString().trim().takeIf { it.isNotBlank() }
-                        repository.savePhotoFragment(
-                            photoUrl = path,
-                            createdAt = createdAt,
-                            date = date,
-                            contentText = memo,
-                            locationName = locationName,
-                            latitude = currentLatitude,
-                            longitude = currentLongitude
-                        )
+                    listener?.onSaved()
+                } catch (e: retrofit2.HttpException) {
+                    isSaving = false
+                    val msg = when (e.code()) {
+                        401 -> "인증이 만료되었습니다. 다시 로그인해주세요."
+                        else -> "서버 오류가 발생했습니다. (${e.code()})"
                     }
-                    RecordType.VOICE -> {
-                        if (voiceState != VoiceUiState.COMPLETED && voiceState != VoiceUiState.PLAYING) {
-                            Toast.makeText(requireContext(), "먼저 녹음을 완료해주세요", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
-                        }
-                        val file = voiceFile ?: run { isSaving = false; return@launch }
-                        val sttText = view?.findViewById<EditText>(R.id.et_stt_result)?.text?.toString()?.trim()
-                        repository.saveVoiceFragment(
-                            voiceUrl = file.absolutePath,
-                            durationSec = elapsedSec,
-                            date = date,
-                            contentText = sttText?.ifEmpty { null },
-                            locationName = locationName,
-                            latitude = currentLatitude,
-                            longitude = currentLongitude
-                        )
-                    }
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                    Log.e("AddMemoryFragment", "저장 실패 (HTTP ${e.code()}): ${e.message()}")
+                } catch (e: Exception) {
+                    isSaving = false
+                    Toast.makeText(requireContext(), "저장에 실패했습니다. 네트워크를 확인해주세요.", Toast.LENGTH_SHORT).show()
+                    Log.e("AddMemoryFragment", "저장 실패: ${e.message}", e)
                 }
-                listener?.onSaved()
             }
         }
     }
