@@ -296,7 +296,9 @@ class MemoryFragmentActivity : AppCompatActivity() {
                         clipToOutline = true
                     }
                     lifecycleScope.launch {
-                        val bm = loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        val bm = withContext(Dispatchers.IO) {
+                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
+                        }
                         if (bm != null) imageView.setImageBitmap(bm)
                     }
                     content.addView(imageView)

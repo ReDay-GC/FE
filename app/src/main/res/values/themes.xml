@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.ReDay" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.ReDay" parent="Theme.Material3.Light.NoActionBar">
         <!-- BottomNavigationView 활성 인디케이터 비활성화 -->
         <item name="colorSecondaryContainer">@android:color/transparent</item>
         <item name="colorOnSecondaryContainer">@color/main_200</item>

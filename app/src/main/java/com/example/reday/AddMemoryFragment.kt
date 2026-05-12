@@ -159,10 +159,11 @@ class AddMemoryFragment : Fragment() {
         if (uri != null) {
             selectedPhotoUri = uri
             view?.let { v ->
-                v.findViewById<ImageView>(R.id.iv_photo_preview).apply {
-                    setImageURI(uri)
-                    visibility = View.VISIBLE
-                }
+                val ivPreview = v.findViewById<ImageView>(R.id.iv_photo_preview)
+                ivPreview.visibility = View.VISIBLE
+                Glide.with(this)
+                    .load(uri)
+                    .into(ivPreview)
                 v.findViewById<View>(R.id.layout_photo_placeholder).visibility = View.GONE
             }
             // 선택 즉시 내부 저장소로 복사 + 원본 URI에서 EXIF 읽기
