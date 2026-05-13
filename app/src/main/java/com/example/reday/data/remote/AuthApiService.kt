@@ -19,7 +19,8 @@ data class SignupRequest(
 data class SignupResponseData(
     val userId: Long,
     val email: String,
-    val name: String
+    val name: String,
+    val accessToken: String
 )
 
 data class SignupResponse(

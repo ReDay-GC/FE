@@ -25,6 +25,7 @@ import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.remote.ParseSearchRequest
 import com.example.reday.data.remote.ParseSearchResponse
 import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.data.remote.MemoryTextItem
 import com.example.reday.data.remote.SearchSemanticRequest
 import com.example.reday.data.repository.MemoryRepository
 import com.google.android.material.chip.Chip
@@ -172,10 +173,15 @@ class ArchiveSearchFragment : Fragment() {
 
                 val semanticJob = launch {
                     try {
-                        val memoryIds = allItems.map { it.id }.filter { it > 0 }
-                        if (memoryIds.isNotEmpty()) {
+                        val memoryItems = allItems
+                            .filter { it.id > 0 }
+                            .map { item ->
+                                val text = "${item.title} ${item.previewText.orEmpty()}"
+                                MemoryTextItem(item.id, text.trim())
+                            }
+                        if (memoryItems.isNotEmpty()) {
                             val result = RetrofitClient.memoryApi.searchSemantic(
-                                SearchSemanticRequest(query, memoryIds)
+                                SearchSemanticRequest(query, memoryItems)
                             )
                             semanticRankedIds = result.ranked_ids
                         }
