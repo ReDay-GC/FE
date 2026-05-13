@@ -178,6 +178,16 @@ class MemoryRepository(
         }
     }
 
+    suspend fun getMemoriesByEmotion(emotion: String): List<MemoryEntity> {
+        return try {
+            val response = api.getMemoriesByEmotion(emotion)
+            if (response.success) response.data.map { it.toEntity() } else emptyList()
+        } catch (e: Exception) {
+            Log.e("MemoryRepo", "감정별 기억 조회 실패: ${e.message}")
+            emptyList()
+        }
+    }
+
     suspend fun getMemoriesByLocation(location: String): List<MemoryEntity> {
         return try {
             val response = api.getMemoriesByLocation(location)
