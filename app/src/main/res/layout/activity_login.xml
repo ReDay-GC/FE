@@ -2,13 +2,16 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_login_screen"
+    android:clipChildren="false">
 
 <ScrollView
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_login_screen"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,7 +20,10 @@
         android:paddingTop="50dp"
         android:paddingBottom="24dp"
         android:paddingStart="20dp"
-        android:paddingEnd="20dp">
+        android:paddingEnd="20dp"
+        android:gravity="center_vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <!-- 로그인 카드 -->
         <com.google.android.material.card.MaterialCardView
@@ -136,7 +142,7 @@
                                 android:layout_weight="1"
                                 android:layout_marginStart="10dp"
                                 android:background="@android:color/transparent"
-                                android:hint="example@reday.com"
+                                android:hint="아이디를 입력하세요"
                                 android:textColorHint="@color/brown_300"
                                 android:textColor="@color/brown_800"
                                 android:textSize="16sp"
