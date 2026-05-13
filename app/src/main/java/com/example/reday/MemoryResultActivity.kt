@@ -23,7 +23,7 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.bumptech.glide.Glide
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
@@ -235,14 +235,12 @@ class MemoryResultActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val fragment = items[position]
 
-            holder.ivThumbnail.setImageDrawable(null)
             fragment.photoUrl?.let { url ->
-                lifecycleScope.launch {
-                    val bm = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        loadBitmapWithCorrectOrientation(url)
-                    }
-                    if (bm != null) holder.ivThumbnail.setImageBitmap(bm)
-                }
+                val source: Any = if (url.startsWith("http")) url else java.io.File(url)
+                Glide.with(holder.itemView)
+                    .load(source)
+                    .centerCrop()
+                    .into(holder.ivThumbnail)
             }
 
             val isSelected = position == selectedPosition

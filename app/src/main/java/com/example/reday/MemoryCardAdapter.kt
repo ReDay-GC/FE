@@ -1,7 +1,6 @@
 package com.example.reday
 
-import android.graphics.BitmapFactory
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.bumptech.glide.Glide
 import com.example.reday.utils.toEmotionEmoji
 import android.view.LayoutInflater
 import android.view.View
@@ -9,14 +8,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.ViewCompat
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.core.widget.ImageViewCompat
 import com.example.reday.data.model.MemoryUiModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MemoryCardAdapter(
     private var items: List<MemoryUiModel> = emptyList(),
@@ -72,23 +66,9 @@ class MemoryCardAdapter(
 
         if (!item.thumbnailPath.isNullOrBlank()) {
             val thumbnailPath = item.thumbnailPath!!
-            setDefaultThumbnail(holder.ivThumbnail)
-            val scope = (holder.itemView.context as? LifecycleOwner)?.lifecycleScope
-            scope?.launch {
-                val bitmap = withContext(Dispatchers.IO) {
-                    loadBitmapWithCorrectOrientation(thumbnailPath)
-                }
-                if (bitmap != null) {
-                    holder.ivThumbnail.setImageBitmap(bitmap)
-                    ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
-                }
-            } ?: run {
-                val bitmap = loadBitmapWithCorrectOrientation(thumbnailPath)
-                if (bitmap != null) {
-                    holder.ivThumbnail.setImageBitmap(bitmap)
-                    ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
-                }
-            }
+            val source: Any = if (thumbnailPath.startsWith("http")) thumbnailPath else java.io.File(thumbnailPath)
+            ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
+            Glide.with(holder.itemView).load(source).centerCrop().placeholder(R.drawable.ic_nav_archive).into(holder.ivThumbnail)
         } else {
             setDefaultThumbnail(holder.ivThumbnail)
         }

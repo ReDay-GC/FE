@@ -21,7 +21,7 @@ import com.example.reday.data.remote.GenerateMemoryResponse
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.bumptech.glide.Glide
 import android.location.Geocoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -295,12 +295,9 @@ class MemoryFragmentActivity : AppCompatActivity() {
                         setBackgroundResource(R.drawable.bg_photo_preview_rounded)
                         clipToOutline = true
                     }
-                    lifecycleScope.launch {
-                        val bm = withContext(Dispatchers.IO) {
-                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                        }
-                        if (bm != null) imageView.setImageBitmap(bm)
-                    }
+                    val source: Any = if (fragment.photoUrl!!.startsWith("http"))
+                        fragment.photoUrl!! else java.io.File(fragment.photoUrl!!)
+                    Glide.with(this@MemoryFragmentActivity).load(source).centerCrop().into(imageView)
                     content.addView(imageView)
                 }
                 if (!fragment.locationName.isNullOrBlank()) {

@@ -121,6 +121,10 @@ class AddMemoryFragment : Fragment() {
 
     private var currentLatitude: Double? = null
     private var currentLongitude: Double? = null
+    private var placesClient: com.google.android.libraries.places.api.net.PlacesClient? = null
+    private var autocompletePopup: android.widget.ListPopupWindow? = null
+    private var isSelectingPlace = false
+    private var currentPredictions: List<com.google.android.libraries.places.api.model.AutocompletePrediction> = emptyList()
     private var recordHour = 0
     private var recordMinute = 0
 
@@ -226,15 +230,6 @@ class AddMemoryFragment : Fragment() {
                 currentLatitude = null
                 currentLongitude = null
                 view.findViewById<EditText>(R.id.et_location).setText("")
-            }
-        }
-
-        // 위치 직접 입력 시 Geocoder로 좌표 변환
-        view.findViewById<EditText>(R.id.et_location).setOnFocusChangeListener { v, hasFocus ->
-            val cb = view.findViewById<CheckBox>(R.id.cb_current_location)
-            if (!hasFocus && !cb.isChecked) {
-                val text = (v as EditText).text.toString()
-                geocodeManualLocation(text)
             }
         }
 
@@ -380,6 +375,9 @@ class AddMemoryFragment : Fragment() {
         val etMemo = view.findViewById<EditText>(R.id.et_memo)
         val etLocation = view.findViewById<EditText>(R.id.et_location)
 
+        // Places 자동완성 초기화
+        initPlacesAutocomplete(etLocation)
+
         view.findViewById<View>(R.id.btn_save).setOnClickListener {
             if (isSaving) return@setOnClickListener
             isSaving = true
@@ -392,77 +390,88 @@ class AddMemoryFragment : Fragment() {
             val locationName = etLocation.text.toString().takeIf { it.isNotBlank() }
 
             lifecycleScope.launch {
-                // 위치명은 있는데 좌표가 없으면 저장 전에 Geocoder로 변환
-                if (locationName != null && currentLatitude == null) {
-                    withContext(Dispatchers.IO) {
-                        try {
-                            val geocoder = Geocoder(requireContext(), Locale.KOREA)
-                            val result = geocoder.getFromLocationName(locationName, 1)?.firstOrNull()
-                            currentLatitude = result?.latitude
-                            currentLongitude = result?.longitude
-                        } catch (e: Exception) { /* 변환 실패 시 null 유지 */ }
+                try {
+                    // 위치명은 있는데 좌표가 없으면 저장 전에 Google Geocoding API로 변환
+                    if (locationName != null && currentLatitude == null) {
+                        withContext(Dispatchers.IO) {
+                            val coords = geocodeWithGoogleApi(locationName)
+                            currentLatitude = coords?.first
+                            currentLongitude = coords?.second
+                        }
                     }
-                }
 
-                when (selectedType) {
-                    RecordType.TEXT -> {
-                        val text = etMemo.text.toString().trim()
-                        if (text.isEmpty()) {
-                            Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
+                    when (selectedType) {
+                        RecordType.TEXT -> {
+                            val text = etMemo.text.toString().trim()
+                            if (text.isEmpty()) {
+                                Toast.makeText(requireContext(), "메모를 입력해주세요", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            repository.saveTextFragment(
+                                text, createdAt, date, locationName,
+                                latitude = currentLatitude, longitude = currentLongitude
+                            )
                         }
-                        repository.saveTextFragment(
-                            text, createdAt, date, locationName,
-                            latitude = currentLatitude, longitude = currentLongitude
-                        )
+                        RecordType.PHOTO -> {
+                            if (selectedPhotoUri == null) {
+                                Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
+                            val path = selectedPhotoPath ?: withContext(Dispatchers.IO) {
+                                copyImageToInternalStorage(selectedPhotoUri!!)
+                            }
+                            if (path == null) {
+                                Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            val memo = etMemo.text.toString().trim().takeIf { it.isNotBlank() }
+                            repository.savePhotoFragment(
+                                photoUrl = path,
+                                createdAt = createdAt,
+                                date = date,
+                                contentText = memo,
+                                locationName = locationName,
+                                latitude = currentLatitude,
+                                longitude = currentLongitude
+                            )
+                        }
+                        RecordType.VOICE -> {
+                            if (voiceState != VoiceUiState.COMPLETED && voiceState != VoiceUiState.PLAYING) {
+                                Toast.makeText(requireContext(), "먼저 녹음을 완료해주세요", Toast.LENGTH_SHORT).show()
+                                isSaving = false
+                                return@launch
+                            }
+                            val file = voiceFile ?: run { isSaving = false; return@launch }
+                            val sttText = view?.findViewById<EditText>(R.id.et_stt_result)?.text?.toString()?.trim()
+                            repository.saveVoiceFragment(
+                                voiceUrl = file.absolutePath,
+                                durationSec = elapsedSec,
+                                date = date,
+                                contentText = sttText?.ifEmpty { null },
+                                locationName = locationName,
+                                latitude = currentLatitude,
+                                longitude = currentLongitude
+                            )
+                        }
                     }
-                    RecordType.PHOTO -> {
-                        if (selectedPhotoUri == null) {
-                            Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
-                        }
-                        // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
-                        val path = selectedPhotoPath ?: withContext(Dispatchers.IO) {
-                            copyImageToInternalStorage(selectedPhotoUri!!)
-                        }
-                        if (path == null) {
-                            Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
-                        }
-                        val memo = etMemo.text.toString().trim().takeIf { it.isNotBlank() }
-                        repository.savePhotoFragment(
-                            photoUrl = path,
-                            createdAt = createdAt,
-                            date = date,
-                            contentText = memo,
-                            locationName = locationName,
-                            latitude = currentLatitude,
-                            longitude = currentLongitude
-                        )
+                    listener?.onSaved()
+                } catch (e: retrofit2.HttpException) {
+                    isSaving = false
+                    val msg = when (e.code()) {
+                        401 -> "인증이 만료되었습니다. 다시 로그인해주세요."
+                        else -> "서버 오류가 발생했습니다. (${e.code()})"
                     }
-                    RecordType.VOICE -> {
-                        if (voiceState != VoiceUiState.COMPLETED && voiceState != VoiceUiState.PLAYING) {
-                            Toast.makeText(requireContext(), "먼저 녹음을 완료해주세요", Toast.LENGTH_SHORT).show()
-                            isSaving = false
-                            return@launch
-                        }
-                        val file = voiceFile ?: run { isSaving = false; return@launch }
-                        val sttText = view?.findViewById<EditText>(R.id.et_stt_result)?.text?.toString()?.trim()
-                        repository.saveVoiceFragment(
-                            voiceUrl = file.absolutePath,
-                            durationSec = elapsedSec,
-                            date = date,
-                            contentText = sttText?.ifEmpty { null },
-                            locationName = locationName,
-                            latitude = currentLatitude,
-                            longitude = currentLongitude
-                        )
-                    }
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                    Log.e("AddMemoryFragment", "저장 실패 (HTTP ${e.code()}): ${e.message()}")
+                } catch (e: Exception) {
+                    isSaving = false
+                    Toast.makeText(requireContext(), "저장에 실패했습니다. 네트워크를 확인해주세요.", Toast.LENGTH_SHORT).show()
+                    Log.e("AddMemoryFragment", "저장 실패: ${e.message}", e)
                 }
-                listener?.onSaved()
             }
         }
     }
@@ -709,9 +718,26 @@ class AddMemoryFragment : Fragment() {
     private fun copyImageToInternalStorage(uri: Uri): String? {
         return try {
             val input = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val original = android.graphics.BitmapFactory.decodeStream(input) ?: return null
+
+            val maxSize = 1280
+            val ratio = minOf(maxSize.toFloat() / original.width, maxSize.toFloat() / original.height, 1f)
+            val resized = if (ratio < 1f) {
+                android.graphics.Bitmap.createScaledBitmap(
+                    original,
+                    (original.width * ratio).toInt(),
+                    (original.height * ratio).toInt(),
+                    true
+                )
+            } else original
+
             val fileName = "photo_${System.currentTimeMillis()}.jpg"
             val file = File(requireContext().filesDir, fileName)
-            file.outputStream().use { output -> input.copyTo(output) }
+            file.outputStream().use { out ->
+                resized.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, out)
+            }
+            if (resized != original) resized.recycle()
+            original.recycle()
             file.absolutePath
         } catch (e: Exception) {
             null
@@ -854,6 +880,96 @@ class AddMemoryFragment : Fragment() {
         }
     }
 
+    private fun initPlacesAutocomplete(etLocation: EditText) {
+        val apiKey = requireContext().packageManager
+            .getApplicationInfo(requireContext().packageName, PackageManager.GET_META_DATA)
+            .metaData.getString("com.google.android.geo.API_KEY") ?: return
+
+        if (!com.google.android.libraries.places.api.Places.isInitialized()) {
+            com.google.android.libraries.places.api.Places.initialize(requireContext().applicationContext, apiKey)
+        }
+        placesClient = com.google.android.libraries.places.api.Places.createClient(requireContext())
+
+        autocompletePopup = android.widget.ListPopupWindow(requireContext()).apply {
+            anchorView = etLocation
+            width = android.widget.ListPopupWindow.MATCH_PARENT
+            isModal = false
+            setOnItemClickListener { _, _, position, _ ->
+                if (position >= currentPredictions.size) return@setOnItemClickListener
+                val prediction = currentPredictions[position]
+                isSelectingPlace = true
+                etLocation.setText(prediction.getPrimaryText(null).toString())
+                etLocation.setSelection(etLocation.text.length)
+                isSelectingPlace = false
+                dismiss()
+                fetchPlaceLatLng(prediction.placeId)
+                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(etLocation.windowToken, 0)
+            }
+        }
+
+        etLocation.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (isSelectingPlace) return
+                val query = s?.toString()?.trim() ?: ""
+                if (query.length < 2) {
+                    autocompletePopup?.dismiss()
+                    return
+                }
+                val request = com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest.builder()
+                    .setQuery(query)
+                    .setCountries("KR")
+                    .setSessionToken(com.google.android.libraries.places.api.model.AutocompleteSessionToken.newInstance())
+                    .build()
+                placesClient?.findAutocompletePredictions(request)
+                    ?.addOnSuccessListener { response ->
+                        val predictions = response.autocompletePredictions
+                        android.util.Log.d("Places", "predictions: ${predictions.size}")
+                        if (predictions.isEmpty()) {
+                            autocompletePopup?.dismiss()
+                            return@addOnSuccessListener
+                        }
+                        currentPredictions = predictions
+                        val labels = predictions.map { p ->
+                            val primary = p.getPrimaryText(null).toString()
+                            val secondary = p.getSecondaryText(null).toString()
+                            if (secondary.isNotBlank()) "$primary  $secondary" else primary
+                        }
+                        val adapter = object : android.widget.ArrayAdapter<String>(
+                            requireContext(), android.R.layout.simple_list_item_1, labels
+                        ) {
+                            override fun getFilter() = object : android.widget.Filter() {
+                                override fun performFiltering(c: CharSequence?) =
+                                    android.widget.Filter.FilterResults().apply { values = labels; count = labels.size }
+                                override fun publishResults(c: CharSequence?, r: android.widget.Filter.FilterResults?) =
+                                    notifyDataSetChanged()
+                            }
+                        }
+                        autocompletePopup?.setAdapter(adapter)
+                        autocompletePopup?.show()
+                    }
+                    ?.addOnFailureListener { e ->
+                        android.util.Log.e("Places", "자동완성 실패: ${e.message}", e)
+                    }
+            }
+        })
+    }
+
+    private fun fetchPlaceLatLng(placeId: String) {
+        val request = com.google.android.libraries.places.api.net.FetchPlaceRequest.newInstance(
+            placeId,
+            listOf(com.google.android.libraries.places.api.model.Place.Field.LAT_LNG, com.google.android.libraries.places.api.model.Place.Field.NAME)
+        )
+        placesClient?.fetchPlace(request)
+            ?.addOnSuccessListener { response ->
+                val latLng = response.place.latLng
+                currentLatitude = latLng?.latitude
+                currentLongitude = latLng?.longitude
+            }
+    }
+
     private fun geocodeManualLocation(locationText: String) {
         if (locationText.isBlank()) {
             currentLatitude = null
@@ -861,16 +977,31 @@ class AddMemoryFragment : Fragment() {
             return
         }
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val geocoder = Geocoder(requireContext(), Locale.KOREA)
-                val result = geocoder.getFromLocationName(locationText, 1)?.firstOrNull()
-                withContext(Dispatchers.Main) {
-                    currentLatitude = result?.latitude
-                    currentLongitude = result?.longitude
-                }
-            } catch (e: Exception) {
-                // 변환 실패 시 좌표 null 유지 (위치명은 저장됨)
+            val coords = geocodeWithGoogleApi(locationText)
+            withContext(Dispatchers.Main) {
+                currentLatitude = coords?.first
+                currentLongitude = coords?.second
             }
+        }
+    }
+
+    private fun geocodeWithGoogleApi(locationText: String): Pair<Double, Double>? {
+        return try {
+            val apiKey = requireContext().packageManager
+                .getApplicationInfo(requireContext().packageName, PackageManager.GET_META_DATA)
+                .metaData.getString("com.google.android.geo.API_KEY") ?: return null
+            val encoded = java.net.URLEncoder.encode(locationText, "UTF-8")
+            val url = "https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=$apiKey&language=ko"
+            val response = java.net.URL(url).readText()
+            val json = org.json.JSONObject(response)
+            if (json.getString("status") != "OK") return null
+            val loc = json.getJSONArray("results")
+                .getJSONObject(0)
+                .getJSONObject("geometry")
+                .getJSONObject("location")
+            Pair(loc.getDouble("lat"), loc.getDouble("lng"))
+        } catch (e: Exception) {
+            null
         }
     }
 

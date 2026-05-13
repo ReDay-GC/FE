@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private val SPRING_BASE_URL = "http://43.203.100.198:8080"
-    private val AI_BASE_URL = "http://reday-dev.duckdns.org:8000/"
+    private val AI_BASE_URL = "http://43.203.100.198:8000/"
 
     var accessToken: String? = null
 

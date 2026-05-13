@@ -16,7 +16,7 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.bumptech.glide.Glide
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
@@ -130,10 +130,9 @@ class MemoryDetailActivity : AppCompatActivity() {
 
             // 히어로 사진
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
-                val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
-                }
-                if (bitmap != null) ivHero.setImageBitmap(bitmap)
+                val source: Any = if (entity.representativePhotoUrl!!.startsWith("http"))
+                    entity.representativePhotoUrl!! else java.io.File(entity.representativePhotoUrl!!)
+                Glide.with(this@MemoryDetailActivity).load(source).centerCrop().into(ivHero)
             }
 
             // 제목
@@ -247,12 +246,9 @@ class MemoryDetailActivity : AppCompatActivity() {
                         setBackgroundResource(R.drawable.bg_photo_preview_rounded)
                         clipToOutline = true
                     }
-                    lifecycleScope.launch {
-                        val bm = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                        }
-                        if (bm != null) imageView.setImageBitmap(bm)
-                    }
+                    val source: Any = if (fragment.photoUrl!!.startsWith("http"))
+                        fragment.photoUrl!! else java.io.File(fragment.photoUrl!!)
+                    Glide.with(this@MemoryDetailActivity).load(source).centerCrop().into(imageView)
                     content.addView(imageView)
                 }
                 if (!fragment.locationName.isNullOrBlank()) {

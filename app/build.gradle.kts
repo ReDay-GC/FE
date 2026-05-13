@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.google.maps)
+    implementation(libs.google.places)
     implementation(libs.play.services.location)
     implementation(libs.androidx.exifinterface)
     implementation(libs.retrofit.core)
