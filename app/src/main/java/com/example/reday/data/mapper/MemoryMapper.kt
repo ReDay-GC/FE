@@ -78,7 +78,7 @@ object MemoryMapper {
         return MemoryUiModel(
             id = entity.serverId ?: entity.id,
             date = entity.date,
-            title = formatTitle(entity.date),
+            title = entity.title.ifBlank { formatTitle(entity.date) },
             thumbnailPath = entity.representativePhotoUrl,
             fragmentCount = entity.fragmentCount,
             locationName = locationName,
