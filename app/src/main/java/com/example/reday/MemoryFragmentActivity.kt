@@ -44,6 +44,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
     private var fragments: List<RecordFragmentUiModel> = emptyList()
     private val expandedStates = mutableMapOf<Long, Boolean>()
     private var existingMemoryId: Long? = null
+    private var isGenerating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +78,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isGenerating = false
         lifecycleScope.launch {
             existingMemoryId = memoryRepository.getMemoryByDate(currentDate)?.serverId
         }
@@ -376,10 +378,12 @@ class MemoryFragmentActivity : AppCompatActivity() {
     }
 
     private fun startAiGeneration() {
+        if (isGenerating) return
         if (fragments.isEmpty()) {
             Toast.makeText(this, "기록 조각이 없습니다", Toast.LENGTH_SHORT).show()
             return
         }
+        isGenerating = true
 
         val loadingDialog = Dialog(this).apply {
             setContentView(R.layout.dialog_ai_loading)
@@ -424,6 +428,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                 showCompleteDialog(response)
             } catch (e: Exception) {
                 loadingDialog.dismiss()
+                isGenerating = false
                 android.util.Log.e("MemoryAI", "AI 생성 오류: ${e.javaClass.simpleName}: ${e.message}", e)
                 Toast.makeText(this@MemoryFragmentActivity, "오류: ${e.message}", Toast.LENGTH_LONG).show()
             }

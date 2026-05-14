@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.reday.data.model.MemoryUiModel
+import com.example.reday.utils.toEmotionEmoji
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
@@ -21,6 +22,7 @@ class ArchiveMemoryAdapter(
         val ivThumbnail: ImageView = itemView.findViewById(R.id.iv_thumbnail)
         val tvTitle: TextView = itemView.findViewById(R.id.tv_title)
         val tvLocationOverlay: TextView = itemView.findViewById(R.id.tv_location_overlay)
+        val tvEmotion: TextView = itemView.findViewById(R.id.tv_emotion)
         val tvSummary: TextView = itemView.findViewById(R.id.tv_summary)
         val tvLocation: TextView = itemView.findViewById(R.id.tv_location)
         val tvMetaDot: TextView = itemView.findViewById(R.id.tv_meta_dot)
@@ -57,6 +59,15 @@ class ArchiveMemoryAdapter(
             holder.tvLocationOverlay.visibility = View.VISIBLE
         } else {
             holder.tvLocationOverlay.visibility = View.GONE
+        }
+
+        // 감정 이모지
+        val emotionEmoji = item.emotion.toEmotionEmoji()
+        if (emotionEmoji != null) {
+            holder.tvEmotion.text = emotionEmoji
+            holder.tvEmotion.visibility = View.VISIBLE
+        } else {
+            holder.tvEmotion.visibility = View.GONE
         }
 
         // 요약
