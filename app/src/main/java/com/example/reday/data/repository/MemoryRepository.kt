@@ -216,6 +216,7 @@ class MemoryRepository(
         contains("신나") -> "EXCITED"
         contains("지친") -> "SAD"
         contains("힘든") -> "SAD"
+        contains("화난") -> "ANGRY"
         contains("평범") -> "NEUTRAL"
         else -> null
     }

@@ -322,7 +322,7 @@ class ArchiveSearchFragment : Fragment() {
     }
 
     private fun setupEmotionChips(view: View) {
-        val emotions = listOf("😊 즐거운", "🥰 설레는", "😌 평온한", "🤩 신나는", "🤢 지친", "😰 힘든", "😐 평범한")
+        val emotions = listOf("😊 즐거운", "🥰 설레는", "😌 평온한", "🤩 신나는", "🤢 지친", "😰 힘든", "😡 화난", "😐 평범한")
         val chipGroup = view.findViewById<ChipGroup>(R.id.chip_group_filter_tags)
         emotions.forEach { emotion ->
             chipGroup.addView(createEmotionChip(emotion, chipGroup))
@@ -371,6 +371,7 @@ class ArchiveSearchFragment : Fragment() {
         emotion.contains("신나") -> "EXCITED"
         emotion.contains("지친") -> "SAD"
         emotion.contains("힘든") -> "SAD"
+        emotion.contains("화난") -> "ANGRY"
         emotion.contains("평범") -> "NEUTRAL"
         else -> emotion
     }
