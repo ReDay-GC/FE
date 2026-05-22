@@ -21,6 +21,9 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.example.reday.utils.launchWithLoading
+import com.example.reday.utils.launchWithRefresh
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
@@ -67,6 +70,9 @@ class CalendarFragment : Fragment() {
     private lateinit var cardEmptyDay: View
     private lateinit var tvEmptyDayDate: TextView
 
+    private lateinit var pbLoading: View
+    private lateinit var swipeRefresh: SwipeRefreshLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val cal = Calendar.getInstance()
@@ -109,6 +115,10 @@ class CalendarFragment : Fragment() {
 
         cardEmptyDay = view.findViewById(R.id.card_empty_day)
         tvEmptyDayDate = view.findViewById(R.id.tv_empty_day_date)
+        pbLoading = view.findViewById(R.id.pb_loading)
+        swipeRefresh = view.findViewById(R.id.swipe_refresh)
+        swipeRefresh.setColorSchemeResources(R.color.main_200)
+        swipeRefresh.setOnRefreshListener { launchWithRefresh(swipeRefresh) { loadCalendarData() } }
 
         view.findViewById<android.widget.ImageButton>(R.id.btn_prev_month).setOnClickListener {
             if (currentMonth == 0) { currentMonth = 11; currentYear-- } else currentMonth--
@@ -132,16 +142,18 @@ class CalendarFragment : Fragment() {
     }
 
     private fun loadAndRender() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
-                memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
-                recordingDays = fragmentDays - memoryDays
-            } catch (e: Exception) {
-                // 데이터 로딩 실패 시에도 캘린더는 렌더링
-            }
-            renderCalendar()
+        launchWithLoading(pbLoading) { loadCalendarData() }
+    }
+
+    private suspend fun loadCalendarData() {
+        try {
+            val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
+            memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
+            recordingDays = fragmentDays - memoryDays
+        } catch (e: Exception) {
+            // 데이터 로딩 실패 시에도 캘린더는 렌더링
         }
+        renderCalendar()
     }
 
     private fun renderCalendar() {
@@ -347,13 +359,16 @@ class CalendarFragment : Fragment() {
             // 썸네일
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
                 val url = entity.representativePhotoUrl!!
-                val source: Any = if (url.startsWith("http")) url else java.io.File(url)
-                Glide.with(this@CalendarFragment)
-                    .load(source)
-                    .centerCrop()
-                    .error(android.R.drawable.ic_menu_gallery)
-                    .into(ivDetailThumbnail)
                 ImageViewCompat.setImageTintList(ivDetailThumbnail, null)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        loadBitmapWithCorrectOrientation(url)
+                    }
+                    if (bitmap != null) {
+                        ivDetailThumbnail.setImageBitmap(bitmap)
+                        ivDetailThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
+                    }
+                }
             } else {
                 showDefaultThumbnail()
             }
@@ -501,11 +516,15 @@ class CalendarFragment : Fragment() {
                         clipToOutline = true
                     }
                     val url = fragment.photoUrl!!
-                    val source: Any = if (url.startsWith("http")) url else java.io.File(url)
-                    Glide.with(this@CalendarFragment)
-                        .load(source)
-                        .centerCrop()
-                        .into(thumbIv)
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            loadBitmapWithCorrectOrientation(url)
+                        }
+                        if (bitmap != null) {
+                            thumbIv.setImageBitmap(bitmap)
+                            thumbIv.scaleType = ImageView.ScaleType.CENTER_CROP
+                        }
+                    }
                     row.addView(thumbIv)
                 }
                 card.addView(row)
@@ -596,14 +615,16 @@ class CalendarFragment : Fragment() {
                 layoutParams = LinearLayout.LayoutParams(48.dp, 48.dp)
                 if (!fragment.photoUrl.isNullOrBlank()) {
                     val url = fragment.photoUrl!!
-                    val source: Any = if (url.startsWith("http")) url else java.io.File(url)
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     clipToOutline = true
-                    Glide.with(this@CalendarFragment)
-                        .load(source)
-                        .centerCrop()
-                        .error(R.drawable.ic_photo_fragment)
-                        .into(this)
+                    val iv = this
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            loadBitmapWithCorrectOrientation(url)
+                        }
+                        if (bitmap != null) iv.setImageBitmap(bitmap)
+                        else iv.setImageResource(R.drawable.ic_photo_fragment)
+                    }
                 } else {
                     setImageResource(R.drawable.ic_photo_fragment)
                     setBackgroundResource(R.drawable.bg_record_icon_photo)
