@@ -25,6 +25,7 @@ import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.remote.ParseSearchRequest
 import com.example.reday.data.remote.ParseSearchResponse
 import com.example.reday.data.remote.RetrofitClient
+import com.example.reday.data.remote.MemoryTextItem
 import com.example.reday.data.remote.SearchSemanticRequest
 import com.example.reday.data.repository.MemoryRepository
 import com.google.android.material.chip.Chip
@@ -43,6 +44,7 @@ class ArchiveSearchFragment : Fragment() {
 
     private var isFilterOpen = false
     private val selectedTags = mutableSetOf<String>()
+    private var selectedEmotion: String? = null
     private var aiFilter: ParseSearchResponse? = null
     private var semanticRankedIds: List<Long> = emptyList()
 
@@ -108,12 +110,13 @@ class ArchiveSearchFragment : Fragment() {
             } else false
         }
 
-        // 전체 기억 로드 (AI 시맨틱 검색용) + 태그 목록
+        // 전체 기억 로드 (AI 시맨틱 검색용) + 태그/감정 칩 셋업
         viewLifecycleOwner.lifecycleScope.launch {
             val entities = repository.getAllMemories()
             allItems = MemoryMapper.fromMemoryEntityList(entities)
 
             setupTagChips(view, fallbackTags)
+            setupEmotionChips(view)
         }
 
         showResults(emptyList(), isInitial = true)
@@ -127,14 +130,28 @@ class ArchiveSearchFragment : Fragment() {
 
     private fun performServerSearch(keyword: String, tags: Set<String>) {
         viewLifecycleOwner.lifecycleScope.launch {
-            if (keyword.isBlank() && tags.isEmpty()) {
+            val emotion = selectedEmotion
+            if (keyword.isBlank() && tags.isEmpty() && emotion == null) {
                 showResults(emptyList(), isInitial = true)
                 return@launch
             }
 
             val results: List<MemoryUiModel> = when {
+                emotion != null -> {
+                    // 감정 API 호출 후 태그/키워드로 클라이언트 필터
+                    var models = MemoryMapper.fromMemoryEntityList(repository.getMemoriesByEmotion(emotionToEnum(emotion)))
+                    if (tags.isNotEmpty()) {
+                        models = models.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
+                    }
+                    if (keyword.isNotBlank()) {
+                        models = models.filter { item ->
+                            item.title.contains(keyword, ignoreCase = true) ||
+                            item.previewText?.contains(keyword, ignoreCase = true) == true
+                        }
+                    }
+                    models
+                }
                 keyword.isNotBlank() && tags.isNotEmpty() -> {
-                    // 키워드 검색 후 태그로 클라이언트 필터
                     val entities = repository.searchByKeyword(keyword)
                     val uiModels = MemoryMapper.fromMemoryEntityList(entities)
                     uiModels.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
@@ -143,7 +160,6 @@ class ArchiveSearchFragment : Fragment() {
                     MemoryMapper.fromMemoryEntityList(repository.searchByKeyword(keyword))
                 }
                 tags.isNotEmpty() -> {
-                    // 태그별 조회 후 union (중복 제거)
                     val tagResults = tags.flatMap { tag ->
                         repository.getMemoriesByTag(tag)
                     }.distinctBy { it.date }
@@ -172,10 +188,15 @@ class ArchiveSearchFragment : Fragment() {
 
                 val semanticJob = launch {
                     try {
-                        val memoryIds = allItems.map { it.id }.filter { it > 0 }
-                        if (memoryIds.isNotEmpty()) {
+                        val memoryItems = allItems
+                            .filter { it.id > 0 }
+                            .map { item ->
+                                val text = "${item.title} ${item.previewText.orEmpty()}"
+                                MemoryTextItem(item.id, text.trim())
+                            }
+                        if (memoryItems.isNotEmpty()) {
                             val result = RetrofitClient.memoryApi.searchSemantic(
-                                SearchSemanticRequest(query, memoryIds)
+                                SearchSemanticRequest(query, memoryItems)
                             )
                             semanticRankedIds = result.ranked_ids
                         }
@@ -298,6 +319,61 @@ class ArchiveSearchFragment : Fragment() {
                 ivFilterIcon.clearColorFilter()
             }
         }
+    }
+
+    private fun setupEmotionChips(view: View) {
+        val emotions = listOf("😊 즐거운", "🥰 설레는", "😌 평온한", "🤩 신나는", "🤢 지친", "😰 힘든", "😡 화난", "😐 평범한")
+        val chipGroup = view.findViewById<ChipGroup>(R.id.chip_group_filter_tags)
+        emotions.forEach { emotion ->
+            chipGroup.addView(createEmotionChip(emotion, chipGroup))
+        }
+    }
+
+    private fun createEmotionChip(emotion: String, chipGroup: ChipGroup): Chip {
+        return Chip(requireContext()).apply {
+            text = emotion
+            tag = "emotion"
+            isCheckable = true
+            isChecked = false
+            chipStrokeWidth = 2f
+            textSize = 12f
+            shapeAppearanceModel = shapeAppearanceModel.toBuilder().setAllCornerSizes(999f).build()
+            updateChipStyle(this, false)
+
+            setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    // 감정 칩만 단일 선택 — 태그 칩은 건드리지 않음
+                    for (i in 0 until chipGroup.childCount) {
+                        val other = chipGroup.getChildAt(i) as? Chip
+                        if (other != null && other != this && other.tag == "emotion" && other.isChecked) {
+                            other.isChecked = false
+                        }
+                    }
+                    selectedEmotion = emotion
+                } else {
+                    if (selectedEmotion == emotion) selectedEmotion = null
+                }
+                updateChipStyle(this, isChecked)
+                val etSearch = view?.findViewById<EditText>(R.id.et_search)
+                val query = etSearch?.text?.toString() ?: ""
+                searchJob?.cancel()
+                searchJob = viewLifecycleOwner.lifecycleScope.launch {
+                    performServerSearch(query, selectedTags)
+                }
+            }
+        }
+    }
+
+    private fun emotionToEnum(emotion: String): String = when {
+        emotion.contains("즐거") -> "HAPPY"
+        emotion.contains("설레") -> "EXCITED"
+        emotion.contains("평온") -> "CONTENT"
+        emotion.contains("신나") -> "EXCITED"
+        emotion.contains("지친") -> "SAD"
+        emotion.contains("힘든") -> "SAD"
+        emotion.contains("화난") -> "ANGRY"
+        emotion.contains("평범") -> "NEUTRAL"
+        else -> emotion
     }
 
     private fun setupTagChips(view: View, tags: List<String>) {

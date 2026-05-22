@@ -33,9 +33,14 @@ data class SaveEmbeddingRequest(
     val embedding: String  // List<Float> JSON
 )
 
+data class MemoryTextItem(
+    val memory_id: Long,
+    val text: String
+)
+
 data class SearchSemanticRequest(
     val query: String,
-    val memory_ids: List<Long>
+    val memories: List<MemoryTextItem>
 )
 
 data class SearchSemanticResponse(

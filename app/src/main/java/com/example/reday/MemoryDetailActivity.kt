@@ -16,7 +16,8 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.example.reday.utils.toEmotionEmoji
+import com.bumptech.glide.Glide
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
@@ -38,6 +39,7 @@ class MemoryDetailActivity : AppCompatActivity() {
     private lateinit var tvLocation: TextView
     private lateinit var tvLocationDot: TextView
     private lateinit var ivLocationIcon: ImageView
+    private lateinit var tvEmotion: TextView
     private lateinit var tvSummary: TextView
     private lateinit var chipGroupTags: ChipGroup
     private lateinit var tvFragmentCount: TextView
@@ -55,6 +57,7 @@ class MemoryDetailActivity : AppCompatActivity() {
         tvLocation = findViewById(R.id.tv_location)
         tvLocationDot = findViewById(R.id.tv_location_dot)
         ivLocationIcon = findViewById(R.id.iv_location_icon)
+        tvEmotion = findViewById(R.id.tv_emotion)
         tvSummary = findViewById(R.id.tv_summary)
         chipGroupTags = findViewById(R.id.chip_group_tags)
         tvFragmentCount = findViewById(R.id.tv_fragment_count)
@@ -130,10 +133,9 @@ class MemoryDetailActivity : AppCompatActivity() {
 
             // 히어로 사진
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
-                val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    loadBitmapWithCorrectOrientation(entity.representativePhotoUrl!!)
-                }
-                if (bitmap != null) ivHero.setImageBitmap(bitmap)
+                val source: Any = if (entity.representativePhotoUrl!!.startsWith("http"))
+                    entity.representativePhotoUrl!! else java.io.File(entity.representativePhotoUrl!!)
+                Glide.with(this@MemoryDetailActivity).load(source).centerCrop().into(ivHero)
             }
 
             // 제목
@@ -150,6 +152,15 @@ class MemoryDetailActivity : AppCompatActivity() {
                 tvLocation.visibility = View.VISIBLE
                 tvLocationDot.visibility = View.VISIBLE
                 ivLocationIcon.visibility = View.VISIBLE
+            }
+
+            // 감정 이모지
+            val emotionEmoji = entity.emotion.toEmotionEmoji()
+            if (!emotionEmoji.isNullOrBlank()) {
+                tvEmotion.text = emotionEmoji
+                tvEmotion.visibility = View.VISIBLE
+            } else {
+                tvEmotion.visibility = View.GONE
             }
 
             // 요약
@@ -247,12 +258,9 @@ class MemoryDetailActivity : AppCompatActivity() {
                         setBackgroundResource(R.drawable.bg_photo_preview_rounded)
                         clipToOutline = true
                     }
-                    lifecycleScope.launch {
-                        val bm = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                        }
-                        if (bm != null) imageView.setImageBitmap(bm)
-                    }
+                    val source: Any = if (fragment.photoUrl!!.startsWith("http"))
+                        fragment.photoUrl!! else java.io.File(fragment.photoUrl!!)
+                    Glide.with(this@MemoryDetailActivity).load(source).centerCrop().into(imageView)
                     content.addView(imageView)
                 }
                 if (!fragment.locationName.isNullOrBlank()) {

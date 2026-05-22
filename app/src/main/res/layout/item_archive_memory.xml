@@ -71,19 +71,35 @@
             android:orientation="vertical"
             android:padding="14dp">
 
-            <!-- AI 요약 배지 -->
-            <TextView
-                android:id="@+id/tv_ai_badge"
-                android:layout_width="wrap_content"
+            <!-- AI 요약 배지 + 감정 이모지 -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="AI 요약"
-                android:textColor="@color/brown_50"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:background="@drawable/bg_badge_ai"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="3dp"
-                android:layout_marginBottom="8dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_ai_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI 요약"
+                    android:textColor="@color/brown_50"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_badge_ai"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp" />
+
+                <TextView
+                    android:id="@+id/tv_emotion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
 
             <!-- 요약 텍스트 -->
             <TextView

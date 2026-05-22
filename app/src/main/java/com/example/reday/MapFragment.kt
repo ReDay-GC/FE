@@ -25,7 +25,9 @@ import com.example.reday.data.remote.MapLocationData
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
 import com.example.reday.utils.launchWithLoading
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -127,8 +129,23 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             var hasValidLocation = false
 
             locationGroups.forEach { locationData ->
-                val lat = locationData.latitude ?: return@forEach
-                val lng = locationData.longitude ?: return@forEach
+                var lat = locationData.latitude
+                var lng = locationData.longitude
+
+                if ((lat == null || lng == null) && locationData.location.isNotBlank()) {
+                    android.util.Log.d("MapDebug", "좌표 없음, 지오코딩 시도: '${locationData.location}'")
+                    val coords = withContext(Dispatchers.IO) {
+                        geocodeWithGoogleApi(locationData.location)
+                    }
+                    lat = coords?.first
+                    lng = coords?.second
+                    android.util.Log.d("MapDebug", "지오코딩 결과: lat=$lat lng=$lng")
+                }
+
+                if (lat == null || lng == null) {
+                    android.util.Log.d("MapDebug", "'${locationData.location}' 좌표 없어서 스킵")
+                    return@forEach
+                }
 
                 val position = LatLng(lat, lng)
                 val markerBitmap = createMarkerBitmap(locationData.memoryCount)
@@ -199,6 +216,27 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 }
         } catch (e: SecurityException) {
             // 권한 없음
+        }
+    }
+
+    private fun geocodeWithGoogleApi(locationText: String): Pair<Double, Double>? {
+        return try {
+            val apiKey = requireContext().packageManager
+                .getApplicationInfo(requireContext().packageName, PackageManager.GET_META_DATA)
+                .metaData.getString("com.google.android.geo.API_KEY") ?: return null
+            val encoded = java.net.URLEncoder.encode(locationText, "UTF-8")
+            val url = "https://maps.googleapis.com/maps/api/geocode/json?address=$encoded&key=$apiKey&language=ko"
+            val response = java.net.URL(url).readText()
+            val json = org.json.JSONObject(response)
+            if (json.getString("status") != "OK") return null
+            val loc = json.getJSONArray("results")
+                .getJSONObject(0)
+                .getJSONObject("geometry")
+                .getJSONObject("location")
+            Pair(loc.getDouble("lat"), loc.getDouble("lng"))
+        } catch (e: Exception) {
+            android.util.Log.e("MapFragment", "지오코딩 실패: ${locationText} - ${e.message}")
+            null
         }
     }
 

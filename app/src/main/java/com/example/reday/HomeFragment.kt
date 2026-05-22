@@ -202,6 +202,39 @@ class HomeFragment : Fragment() {
             emptyCard.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
             adapter.submitList(memories)
+        // 오늘의 기록 조각 수 (기록 추가 여부 표시용)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val todayFragments = fragmentRepository.getFragmentsByDate(today)
+            val todayCount = todayFragments.size
+            view.findViewById<TextView>(R.id.tv_record_count).text = "${todayCount}개 기록"
+            val tvHint = view.findViewById<TextView>(R.id.tv_add_record_hint)
+            tvHint.text = if (todayCount > 0) "+ 이어서 기록을 추가해보세요" else "+ 첫 기록을 추가해보세요"
+            tvHint.setOnClickListener {
+                if (todayCount > 0) {
+                    val intent = android.content.Intent(requireContext(), MemoryFragmentActivity::class.java).apply {
+                        putExtra(MemoryFragmentActivity.EXTRA_DATE, today)
+                    }
+                    startActivity(intent)
+                } else {
+                    startAddMemoryForToday()
+                }
+            }
+        }
+
+        // 최근 기억 목록 (AI 생성 후 저장된 기억만)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val entities = memoryRepository.getAllMemories()
+            val memories = MemoryMapper.fromMemoryEntityList(entities, limit = 3)
+            val emptyCard = view.findViewById<View>(R.id.card_empty_memories)
+            val recyclerView = view.findViewById<RecyclerView>(R.id.rv_memories)
+            if (memories.isEmpty()) {
+                emptyCard.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                emptyCard.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+                adapter.submitList(memories)
+            }
         }
     }
 }

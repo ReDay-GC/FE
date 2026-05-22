@@ -227,4 +227,7 @@ interface SpringMemoryApiService {
 
     @GET("api/memories/search/location")
     suspend fun getMemoriesByLocation(@Query("location") location: String): MemoryListResponse
+
+    @GET("api/memories/search/emotion")
+    suspend fun getMemoriesByEmotion(@Query("emotion") emotion: String): MemoryListResponse
 }

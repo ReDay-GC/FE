@@ -21,7 +21,7 @@ import com.example.reday.data.remote.GenerateMemoryResponse
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
-import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import com.bumptech.glide.Glide
 import android.location.Geocoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,6 +44,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
     private var fragments: List<RecordFragmentUiModel> = emptyList()
     private val expandedStates = mutableMapOf<Long, Boolean>()
     private var existingMemoryId: Long? = null
+    private var isGenerating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +84,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isGenerating = false
         lifecycleScope.launch {
             existingMemoryId = memoryRepository.getMemoryByDate(currentDate)?.serverId
         }
@@ -301,12 +303,9 @@ class MemoryFragmentActivity : AppCompatActivity() {
                         setBackgroundResource(R.drawable.bg_photo_preview_rounded)
                         clipToOutline = true
                     }
-                    lifecycleScope.launch {
-                        val bm = withContext(Dispatchers.IO) {
-                            loadBitmapWithCorrectOrientation(fragment.photoUrl!!)
-                        }
-                        if (bm != null) imageView.setImageBitmap(bm)
-                    }
+                    val source: Any = if (fragment.photoUrl!!.startsWith("http"))
+                        fragment.photoUrl!! else java.io.File(fragment.photoUrl!!)
+                    Glide.with(this@MemoryFragmentActivity).load(source).centerCrop().into(imageView)
                     content.addView(imageView)
                 }
                 if (!fragment.locationName.isNullOrBlank()) {
@@ -385,10 +384,12 @@ class MemoryFragmentActivity : AppCompatActivity() {
     }
 
     private fun startAiGeneration() {
+        if (isGenerating) return
         if (fragments.isEmpty()) {
             Toast.makeText(this, "기록 조각이 없습니다", Toast.LENGTH_SHORT).show()
             return
         }
+        isGenerating = true
 
         val loadingDialog = Dialog(this).apply {
             setContentView(R.layout.dialog_ai_loading)
@@ -433,6 +434,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                 showCompleteDialog(response)
             } catch (e: Exception) {
                 loadingDialog.dismiss()
+                isGenerating = false
                 android.util.Log.e("MemoryAI", "AI 생성 오류: ${e.javaClass.simpleName}: ${e.message}", e)
                 Toast.makeText(this@MemoryFragmentActivity, "오류: ${e.message}", Toast.LENGTH_LONG).show()
             }

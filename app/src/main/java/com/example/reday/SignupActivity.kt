@@ -287,8 +287,11 @@ class SignupActivity : AppCompatActivity() {
                         privacyAgreed = cbPrivacy.isChecked
                     )
                 )
+                TokenManager.saveToken(this@SignupActivity, response.data.accessToken)
+                TokenManager.saveUserId(this@SignupActivity, response.data.userId)
                 TokenManager.saveUserName(this@SignupActivity, response.data.name)
                 TokenManager.saveUserEmail(this@SignupActivity, response.data.email)
+                RetrofitClient.accessToken = response.data.accessToken
                 setLoading(false)
                 startActivity(Intent(this@SignupActivity, MainActivity::class.java))
                 finish()
