@@ -77,10 +77,15 @@
     </LinearLayout>
 
     <!-- 기억 목록 / 빈 상태 -->
-    <FrameLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <!-- 빈 상태 -->
         <LinearLayout
@@ -140,6 +145,16 @@
             android:clipToPadding="false"
             android:visibility="gone" />
 
+        <ProgressBar
+            android:id="@+id/pb_loading"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/main_200"
+            android:visibility="gone" />
+
     </FrameLayout>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
 </LinearLayout>

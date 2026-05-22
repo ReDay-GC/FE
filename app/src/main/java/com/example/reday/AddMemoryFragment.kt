@@ -158,18 +158,25 @@ class AddMemoryFragment : Fragment() {
     ) { uri: Uri? ->
         if (uri != null) {
             selectedPhotoUri = uri
-            view?.let { v ->
-                val ivPreview = v.findViewById<ImageView>(R.id.iv_photo_preview)
-                ivPreview.visibility = View.VISIBLE
-                Glide.with(this)
-                    .load(uri)
-                    .into(ivPreview)
-                v.findViewById<View>(R.id.layout_photo_placeholder).visibility = View.GONE
-            }
-            // 선택 즉시 내부 저장소로 복사 + 원본 URI에서 EXIF 읽기
+            val ivPreview = view?.findViewById<ImageView>(R.id.iv_photo_preview)
+            ivPreview?.visibility = View.VISIBLE
+            view?.findViewById<View>(R.id.layout_photo_placeholder)?.visibility = View.GONE
+            // 선택 즉시 내부 저장소로 복사 + 방향 보정 후 저장 + 원본 URI에서 EXIF 읽기
             lifecycleScope.launch(Dispatchers.IO) {
                 val path = copyImageToInternalStorage(uri)
-                selectedPhotoPath = path
+                if (path != null) {
+                    // EXIF 회전을 픽셀에 적용해 파일 덮어쓰기 → 서버 업로드 시에도 올바른 방향
+                    val bitmap = loadBitmapWithCorrectOrientation(path)
+                    if (bitmap != null) {
+                        saveOrientationCorrected(path, bitmap)
+                    }
+                    selectedPhotoPath = path
+                    withContext(Dispatchers.Main) {
+                        if (bitmap != null) ivPreview?.setImageBitmap(bitmap)
+                    }
+                } else {
+                    selectedPhotoPath = null
+                }
 
                 val hasMediaLocation = ContextCompat.checkSelfPermission(
                     requireContext(), android.Manifest.permission.ACCESS_MEDIA_LOCATION
@@ -718,6 +725,23 @@ class AddMemoryFragment : Fragment() {
         }
     }
 
+    // EXIF 회전을 픽셀에 적용한 뒤 같은 경로에 덮어씀
+    // 이후 서버 업로드 시에도 이미 올바른 방향의 이미지가 전송됨
+    private fun saveOrientationCorrected(path: String, bitmap: android.graphics.Bitmap) {
+        try {
+            File(path).outputStream().use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            androidx.exifinterface.media.ExifInterface(path).apply {
+                setAttribute(
+                    androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL.toString()
+                )
+                saveAttributes()
+            }
+        } catch (e: Exception) { /* 실패해도 원본 파일은 유지됨 */ }
+    }
+
     private fun fetchCurrentLocation() {
         val fusedClient = LocationServices.getFusedLocationProviderClient(requireContext())
         try {
@@ -938,22 +962,13 @@ class AddMemoryFragment : Fragment() {
 
         if (record.fragmentType == FragmentType.PHOTO && record.photoUrl != null) {
             val url = record.photoUrl!!
-            val source: Any = if (url.startsWith("http")) url else java.io.File(url)
-            Log.d("PhotoDebug", "photoUrl=$url, exists=${if (url.startsWith("http")) "remote" else java.io.File(url).exists().toString()}")
-            Glide.with(this)
-                .load(source)
-                .listener(object : com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable> {
-                    override fun onLoadFailed(e: com.bumptech.glide.load.engine.GlideException?, model: Any?, target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>, isFirstResource: Boolean): Boolean {
-                        Log.e("PhotoDebug", "Glide 로드 실패: ${e?.message}")
-                        return false
-                    }
-                    override fun onResourceReady(resource: android.graphics.drawable.Drawable, model: Any, target: com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable>?, dataSource: com.bumptech.glide.load.DataSource, isFirstResource: Boolean): Boolean {
-                        Log.d("PhotoDebug", "Glide 로드 성공")
-                        return false
-                    }
-                })
-                .into(ivPhotoDetail)
             ivPhotoDetail.visibility = View.VISIBLE
+            viewLifecycleOwner.lifecycleScope.launch {
+                val bitmap = withContext(Dispatchers.IO) {
+                    loadBitmapWithCorrectOrientation(url)
+                }
+                if (bitmap != null) ivPhotoDetail.setImageBitmap(bitmap)
+            }
             if (!record.contentText.isNullOrBlank()) {
                 tvFullContent.text = record.contentText
                 tvFullContent.visibility = View.VISIBLE
