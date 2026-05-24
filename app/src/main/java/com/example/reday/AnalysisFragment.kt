@@ -278,32 +278,51 @@ class AnalysisFragment : Fragment() {
     private fun setupPlaces(places: List<PlaceStatItem>) {
         val items = places.map { it.place to it.count }
         val barColor = ContextCompat.getColor(requireContext(), R.color.sub_200)
-        fillRankLayout(layoutPlaces, items, barColor)
+        val countColor = ContextCompat.getColor(requireContext(), R.color.sub_105)
+        fillRankLayout(layoutPlaces, items, barColor, countColor)
     }
 
     private fun setupPeople(people: List<PeopleStatItem>?) {
         val items = people?.map { it.name to it.count } ?: emptyList()
         val barColor = ContextCompat.getColor(requireContext(), R.color.main_200)
-        fillRankLayout(layoutPeople, items, barColor)
+        val countColor = ContextCompat.getColor(requireContext(), R.color.main_200)
+        fillRankLayout(layoutPeople, items, barColor, countColor)
     }
 
     private fun setupPieChart(chart: PieChart, entries: List<PieEntry>, colors: List<Int>) {
+        val lineColor = ContextCompat.getColor(requireContext(), R.color.brown_300)
+        val textColor = ContextCompat.getColor(requireContext(), R.color.brown_700)
+
         val dataSet = PieDataSet(entries, "").apply {
             this.colors = colors
             sliceSpace = 3f
-            valueTextSize = 12f
-            valueTextColor = Color.WHITE
             setDrawValues(false)
+            setXValuePosition(PieDataSet.ValuePosition.OUTSIDE_SLICE)
+            setValueLineColor(lineColor)
+            setValueLineWidth(1f)
+            setValueLinePart1Length(0.4f)
+            setValueLinePart2Length(0.6f)
+            setValueLinePart1OffsetPercentage(85f)
+            setValueTextColor(textColor)
+            valueTextSize = 11f
         }
 
         chart.apply {
             data = PieData(dataSet)
             description.isEnabled = false
-            isDrawHoleEnabled = false
-            setEntryLabelColor(ContextCompat.getColor(requireContext(), R.color.brown_700))
+            isDrawHoleEnabled = true
+            holeRadius = 35f
+            transparentCircleRadius = 40f
+            setHoleColor(android.graphics.Color.TRANSPARENT)
+            setDrawEntryLabels(true)
+            setEntryLabelColor(textColor)
             setEntryLabelTextSize(11f)
             legend.isEnabled = false
             setTouchEnabled(false)
+            extraLeftOffset = 30f
+            extraRightOffset = 30f
+            extraTopOffset = 10f
+            extraBottomOffset = 10f
             invalidate()
         }
     }
@@ -311,7 +330,8 @@ class AnalysisFragment : Fragment() {
     private fun fillRankLayout(
         container: LinearLayout,
         items: List<Pair<String, Int>>,
-        barColor: Int
+        barColor: Int,
+        countColor: Int = ContextCompat.getColor(requireContext(), R.color.brown_500)
     ) {
         container.removeAllViews()
         if (items.isEmpty()) {
@@ -330,7 +350,10 @@ class AnalysisFragment : Fragment() {
             val itemView = layoutInflater.inflate(R.layout.item_rank, container, false)
             itemView.findViewById<TextView>(R.id.tv_rank).text = "${index + 1}"
             itemView.findViewById<TextView>(R.id.tv_rank_name).text = name
-            itemView.findViewById<TextView>(R.id.tv_rank_count).text = "${count}회"
+            itemView.findViewById<TextView>(R.id.tv_rank_count).apply {
+                text = "${count}회"
+                setTextColor(countColor)
+            }
 
             val progressBar = itemView.findViewById<ProgressBar>(R.id.progress_rank)
             progressBar.max = maxCount

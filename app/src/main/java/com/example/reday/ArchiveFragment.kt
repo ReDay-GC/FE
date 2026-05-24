@@ -12,6 +12,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.mapper.MemoryMapper
 import com.example.reday.data.model.MemoryUiModel
 import com.example.reday.data.repository.MemoryRepository
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.example.reday.utils.launchWithLoading
+import com.example.reday.utils.launchWithRefresh
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -71,6 +74,10 @@ class ArchiveFragment : Fragment() {
                 .commit()
         }
 
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipe_refresh)
+        swipeRefresh.setColorSchemeResources(R.color.main_200)
+        swipeRefresh.setOnRefreshListener { launchWithRefresh(swipeRefresh) { loadMemoriesData() } }
+
         updateMonthTitle()
         loadMemories()
     }
@@ -81,11 +88,14 @@ class ArchiveFragment : Fragment() {
     }
 
     private fun loadMemories() {
-        lifecycleScope.launch {
-            val entities = repository.getMemoriesByMonth(currentYear, currentMonth)
-            allItems = MemoryMapper.fromMemoryEntityList(entities)
-            showList(allItems)
-        }
+        val pb = view?.findViewById<View>(R.id.pb_loading) ?: return
+        launchWithLoading(pb) { loadMemoriesData() }
+    }
+
+    private suspend fun loadMemoriesData() {
+        val entities = repository.getMemoriesByMonth(currentYear, currentMonth)
+        allItems = MemoryMapper.fromMemoryEntityList(entities)
+        showList(allItems)
     }
 
     private fun showList(items: List<MemoryUiModel>) {

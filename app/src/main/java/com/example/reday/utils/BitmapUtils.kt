@@ -6,17 +6,27 @@ import android.graphics.Matrix
 import androidx.exifinterface.media.ExifInterface
 
 fun loadBitmapWithCorrectOrientation(path: String): Bitmap? {
+    val bitmap: Bitmap
+    val exif: ExifInterface?
+
     if (path.startsWith("http")) {
         return try {
             val bytes = java.net.URL(path).openStream().use { it.readBytes() }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+            exif = try { ExifInterface(bytes.inputStream()) } catch (e: Exception) { null }
+            applyExifRotation(bitmap, exif)
         } catch (e: Exception) { null }
     }
-    val bitmap = BitmapFactory.decodeFile(path) ?: return null
-    val exif = try { ExifInterface(path) } catch (e: Exception) { return bitmap }
-    val orientation = exif.getAttributeInt(
+
+    bitmap = BitmapFactory.decodeFile(path) ?: return null
+    exif = try { ExifInterface(path) } catch (e: Exception) { null }
+    return applyExifRotation(bitmap, exif)
+}
+
+private fun applyExifRotation(bitmap: Bitmap, exif: ExifInterface?): Bitmap {
+    val orientation = exif?.getAttributeInt(
         ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
-    )
+    ) ?: ExifInterface.ORIENTATION_NORMAL
     val rotation = when (orientation) {
         ExifInterface.ORIENTATION_ROTATE_90 -> 90f
         ExifInterface.ORIENTATION_ROTATE_180 -> 180f

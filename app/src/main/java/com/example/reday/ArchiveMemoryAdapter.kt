@@ -6,9 +6,14 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.example.reday.data.model.MemoryUiModel
+import com.example.reday.utils.loadBitmapWithCorrectOrientation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.example.reday.utils.toEmotionEmoji
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -42,10 +47,16 @@ class ArchiveMemoryAdapter(
 
         // 썸네일
         if (!item.thumbnailPath.isNullOrBlank()) {
-            Glide.with(holder.itemView.context)
-                .load(item.thumbnailPath)
-                .centerCrop()
-                .into(holder.ivThumbnail)
+            val scope = (holder.itemView.context as? LifecycleOwner)?.lifecycleScope
+            scope?.launch {
+                val bitmap = withContext(Dispatchers.IO) {
+                    loadBitmapWithCorrectOrientation(item.thumbnailPath!!)
+                }
+                if (bitmap != null) {
+                    holder.ivThumbnail.setImageBitmap(bitmap)
+                    holder.ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
+                }
+            }
         } else {
             holder.ivThumbnail.setImageResource(android.R.color.transparent)
         }

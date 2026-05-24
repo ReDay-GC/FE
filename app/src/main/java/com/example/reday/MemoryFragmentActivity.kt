@@ -60,7 +60,13 @@ class MemoryFragmentActivity : AppCompatActivity() {
         tvToolbarDate.text = formatDateLabel(date)
 
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
-        findViewById<View>(R.id.btn_generate_memory).setOnClickListener { startAiGeneration() }
+        findViewById<View>(R.id.btn_generate_memory).setOnClickListener {
+            if (existingMemoryId != null) {
+                showOverwriteConfirmDialog()
+            } else {
+                startAiGeneration()
+            }
+        }
         findViewById<View>(R.id.btn_add_fragment).setOnClickListener {
             val parts = date.split("-")
             val intent = android.content.Intent(this, AddMemoryActivity::class.java).apply {
@@ -483,6 +489,24 @@ class MemoryFragmentActivity : AppCompatActivity() {
             }
         }
         completeDialog.show()
+    }
+
+    private fun showOverwriteConfirmDialog() {
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_delete_confirm)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.findViewById<android.widget.TextView>(R.id.tv_dialog_title).text = "기억 다시 생성"
+        dialog.findViewById<android.widget.TextView>(R.id.tv_dialog_message).text =
+            "이미 이 날짜의 기억이 있어요.\n새로 생성하면 기존 기억이 삭제됩니다.\n계속하시겠습니까?"
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).text = "다시 생성"
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
+            dialog.dismiss()
+            startAiGeneration()
+        }
+        dialog.show()
     }
 
     private fun showDeleteConfirmDialog(fragment: RecordFragmentUiModel) {

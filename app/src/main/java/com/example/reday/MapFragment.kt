@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.reday.data.remote.MapLocationData
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
+import com.example.reday.utils.launchWithLoading
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
@@ -54,6 +55,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     // Marker → LocationData 매핑
     private val markerLocationMap = mutableMapOf<String, MapLocationData>()
     private var panelJob: Job? = null
+    private var pbLoading: View? = null
 
     private val requestLocationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -78,6 +80,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        pbLoading = view.findViewById(R.id.pb_loading)
         panelLocation = view.findViewById(R.id.panel_location)
         tvPanelLocationName = view.findViewById(R.id.tv_panel_location_name)
         tvPanelCount = view.findViewById(R.id.tv_panel_count)
@@ -116,18 +119,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun loadLocationGroups() {
-        viewLifecycleOwner.lifecycleScope.launch {
+        val pb = pbLoading ?: return
+        launchWithLoading(pb) {
             val locationGroups = memoryRepository.getMapLocations()
-            android.util.Log.d("MapDebug", "서버 응답 locationGroups 수: ${locationGroups.size}")
-            locationGroups.forEach {
-                android.util.Log.d("MapDebug", "  location='${it.location}' lat=${it.latitude} lng=${it.longitude} count=${it.memoryCount}")
-            }
-
-            val map = googleMap ?: return@launch
-            if (locationGroups.isEmpty()) {
-                android.util.Log.d("MapDebug", "locationGroups 비어있음 → 마커 없음")
-                return@launch
-            }
+            val map = googleMap ?: return@launchWithLoading
+            if (locationGroups.isEmpty()) return@launchWithLoading
 
             val boundsBuilder = LatLngBounds.Builder()
             var hasValidLocation = false
@@ -176,7 +172,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     val bounds = boundsBuilder.build()
                     map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150))
                 } catch (e: Exception) {
-                    val first = locationGroups.firstOrNull { it.latitude != null } ?: return@launch
+                    val first = locationGroups.firstOrNull { it.latitude != null } ?: return@launchWithLoading
                     map.animateCamera(
                         CameraUpdateFactory.newLatLngZoom(LatLng(first.latitude!!, first.longitude!!), 15f)
                     )
