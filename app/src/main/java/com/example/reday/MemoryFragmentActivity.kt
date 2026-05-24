@@ -255,14 +255,17 @@ class MemoryFragmentActivity : AppCompatActivity() {
         header.addView(chevron)
 
         if (isExpanded) {
-            val deleteBtn = ImageView(this).apply {
+            val editBtn = ImageView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(20.dp, 20.dp).also {
                     it.marginStart = 10.dp
                 }
-                setImageResource(R.drawable.ic_delete)
-                setOnClickListener { showDeleteConfirmDialog(fragment) }
+                setImageResource(R.drawable.ic_edit)
+                ImageViewCompat.setImageTintList(this,
+                    android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(this@MemoryFragmentActivity, R.color.brown_400)))
+                setOnClickListener { showFragmentOptionsPopup(it, fragment) }
             }
-            header.addView(deleteBtn)
+            header.addView(editBtn)
         }
 
         container.addView(header)
@@ -505,6 +508,67 @@ class MemoryFragmentActivity : AppCompatActivity() {
         dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
             dialog.dismiss()
             startAiGeneration()
+        }
+        dialog.show()
+    }
+
+    private fun showFragmentOptionsPopup(anchor: View, fragment: RecordFragmentUiModel) {
+        val popup = android.widget.PopupMenu(this, anchor)
+        popup.menu.add(0, 0, 0, "수정")
+        popup.menu.add(0, 1, 1, "삭제")
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                0 -> { showEditDialog(fragment); true }
+                1 -> { showDeleteConfirmDialog(fragment); true }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun showEditDialog(fragment: RecordFragmentUiModel) {
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.dialog_edit_record)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val tvTitle = dialog.findViewById<android.widget.TextView>(R.id.tv_edit_title)
+        val etContent = dialog.findViewById<android.widget.EditText>(R.id.et_edit_content)
+        val etLocation = dialog.findViewById<android.widget.EditText>(R.id.et_edit_location)
+
+        when (fragment.fragmentType) {
+            FragmentType.PHOTO -> tvTitle.text = "사진 기록 수정"
+            FragmentType.TEXT -> tvTitle.text = "텍스트 기록 수정"
+            FragmentType.VOICE -> tvTitle.text = "음성 기록 수정"
+        }
+
+        if (fragment.fragmentType == FragmentType.VOICE) {
+            etContent.hint = "텍스트 메모 (선택)"
+        }
+
+        etContent.setText(fragment.contentText ?: "")
+        etLocation.setText(fragment.locationName ?: "")
+
+        dialog.findViewById<android.widget.TextView>(R.id.btn_edit_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.findViewById<android.widget.TextView>(R.id.btn_edit_confirm).setOnClickListener {
+            val newContent = etContent.text.toString().trim().ifEmpty { null }
+            val newLocation = etLocation.text.toString().trim().ifEmpty { null }
+            dialog.dismiss()
+            lifecycleScope.launch {
+                try {
+                    repository.updateFragment(
+                        model = fragment,
+                        textContent = newContent,
+                        address = newLocation,
+                        latitude = fragment.latitude,
+                        longitude = fragment.longitude
+                    )
+                    loadFragments()
+                } catch (e: Exception) {
+                    Toast.makeText(this@MemoryFragmentActivity, "수정 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         dialog.show()
     }

@@ -9,6 +9,7 @@ import com.example.reday.data.remote.RecordItemData
 import com.example.reday.data.remote.RecordSummaryData
 import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.remote.SaveTextRecordRequest
+import com.example.reday.data.remote.UpdateRecordRequest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -214,6 +215,31 @@ class RecordFragmentRepository(
         } catch (e: Exception) {
             Log.e("RecordRepo", "기록 요약 조회 실패: ${e.message}")
             null
+        }
+    }
+
+    suspend fun updateFragment(
+        model: RecordFragmentUiModel,
+        textContent: String?,
+        address: String?,
+        latitude: Double?,
+        longitude: Double?
+    ) {
+        val serverId = model.serverId ?: return
+        try {
+            api.updateRecord(
+                serverId,
+                UpdateRecordRequest(
+                    textContent = textContent,
+                    recordDate = model.date,
+                    address = address,
+                    latitude = latitude,
+                    longitude = longitude
+                )
+            )
+        } catch (e: Exception) {
+            Log.e("RecordRepo", "기록 수정 실패: ${e.message}")
+            throw e
         }
     }
 

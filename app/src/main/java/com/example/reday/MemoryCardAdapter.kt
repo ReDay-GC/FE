@@ -65,12 +65,13 @@ class MemoryCardAdapter(
         holder.itemView.setOnClickListener { onItemClick?.invoke(item) }
 
         if (!item.thumbnailPath.isNullOrBlank()) {
+            holder.ivThumbnail.visibility = View.VISIBLE
             val thumbnailPath = item.thumbnailPath!!
             val source: Any = if (thumbnailPath.startsWith("http")) thumbnailPath else java.io.File(thumbnailPath)
             ImageViewCompat.setImageTintList(holder.ivThumbnail, null)
             Glide.with(holder.itemView).load(source).centerCrop().placeholder(R.drawable.ic_nav_archive).into(holder.ivThumbnail)
         } else {
-            setDefaultThumbnail(holder.ivThumbnail)
+            holder.ivThumbnail.visibility = View.GONE
         }
     }
 
@@ -81,13 +82,4 @@ class MemoryCardAdapter(
         notifyDataSetChanged()
     }
 
-    private fun setDefaultThumbnail(iv: ImageView) {
-        iv.setImageResource(R.drawable.ic_nav_archive)
-        ImageViewCompat.setImageTintList(
-            iv,
-            android.content.res.ColorStateList.valueOf(
-                androidx.core.content.ContextCompat.getColor(iv.context, R.color.brown_300)
-            )
-        )
-    }
 }

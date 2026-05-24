@@ -33,13 +33,23 @@ class MemoryDetailActivity : AppCompatActivity() {
     private lateinit var memoryRepository: MemoryRepository
     private lateinit var fragmentRepository: RecordFragmentRepository
 
+    private lateinit var flHero: FrameLayout
     private lateinit var ivHero: ImageView
+    private lateinit var vHeroGradient: View
+    private lateinit var llTitleOverlay: LinearLayout
     private lateinit var tvTitle: TextView
     private lateinit var tvDate: TextView
     private lateinit var tvLocation: TextView
     private lateinit var tvLocationDot: TextView
     private lateinit var ivLocationIcon: ImageView
     private lateinit var tvEmotion: TextView
+    private lateinit var llHeaderNoImage: LinearLayout
+    private lateinit var tvTitleNoImage: TextView
+    private lateinit var tvDateNoImage: TextView
+    private lateinit var tvLocationNoImage: TextView
+    private lateinit var tvLocationDotNoImage: TextView
+    private lateinit var ivLocationIconNoImage: ImageView
+    private lateinit var tvEmotionNoImage: TextView
     private lateinit var tvSummary: TextView
     private lateinit var chipGroupTags: ChipGroup
     private lateinit var tvFragmentCount: TextView
@@ -51,13 +61,23 @@ class MemoryDetailActivity : AppCompatActivity() {
 
         val date = intent.getStringExtra(EXTRA_DATE) ?: run { finish(); return }
 
+        flHero = findViewById(R.id.fl_hero)
         ivHero = findViewById(R.id.iv_hero)
+        vHeroGradient = findViewById(R.id.v_hero_gradient)
+        llTitleOverlay = findViewById(R.id.ll_title_overlay)
         tvTitle = findViewById(R.id.tv_title)
         tvDate = findViewById(R.id.tv_date)
         tvLocation = findViewById(R.id.tv_location)
         tvLocationDot = findViewById(R.id.tv_location_dot)
         ivLocationIcon = findViewById(R.id.iv_location_icon)
         tvEmotion = findViewById(R.id.tv_emotion)
+        llHeaderNoImage = findViewById(R.id.ll_header_no_image)
+        tvTitleNoImage = findViewById(R.id.tv_title_no_image)
+        tvDateNoImage = findViewById(R.id.tv_date_no_image)
+        tvLocationNoImage = findViewById(R.id.tv_location_no_image)
+        tvLocationDotNoImage = findViewById(R.id.tv_location_dot_no_image)
+        ivLocationIconNoImage = findViewById(R.id.iv_location_icon_no_image)
+        tvEmotionNoImage = findViewById(R.id.tv_emotion_no_image)
         tvSummary = findViewById(R.id.tv_summary)
         chipGroupTags = findViewById(R.id.chip_group_tags)
         tvFragmentCount = findViewById(R.id.tv_fragment_count)
@@ -159,36 +179,67 @@ class MemoryDetailActivity : AppCompatActivity() {
                 memoryRepository.getMemoryByDate(date) ?: run { finish(); return@launch }
             }
 
-            // 히어로 사진
+            // 히어로 사진 / 이미지 없을 때 헤더 분기
+            val location = entity.representativeLocationName
+                ?: parseLocations(entity.locations).firstOrNull()
+            val emotionEmoji = entity.emotion.toEmotionEmoji()
+            val dateLabel = formatDateLabel(date)
+
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
+                // 이미지 있음: 히어로 영역 표시
                 val source: Any = if (entity.representativePhotoUrl!!.startsWith("http"))
                     entity.representativePhotoUrl!! else java.io.File(entity.representativePhotoUrl!!)
                 Glide.with(this@MemoryDetailActivity).load(source).centerCrop().into(ivHero)
-            }
+                flHero.layoutParams.height = (280 * resources.displayMetrics.density + 0.5f).toInt()
+                flHero.requestLayout()
+                ivHero.visibility = View.VISIBLE
+                vHeroGradient.visibility = View.VISIBLE
+                llTitleOverlay.visibility = View.VISIBLE
+                llHeaderNoImage.visibility = View.GONE
 
-            // 제목
-            tvTitle.text = entity.title
-
-            // 날짜
-            tvDate.text = formatDateLabel(date)
-
-            // 위치
-            val location = entity.representativeLocationName
-                ?: parseLocations(entity.locations).firstOrNull()
-            if (!location.isNullOrBlank()) {
-                tvLocation.text = location
-                tvLocation.visibility = View.VISIBLE
-                tvLocationDot.visibility = View.VISIBLE
-                ivLocationIcon.visibility = View.VISIBLE
-            }
-
-            // 감정 이모지
-            val emotionEmoji = entity.emotion.toEmotionEmoji()
-            if (!emotionEmoji.isNullOrBlank()) {
-                tvEmotion.text = emotionEmoji
-                tvEmotion.visibility = View.VISIBLE
+                tvTitle.text = entity.title
+                tvDate.text = dateLabel
+                if (!location.isNullOrBlank()) {
+                    tvLocation.text = location
+                    tvLocation.visibility = View.VISIBLE
+                    tvLocationDot.visibility = View.VISIBLE
+                    ivLocationIcon.visibility = View.VISIBLE
+                }
+                if (!emotionEmoji.isNullOrBlank()) {
+                    tvEmotion.text = emotionEmoji
+                    tvEmotion.visibility = View.VISIBLE
+                } else {
+                    tvEmotion.visibility = View.GONE
+                }
             } else {
-                tvEmotion.visibility = View.GONE
+                // 이미지 없음: 히어로를 툴바 높이로 축소, 별도 헤더 표시
+                flHero.layoutParams.height = (64 * resources.displayMetrics.density + 0.5f).toInt()
+                flHero.requestLayout()
+                ivHero.visibility = View.GONE
+                vHeroGradient.visibility = View.GONE
+                llTitleOverlay.visibility = View.GONE
+                llHeaderNoImage.visibility = View.VISIBLE
+
+                // 버튼 색 변경 (밝은 배경이므로 어두운 색으로)
+                val darkTint = android.content.res.ColorStateList.valueOf(
+                    ContextCompat.getColor(this@MemoryDetailActivity, R.color.brown_700))
+                ImageViewCompat.setImageTintList(findViewById(R.id.btn_back), darkTint)
+                ImageViewCompat.setImageTintList(findViewById(R.id.btn_more), darkTint)
+
+                tvTitleNoImage.text = entity.title
+                tvDateNoImage.text = dateLabel
+                if (!location.isNullOrBlank()) {
+                    tvLocationNoImage.text = location
+                    tvLocationNoImage.visibility = View.VISIBLE
+                    tvLocationDotNoImage.visibility = View.VISIBLE
+                    ivLocationIconNoImage.visibility = View.VISIBLE
+                }
+                if (!emotionEmoji.isNullOrBlank()) {
+                    tvEmotionNoImage.text = emotionEmoji
+                    tvEmotionNoImage.visibility = View.VISIBLE
+                } else {
+                    tvEmotionNoImage.visibility = View.GONE
+                }
             }
 
             // 요약

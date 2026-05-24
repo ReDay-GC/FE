@@ -83,16 +83,6 @@
         android:layout_height="1dp"
         android:background="@color/brown_200" />
 
-    <!-- AI 검색 로딩 -->
-    <ProgressBar
-        android:id="@+id/pb_ai_search"
-        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="2dp"
-        android:indeterminate="true"
-        android:indeterminateTint="@color/main_200"
-        android:visibility="gone" />
-
     <!-- 태그 필터 패널 (필터 버튼 클릭 시 표시) -->
     <LinearLayout
         android:id="@+id/layout_filter_panel"
@@ -146,79 +136,110 @@
         android:background="@color/brown_200"
         android:visibility="gone" />
 
-    <!-- 빈 상태 / 결과 없음 -->
-    <LinearLayout
-        android:id="@+id/layout_empty"
+    <!-- 콘텐츠 + 로딩 오버레이 래퍼 -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:visibility="visible">
+        android:layout_weight="1">
 
-        <FrameLayout
-            android:layout_width="72dp"
-            android:layout_height="72dp"
-            android:background="@drawable/bg_circle_sub100"
-            android:layout_marginBottom="20dp">
-
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_search"
-                android:layout_gravity="center"
-                android:tint="@color/sub_105" />
-
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/tv_empty_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="기억을 검색해보세요"
-            android:textColor="@color/brown_500"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:id="@+id/tv_empty_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="제목, 장소, 태그, 사람 등으로 검색할 수 있어요"
-            android:textColor="@color/brown_400"
-            android:textSize="13sp" />
-
-    </LinearLayout>
-
-    <!-- 검색 결과 -->
-    <LinearLayout
-        android:id="@+id/layout_result"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/tv_result_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/brown_500"
-            android:textSize="13sp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="8dp" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_search_result"
+        <!-- 빈 상태 / 결과 없음 -->
+        <LinearLayout
+            android:id="@+id/layout_empty"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:paddingHorizontal="12dp"
-            android:paddingBottom="16dp"
-            android:clipToPadding="false" />
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="visible">
 
-    </LinearLayout>
+            <FrameLayout
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@drawable/bg_circle_sub100"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_search"
+                    android:layout_gravity="center"
+                    android:tint="@color/sub_105" />
+
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_empty_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="기억을 검색해보세요"
+                android:textColor="@color/brown_500"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tv_empty_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="제목, 장소, 태그, 사람 등으로 검색할 수 있어요"
+                android:textColor="@color/brown_400"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+
+        <!-- 검색 결과 -->
+        <LinearLayout
+            android:id="@+id/layout_result"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_result_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/brown_500"
+                android:textSize="13sp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_search_result"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingHorizontal="12dp"
+                android:paddingBottom="16dp"
+                android:clipToPadding="false" />
+
+        </LinearLayout>
+
+        <!-- AI 검색 로딩 오버레이 -->
+        <LinearLayout
+            android:id="@+id/layout_ai_loading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@color/brown_100"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:indeterminateTint="@color/main_200" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AI가 기억을 찾고 있어요"
+                android:textColor="@color/brown_500"
+                android:textSize="13sp"
+                android:layout_marginTop="12dp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
 
 </LinearLayout>

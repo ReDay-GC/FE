@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.lifecycle.LifecycleOwner
@@ -24,11 +25,15 @@ class ArchiveMemoryAdapter(
 ) : RecyclerView.Adapter<ArchiveMemoryAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val flThumbnail: FrameLayout = itemView.findViewById(R.id.fl_thumbnail)
+        val llCardBody: LinearLayout = itemView.findViewById(R.id.ll_card_body)
         val ivThumbnail: ImageView = itemView.findViewById(R.id.iv_thumbnail)
         val tvTitle: TextView = itemView.findViewById(R.id.tv_title)
+        val tvTitleBody: TextView = itemView.findViewById(R.id.tv_title_body)
         val tvLocationOverlay: TextView = itemView.findViewById(R.id.tv_location_overlay)
         val tvEmotion: TextView = itemView.findViewById(R.id.tv_emotion)
         val tvSummary: TextView = itemView.findViewById(R.id.tv_summary)
+        val ivLocationIcon: ImageView = itemView.findViewById(R.id.iv_location_icon_meta)
         val tvLocation: TextView = itemView.findViewById(R.id.tv_location)
         val tvMetaDot: TextView = itemView.findViewById(R.id.tv_meta_dot)
         val ivPeopleIcon: ImageView = itemView.findViewById(R.id.iv_people_icon)
@@ -46,7 +51,11 @@ class ArchiveMemoryAdapter(
         val item = items[position]
 
         // 썸네일
+        val density = holder.itemView.resources.displayMetrics.density
         if (!item.thumbnailPath.isNullOrBlank()) {
+            holder.flThumbnail.visibility = View.VISIBLE
+            holder.llCardBody.minimumHeight = 0
+            holder.tvTitleBody.visibility = View.GONE
             val scope = (holder.itemView.context as? LifecycleOwner)?.lifecycleScope
             scope?.launch {
                 val bitmap = withContext(Dispatchers.IO) {
@@ -58,10 +67,13 @@ class ArchiveMemoryAdapter(
                 }
             }
         } else {
-            holder.ivThumbnail.setImageResource(android.R.color.transparent)
+            holder.flThumbnail.visibility = View.GONE
+            holder.llCardBody.minimumHeight = (200 * density + 0.5f).toInt()
+            holder.tvTitleBody.text = item.title
+            holder.tvTitleBody.visibility = View.VISIBLE
         }
 
-        // 제목
+        // 제목 (썸네일 오버레이)
         holder.tvTitle.text = item.title
 
         // 썸네일 위 위치
@@ -85,10 +97,13 @@ class ArchiveMemoryAdapter(
         holder.tvSummary.text = item.previewText ?: ""
 
         // 위치
-        if (item.locationName != null) {
+        if (!item.locationName.isNullOrBlank()) {
+            holder.ivLocationIcon.visibility = View.VISIBLE
+            holder.tvLocation.visibility = View.VISIBLE
             holder.tvLocation.text = item.locationName
         } else {
-            holder.tvLocation.text = ""
+            holder.ivLocationIcon.visibility = View.GONE
+            holder.tvLocation.visibility = View.GONE
         }
 
         // 인물

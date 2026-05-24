@@ -12,6 +12,7 @@
 
         <!-- 히어로 영역 -->
         <FrameLayout
+            android:id="@+id/fl_hero"
             android:layout_width="match_parent"
             android:layout_height="280dp">
 
@@ -25,6 +26,7 @@
 
             <!-- 어두운 그라디언트 오버레이 -->
             <View
+                android:id="@+id/v_hero_gradient"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_hero_gradient" />
@@ -65,8 +67,9 @@
 
             </LinearLayout>
 
-            <!-- 제목 + 날짜 + 위치 (하단) -->
+            <!-- 제목 + 날짜 + 위치 (하단, 이미지 있을 때) -->
             <LinearLayout
+                android:id="@+id/ll_title_overlay"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
@@ -142,6 +145,86 @@
                 </LinearLayout>
             </LinearLayout>
         </FrameLayout>
+
+        <!-- 이미지 없을 때 제목/날짜/위치 헤더 -->
+        <LinearLayout
+            android:id="@+id/ll_header_no_image"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_title_no_image"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/brown_800"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:lineSpacingMultiplier="1.2" />
+
+                <TextView
+                    android:id="@+id/tv_emotion_no_image"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textSize="24sp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_date_no_image"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/brown_500"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tv_location_dot_no_image"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" · "
+                    android:textColor="@color/brown_400"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/iv_location_icon_no_image"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_location"
+                    android:tint="@color/brown_400"
+                    android:visibility="gone"
+                    android:contentDescription="위치" />
+
+                <TextView
+                    android:id="@+id/tv_location_no_image"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:textColor="@color/brown_500"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </LinearLayout>
 
         <!-- AI 요약 카드 -->
         <com.google.android.material.card.MaterialCardView

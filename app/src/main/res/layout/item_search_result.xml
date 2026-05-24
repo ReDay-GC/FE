@@ -4,6 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_margin="6dp"
     app:cardBackgroundColor="@color/brown_50"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
@@ -23,8 +24,27 @@
             android:scaleType="centerCrop"
             android:background="@color/brown_200" />
 
+        <!-- 이미지 없을 때 플레이스홀더 헤더 -->
+        <FrameLayout
+            android:id="@+id/fl_no_image_header"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:background="@color/inactive"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_image"
+                android:tint="@color/brown_50"
+                android:layout_gravity="center"
+                android:contentDescription="@null" />
+
+        </FrameLayout>
+
         <!-- 카드 내용 -->
         <LinearLayout
+            android:id="@+id/ll_card_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
