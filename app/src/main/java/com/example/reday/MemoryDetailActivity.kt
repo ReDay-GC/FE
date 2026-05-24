@@ -128,8 +128,33 @@ class MemoryDetailActivity : AppCompatActivity() {
     }
 
     private fun loadData(date: String) {
+        val serverId = intent.getLongExtra(EXTRA_SERVER_ID, 0L)
         lifecycleScope.launch {
-            val entity = memoryRepository.getMemoryByDate(date) ?: run { finish(); return@launch }
+            val entity = if (serverId > 0L) {
+                val detail = memoryRepository.getMemoryDetail(serverId)
+                if (detail != null) {
+                    com.example.reday.data.local.entity.MemoryEntity(
+                        serverId = null,
+                        date = detail.memoryDate,
+                        title = detail.title,
+                        summary = detail.summary ?: "",
+                        tags = com.google.gson.Gson().toJson(detail.tags.map { it.tagName }),
+                        locations = com.google.gson.Gson().toJson(listOfNotNull(detail.location)),
+                        people = "[]",
+                        fragmentCount = 0,
+                        representativeFragmentId = null,
+                        representativePhotoUrl = detail.thumbnailUrl,
+                        representativeLocationName = detail.location,
+                        emotion = detail.emotion,
+                        embedding = null,
+                        createdAt = detail.memoryDate
+                    )
+                } else {
+                    memoryRepository.getMemoryByDate(date) ?: run { finish(); return@launch }
+                }
+            } else {
+                memoryRepository.getMemoryByDate(date) ?: run { finish(); return@launch }
+            }
 
             // 히어로 사진
             if (!entity.representativePhotoUrl.isNullOrBlank()) {
@@ -372,5 +397,6 @@ class MemoryDetailActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_DATE = "extra_date"
+        const val EXTRA_SERVER_ID = "extra_server_id"
     }
 }

@@ -43,6 +43,7 @@ class CalendarFragment : Fragment() {
 
     private var recordingDays: Set<Int> = emptySet()
     private var memoryDays: Set<Int> = emptySet()
+    private var allMemoriesThisMonth: List<com.example.reday.data.local.entity.MemoryEntity> = emptyList()
     private var currentDetailJob: kotlinx.coroutines.Job? = null
 
     // 기억 상세 카드 뷰
@@ -135,10 +136,16 @@ class CalendarFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val fragmentDays = repository.getRecordDatesByMonth(currentYear, currentMonth + 1)
-                memoryDays = memoryRepository.getMemoryDatesByMonth(currentYear, currentMonth + 1)
+                allMemoriesThisMonth = memoryRepository.getMemoriesByMonth(currentYear, currentMonth + 1)
+                memoryDays = allMemoriesThisMonth.mapNotNull {
+                    it.date.split("-").getOrNull(2)?.toIntOrNull()
+                }.toSet()
                 recordingDays = fragmentDays - memoryDays
+                android.util.Log.d("CalendarDebug", "fragmentDays=$fragmentDays")
+                android.util.Log.d("CalendarDebug", "memoryDays=$memoryDays")
+                android.util.Log.d("CalendarDebug", "recordingDays=$recordingDays")
             } catch (e: Exception) {
-                // 데이터 로딩 실패 시에도 캘린더는 렌더링
+                android.util.Log.e("CalendarDebug", "loadAndRender 실패: ${e.message}")
             }
             renderCalendar()
         }
@@ -219,13 +226,13 @@ class CalendarFragment : Fragment() {
         dot.visibility = View.INVISIBLE
 
         when {
-            day == selectedDay && day in memoryDays -> {
+            day == selectedDay && day in memoryDays && !isFutureDay -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_selected)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
                 dot.setBackgroundResource(R.drawable.bg_dot_light)
                 dot.visibility = View.VISIBLE
             }
-            day == selectedDay && day in recordingDays -> {
+            day == selectedDay && day in recordingDays && !isFutureDay -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_selected)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
                 dot.setBackgroundResource(R.drawable.bg_dot_light)
@@ -235,13 +242,13 @@ class CalendarFragment : Fragment() {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_selected)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_50))
             }
-            day in memoryDays -> {
+            day in memoryDays && !isFutureDay -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_has_record)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
                 dot.setBackgroundResource(R.drawable.bg_dot_pink)
                 dot.visibility = View.VISIBLE
             }
-            day in recordingDays -> {
+            day in recordingDays && !isFutureDay -> {
                 wrapper.setBackgroundResource(R.drawable.bg_calendar_recording)
                 tvDay.setTextColor(ContextCompat.getColor(requireContext(), R.color.brown_500))
                 dot.setBackgroundResource(R.drawable.bg_dot_main200)
@@ -330,10 +337,9 @@ class CalendarFragment : Fragment() {
         val dateStr = "%04d-%02d-%02d".format(currentYear, currentMonth + 1, day)
         currentDetailJob?.cancel()
         currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
-            val entity = memoryRepository.getMemoryByDate(dateStr) ?: run {
-                hideAllDetailCards()
-                return@launch
-            }
+            val entity = allMemoriesThisMonth.firstOrNull { it.date == dateStr }
+                ?: memoryRepository.getMemoryByDate(dateStr)
+                ?: run { hideAllDetailCards(); return@launch }
 
             cardEmptyDay.visibility = View.GONE
             cardRecordingDay.visibility = View.GONE
@@ -341,6 +347,7 @@ class CalendarFragment : Fragment() {
             cardMemoryDetail.setOnClickListener {
                 val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
                 intent.putExtra(MemoryDetailActivity.EXTRA_DATE, dateStr)
+                intent.putExtra(MemoryDetailActivity.EXTRA_SERVER_ID, entity.serverId ?: 0L)
                 startActivity(intent)
             }
 

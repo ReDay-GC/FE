@@ -197,6 +197,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             rvMapMemories.adapter = MapMemoryAdapter(memories) { memory ->
                 val intent = android.content.Intent(requireContext(), MemoryDetailActivity::class.java)
                 intent.putExtra(MemoryDetailActivity.EXTRA_DATE, memory.date)
+                intent.putExtra(MemoryDetailActivity.EXTRA_SERVER_ID, memory.id)
                 startActivity(intent)
             }
         }
