@@ -97,13 +97,14 @@ class MemoryDetailActivity : AppCompatActivity() {
 
         dialog.findViewById<android.view.View>(R.id.btn_menu_delete_memory).setOnClickListener {
             dialog.dismiss()
-            showDeleteMemoryDialog(date)
+            val serverId = intent.getLongExtra(EXTRA_SERVER_ID, 0L)
+            showDeleteMemoryDialog(date, serverId)
         }
 
         dialog.show()
     }
 
-    private fun showDeleteMemoryDialog(date: String) {
+    private fun showDeleteMemoryDialog(date: String, serverId: Long) {
         val dialog = android.app.Dialog(this)
         dialog.setContentView(R.layout.dialog_delete_confirm)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -116,11 +117,13 @@ class MemoryDetailActivity : AppCompatActivity() {
         dialog.findViewById<android.widget.TextView>(R.id.btn_dialog_confirm).setOnClickListener {
             dialog.dismiss()
             lifecycleScope.launch {
-                // 기록 조각 먼저 삭제 (서버 + 로컬)
                 val fragments = fragmentRepository.getFragmentsByDate(date)
                 fragments.forEach { fragmentRepository.deleteFragment(it) }
-                // 기억 삭제 (서버 + 로컬)
-                memoryRepository.deleteMemoryByDate(date)
+                if (serverId > 0L) {
+                    memoryRepository.deleteMemoryById(serverId)
+                } else {
+                    memoryRepository.deleteMemoryByDate(date)
+                }
                 finish()
             }
         }
