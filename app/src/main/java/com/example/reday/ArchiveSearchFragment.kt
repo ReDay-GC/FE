@@ -10,7 +10,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -175,7 +174,7 @@ class ArchiveSearchFragment : Fragment() {
     // ── AI 자연어 검색 ──
 
     private fun triggerAiSearch(query: String) {
-        val pbLoading = view?.findViewById<ProgressBar>(R.id.pb_ai_search)
+        val pbLoading = view?.findViewById<View>(R.id.layout_ai_loading)
         pbLoading?.isVisible = true
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -210,7 +209,7 @@ class ArchiveSearchFragment : Fragment() {
                 Toast.makeText(requireContext(), "AI 검색에 실패했어요. 일반 검색으로 대신할게요.", Toast.LENGTH_SHORT).show()
                 performServerSearch(query, selectedTags)
             } finally {
-                pbLoading?.isVisible = false
+                pbLoading?.visibility = View.GONE
             }
         }
     }

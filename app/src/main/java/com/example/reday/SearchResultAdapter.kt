@@ -3,6 +3,7 @@ package com.example.reday
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -24,6 +25,9 @@ class SearchResultAdapter(
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val ivThumbnail: ImageView = itemView.findViewById(R.id.iv_thumbnail)
+        val flNoImageHeader: FrameLayout = itemView.findViewById(R.id.fl_no_image_header)
+        val tvNoImageTitle: TextView = itemView.findViewById(R.id.tv_no_image_title)
+        val llCardContent: LinearLayout = itemView.findViewById(R.id.ll_card_content)
         val tvDate: TextView = itemView.findViewById(R.id.tv_date)
         val tvTitle: TextView = itemView.findViewById(R.id.tv_title)
         val layoutLocation: LinearLayout = itemView.findViewById(R.id.layout_location)
@@ -42,6 +46,9 @@ class SearchResultAdapter(
 
         // 썸네일
         if (!item.thumbnailPath.isNullOrBlank()) {
+            holder.ivThumbnail.visibility = View.VISIBLE
+            holder.flNoImageHeader.visibility = View.GONE
+            holder.tvTitle.visibility = View.VISIBLE
             val scope = (holder.itemView.context as? LifecycleOwner)?.lifecycleScope
             scope?.launch {
                 val bitmap = withContext(Dispatchers.IO) {
@@ -53,7 +60,10 @@ class SearchResultAdapter(
                 }
             }
         } else {
-            holder.ivThumbnail.setImageResource(android.R.color.transparent)
+            holder.ivThumbnail.visibility = View.GONE
+            holder.flNoImageHeader.visibility = View.VISIBLE
+            holder.tvNoImageTitle.text = item.title
+            holder.tvTitle.visibility = View.GONE
         }
 
         // 날짜 포맷: "2026-03-08" → "2026.03.08"

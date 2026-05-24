@@ -76,6 +76,14 @@ data class SaveTextRecordRequest(
     val recordedAt: String? = null
 )
 
+data class UpdateRecordRequest(
+    val textContent: String?,
+    val recordDate: String,
+    val address: String?,
+    val latitude: Double?,
+    val longitude: Double?
+)
+
 interface RecordApiService {
 
     @POST("api/records/text")
@@ -103,6 +111,12 @@ interface RecordApiService {
         @Query("year") year: Int,
         @Query("month") month: Int
     ): GetRecordDatesResponse
+
+    @PUT("api/records/{recordId}")
+    suspend fun updateRecord(
+        @Path("recordId") recordId: Long,
+        @Body request: UpdateRecordRequest
+    ): SaveRecordResponse
 
     @DELETE("api/records/{recordId}")
     suspend fun deleteRecord(@Path("recordId") recordId: Long): SaveRecordResponse

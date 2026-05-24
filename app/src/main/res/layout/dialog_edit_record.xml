@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="300dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@drawable/bg_dialog"
+    android:padding="24dp">
+
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_edit"
+        android:background="@drawable/bg_circle_main105"
+        android:padding="12dp"
+        android:contentDescription="@null"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/tv_edit_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="기억 조각 수정"
+        android:textColor="@color/brown_800"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/et_edit_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="72dp"
+        android:gravity="top|start"
+        android:hint="내용"
+        android:textColorHint="@color/brown_300"
+        android:textColor="@color/brown_800"
+        android:textSize="14sp"
+        android:background="@drawable/bg_input_memo"
+        android:padding="12dp"
+        android:inputType="textMultiLine"
+        android:maxLines="4"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/et_edit_location"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="위치 (선택)"
+        android:textColorHint="@color/brown_300"
+        android:textColor="@color/brown_800"
+        android:textSize="14sp"
+        android:background="@drawable/bg_input_field"
+        android:padding="12dp"
+        android:singleLine="true"
+        android:layout_marginBottom="20dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/btn_edit_cancel"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="취소"
+            android:textColor="@color/brown_500"
+            android:textSize="14sp"
+            android:background="@drawable/bg_btn_cancel"
+            android:layout_marginEnd="8dp" />
+
+        <TextView
+            android:id="@+id/btn_edit_confirm"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="저장"
+            android:textColor="@color/brown_50"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_btn_voice_done" />
+
+    </LinearLayout>
+
+</LinearLayout>
