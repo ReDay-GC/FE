@@ -7,7 +7,9 @@
       "mcp__plugin_figma_figma__get_metadata",
       "mcp__plugin_figma_figma__whoami",
       "Bash(xargs grep:*)",
-      "Bash(grep -r \"delete\\\\|edit\\\\|update\\\\|modify\" app/src/main/java/com/example/reday/*.kt)"
+      "Bash(grep -r \"delete\\\\|edit\\\\|update\\\\|modify\" app/src/main/java/com/example/reday/*.kt)",
+      "Bash(xargs -I{} dirname {})",
+      "Bash(grep -E \"\\\\.\\(kt|java\\)$\")"
     ]
   }
 }

@@ -74,6 +74,19 @@ class AddMemoryFragment : Fragment() {
         private const val ARG_YEAR = "year"
         private const val ARG_MONTH = "month"
         private const val ARG_DAY = "day"
+        private const val ARG_EDIT_MODE = "edit_mode"
+        private const val ARG_EDIT_LOCAL_ID = "edit_local_id"
+        private const val ARG_EDIT_SERVER_ID = "edit_server_id"
+        private const val ARG_EDIT_FRAGMENT_TYPE = "edit_fragment_type"
+        private const val ARG_EDIT_CONTENT_TEXT = "edit_content_text"
+        private const val ARG_EDIT_PHOTO_URL = "edit_photo_url"
+        private const val ARG_EDIT_VOICE_URL = "edit_voice_url"
+        private const val ARG_EDIT_DURATION_SEC = "edit_duration_sec"
+        private const val ARG_EDIT_CREATED_AT = "edit_created_at"
+        private const val ARG_EDIT_DATE = "edit_date"
+        private const val ARG_EDIT_LOCATION_NAME = "edit_location_name"
+        private const val ARG_EDIT_LATITUDE = "edit_latitude"
+        private const val ARG_EDIT_LONGITUDE = "edit_longitude"
 
         fun newInstance(year: Int, month: Int, day: Int): AddMemoryFragment {
             return AddMemoryFragment().apply {
@@ -81,6 +94,36 @@ class AddMemoryFragment : Fragment() {
                     putInt(ARG_YEAR, year)
                     putInt(ARG_MONTH, month)
                     putInt(ARG_DAY, day)
+                }
+            }
+        }
+
+        fun newInstanceEdit(
+            year: Int, month: Int, day: Int,
+            localId: Long, serverId: Long?,
+            fragmentType: String,
+            contentText: String?, photoUrl: String?, voiceUrl: String?,
+            durationSec: Int, createdAt: String, date: String,
+            locationName: String?, latitude: Double?, longitude: Double?
+        ): AddMemoryFragment {
+            return AddMemoryFragment().apply {
+                arguments = Bundle().apply {
+                    putInt(ARG_YEAR, year)
+                    putInt(ARG_MONTH, month)
+                    putInt(ARG_DAY, day)
+                    putBoolean(ARG_EDIT_MODE, true)
+                    putLong(ARG_EDIT_LOCAL_ID, localId)
+                    putLong(ARG_EDIT_SERVER_ID, serverId ?: -1L)
+                    putString(ARG_EDIT_FRAGMENT_TYPE, fragmentType)
+                    putString(ARG_EDIT_CONTENT_TEXT, contentText)
+                    putString(ARG_EDIT_PHOTO_URL, photoUrl)
+                    putString(ARG_EDIT_VOICE_URL, voiceUrl)
+                    putInt(ARG_EDIT_DURATION_SEC, durationSec)
+                    putString(ARG_EDIT_CREATED_AT, createdAt)
+                    putString(ARG_EDIT_DATE, date)
+                    putString(ARG_EDIT_LOCATION_NAME, locationName)
+                    putDouble(ARG_EDIT_LATITUDE, latitude ?: Double.NaN)
+                    putDouble(ARG_EDIT_LONGITUDE, longitude ?: Double.NaN)
                 }
             }
         }
@@ -378,6 +421,12 @@ class AddMemoryFragment : Fragment() {
         updateTypeButtons(btnPhoto, btnText, btnVoice)
         updateCardVisibility(cardPhoto, cardMemo, cardVoice)
 
+        // 수정 모드 초기화
+        val isEditMode = arguments?.getBoolean(ARG_EDIT_MODE) ?: false
+        if (isEditMode) {
+            applyEditModeInitialData(view, btnPhoto, btnText, btnVoice, cardPhoto, cardMemo, cardVoice)
+        }
+
         // 저장 버튼
         val etMemo = view.findViewById<EditText>(R.id.et_memo)
         val etLocation = view.findViewById<EditText>(R.id.et_location)
@@ -407,6 +456,45 @@ class AddMemoryFragment : Fragment() {
                         }
                     }
 
+                    if (isEditMode) {
+                        // 수정 모드: updateFragment 호출
+                        val editLocalId = arguments?.getLong(ARG_EDIT_LOCAL_ID) ?: -1L
+                        val editServerId = arguments?.getLong(ARG_EDIT_SERVER_ID)?.takeIf { it != -1L }
+                        val editDate = arguments?.getString(ARG_EDIT_DATE) ?: date
+                        val editFragmentType = arguments?.getString(ARG_EDIT_FRAGMENT_TYPE) ?: "TEXT"
+                        val textContent = when (RecordType.valueOf(editFragmentType.let {
+                            when (it) { "PHOTO" -> "PHOTO"; "VOICE" -> "VOICE"; else -> "TEXT" }
+                        })) {
+                            RecordType.TEXT -> etMemo.text.toString().trim().ifEmpty { null }
+                            RecordType.PHOTO -> etMemo.text.toString().trim().ifEmpty { null }
+                            RecordType.VOICE -> view?.findViewById<EditText>(R.id.et_stt_result)
+                                ?.text?.toString()?.trim()?.ifEmpty { null }
+                        }
+                        val editModel = com.example.reday.data.model.RecordFragmentUiModel(
+                            localId = editLocalId,
+                            serverId = editServerId,
+                            fragmentType = com.example.reday.data.model.FragmentType.valueOf(editFragmentType),
+                            contentText = textContent,
+                            photoUrl = arguments?.getString(ARG_EDIT_PHOTO_URL),
+                            voiceUrl = arguments?.getString(ARG_EDIT_VOICE_URL),
+                            durationSec = arguments?.getInt(ARG_EDIT_DURATION_SEC),
+                            createdAt = createdAt,
+                            date = editDate,
+                            locationName = locationName,
+                            latitude = currentLatitude,
+                            longitude = currentLongitude
+                        )
+                        repository.updateFragment(
+                            model = editModel,
+                            textContent = textContent,
+                            address = locationName,
+                            latitude = currentLatitude,
+                            longitude = currentLongitude
+                        )
+                        listener?.onSaved()
+                        return@launch
+                    }
+
                     when (selectedType) {
                         RecordType.TEXT -> {
                             val text = etMemo.text.toString().trim()
@@ -421,14 +509,14 @@ class AddMemoryFragment : Fragment() {
                             )
                         }
                         RecordType.PHOTO -> {
-                            if (selectedPhotoUri == null) {
+                            if (selectedPhotoUri == null && selectedPhotoPath == null) {
                                 Toast.makeText(requireContext(), "사진을 선택해주세요", Toast.LENGTH_SHORT).show()
                                 isSaving = false
                                 return@launch
                             }
                             // 선택 시점에 이미 복사됨. 아직 복사 중이면 재시도
-                            val path = selectedPhotoPath ?: withContext(Dispatchers.IO) {
-                                copyImageToInternalStorage(selectedPhotoUri!!)
+                            val path = selectedPhotoPath ?: selectedPhotoUri?.let {
+                                withContext(Dispatchers.IO) { copyImageToInternalStorage(it) }
                             }
                             if (path == null) {
                                 Toast.makeText(requireContext(), "사진 저장 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
@@ -706,6 +794,90 @@ class AddMemoryFragment : Fragment() {
                 btnPlayPause.setImageResource(R.drawable.ic_pause_bars)
                 tvReRecord.visibility = View.VISIBLE
                 tvHint.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun applyEditModeInitialData(
+        view: View,
+        btnPhoto: LinearLayout, btnText: LinearLayout, btnVoice: LinearLayout,
+        cardPhoto: View, cardMemo: View, cardVoice: View
+    ) {
+        val args = arguments ?: return
+        val typeStr = args.getString(ARG_EDIT_FRAGMENT_TYPE) ?: "TEXT"
+
+        // 타입 선택
+        selectedType = when (typeStr) {
+            "PHOTO" -> RecordType.PHOTO
+            "VOICE" -> RecordType.VOICE
+            else -> RecordType.TEXT
+        }
+        updateTypeButtons(btnPhoto, btnText, btnVoice)
+        updateCardVisibility(cardPhoto, cardMemo, cardVoice)
+
+        // 시간 설정
+        val createdAt = args.getString(ARG_EDIT_CREATED_AT) ?: ""
+        val timeParts = createdAt.split("T").getOrNull(1)?.split(":")
+        recordHour = timeParts?.getOrNull(0)?.toIntOrNull() ?: recordHour
+        recordMinute = timeParts?.getOrNull(1)?.toIntOrNull() ?: recordMinute
+        view.findViewById<TextView>(R.id.tv_time_input)?.text =
+            String.format("%02d:%02d", recordHour, recordMinute)
+
+        // 위치 설정
+        val locationName = args.getString(ARG_EDIT_LOCATION_NAME)
+        if (!locationName.isNullOrBlank()) {
+            view.findViewById<EditText>(R.id.et_location)?.setText(locationName)
+            val lat = args.getDouble(ARG_EDIT_LATITUDE, Double.NaN).takeIf { !it.isNaN() }
+            val lng = args.getDouble(ARG_EDIT_LONGITUDE, Double.NaN).takeIf { !it.isNaN() }
+            currentLatitude = lat
+            currentLongitude = lng
+        }
+
+        // 저장 버튼 텍스트 변경
+        view.findViewById<TextView>(R.id.tv_save_label)?.text = "수정 완료"
+
+        // 타입별 데이터 채우기
+        when (selectedType) {
+            RecordType.TEXT -> {
+                view.findViewById<EditText>(R.id.et_memo)?.setText(
+                    args.getString(ARG_EDIT_CONTENT_TEXT) ?: ""
+                )
+            }
+            RecordType.PHOTO -> {
+                val photoUrl = args.getString(ARG_EDIT_PHOTO_URL)
+                if (!photoUrl.isNullOrBlank()) {
+                    selectedPhotoPath = photoUrl
+                    val ivPreview = view.findViewById<ImageView>(R.id.iv_photo_preview)
+                    val layoutPlaceholder = view.findViewById<View>(R.id.layout_photo_placeholder)
+                    ivPreview?.visibility = View.VISIBLE
+                    layoutPlaceholder?.visibility = View.GONE
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                        val bitmap = com.example.reday.utils.loadBitmapWithCorrectOrientation(photoUrl)
+                        withContext(Dispatchers.Main) {
+                            if (bitmap != null) ivPreview?.setImageBitmap(bitmap)
+                        }
+                    }
+                }
+                view.findViewById<EditText>(R.id.et_memo)?.setText(
+                    args.getString(ARG_EDIT_CONTENT_TEXT) ?: ""
+                )
+            }
+            RecordType.VOICE -> {
+                val voiceUrl = args.getString(ARG_EDIT_VOICE_URL)
+                if (!voiceUrl.isNullOrBlank()) {
+                    voiceFile = java.io.File(voiceUrl)
+                    elapsedSec = args.getInt(ARG_EDIT_DURATION_SEC, 0)
+                    voiceState = VoiceUiState.COMPLETED
+                    updateVoiceUI(VoiceUiState.COMPLETED)
+                    view.findViewById<TextView>(R.id.tv_voice_timer)?.text =
+                        String.format("%d:%02d", elapsedSec / 60, elapsedSec % 60)
+                }
+                // STT 결과(기존 contentText) 채우기
+                val contentText = args.getString(ARG_EDIT_CONTENT_TEXT)
+                if (!contentText.isNullOrBlank()) {
+                    view.findViewById<View>(R.id.layout_stt_result)?.visibility = View.VISIBLE
+                    view.findViewById<EditText>(R.id.et_stt_result)?.setText(contentText)
+                }
             }
         }
     }

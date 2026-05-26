@@ -1,6 +1,8 @@
 package com.example.reday
 
+import android.app.Activity
 import android.app.Dialog
+import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -14,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.ImageViewCompat
@@ -50,6 +53,14 @@ class MemoryFragmentActivity : AppCompatActivity() {
     private val expandedStates = mutableMapOf<Long, Boolean>()
     private var existingMemoryId: Long? = null
     private var isGenerating = false
+
+    private val editFragmentLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            loadFragments()
+        }
+    }
 
     private var mediaPlayer: MediaPlayer? = null
     private var playingFragmentId: Long? = null
@@ -715,7 +726,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
         popup.menu.add(0, 1, 1, "삭제")
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
-                0 -> { showEditDialog(fragment); true }
+                0 -> { launchEditActivity(fragment); true }
                 1 -> { showDeleteConfirmDialog(fragment); true }
                 else -> false
             }
@@ -723,51 +734,31 @@ class MemoryFragmentActivity : AppCompatActivity() {
         popup.show()
     }
 
-    private fun showEditDialog(fragment: RecordFragmentUiModel) {
-        val dialog = android.app.Dialog(this)
-        dialog.setContentView(R.layout.dialog_edit_record)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+    private fun launchEditActivity(fragment: RecordFragmentUiModel) {
+        val dateParts = fragment.date.split("-")
+        val year = dateParts.getOrNull(0)?.toIntOrNull() ?: return
+        val month = dateParts.getOrNull(1)?.toIntOrNull() ?: return
+        val day = dateParts.getOrNull(2)?.toIntOrNull() ?: return
 
-        val tvTitle = dialog.findViewById<android.widget.TextView>(R.id.tv_edit_title)
-        val etContent = dialog.findViewById<android.widget.EditText>(R.id.et_edit_content)
-        val etLocation = dialog.findViewById<android.widget.EditText>(R.id.et_edit_location)
-
-        when (fragment.fragmentType) {
-            FragmentType.PHOTO -> tvTitle.text = "사진 기록 수정"
-            FragmentType.TEXT -> tvTitle.text = "텍스트 기록 수정"
-            FragmentType.VOICE -> tvTitle.text = "음성 기록 수정"
+        val intent = Intent(this, AddMemoryActivity::class.java).apply {
+            putExtra(AddMemoryActivity.EXTRA_EDIT_MODE, true)
+            putExtra(AddMemoryActivity.EXTRA_YEAR, year)
+            putExtra(AddMemoryActivity.EXTRA_MONTH, month)
+            putExtra(AddMemoryActivity.EXTRA_DAY, day)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_LOCAL_ID, fragment.localId)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_SERVER_ID, fragment.serverId ?: -1L)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_FRAGMENT_TYPE, fragment.fragmentType.name)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_CONTENT_TEXT, fragment.contentText)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_PHOTO_URL, fragment.photoUrl)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_VOICE_URL, fragment.voiceUrl)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_DURATION_SEC, fragment.durationSec ?: 0)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_CREATED_AT, fragment.createdAt)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_DATE, fragment.date)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_LOCATION_NAME, fragment.locationName)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_LATITUDE, fragment.latitude ?: Double.NaN)
+            putExtra(AddMemoryActivity.EXTRA_EDIT_LONGITUDE, fragment.longitude ?: Double.NaN)
         }
-
-        if (fragment.fragmentType == FragmentType.VOICE) {
-            etContent.hint = "텍스트 메모 (선택)"
-        }
-
-        etContent.setText(fragment.contentText ?: "")
-        etLocation.setText(fragment.locationName ?: "")
-
-        dialog.findViewById<android.widget.TextView>(R.id.btn_edit_cancel).setOnClickListener {
-            dialog.dismiss()
-        }
-        dialog.findViewById<android.widget.TextView>(R.id.btn_edit_confirm).setOnClickListener {
-            val newContent = etContent.text.toString().trim().ifEmpty { null }
-            val newLocation = etLocation.text.toString().trim().ifEmpty { null }
-            dialog.dismiss()
-            lifecycleScope.launch {
-                try {
-                    repository.updateFragment(
-                        model = fragment,
-                        textContent = newContent,
-                        address = newLocation,
-                        latitude = fragment.latitude,
-                        longitude = fragment.longitude
-                    )
-                    loadFragments()
-                } catch (e: Exception) {
-                    Toast.makeText(this@MemoryFragmentActivity, "수정 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        dialog.show()
+        editFragmentLauncher.launch(intent)
     }
 
     private fun showDeleteConfirmDialog(fragment: RecordFragmentUiModel) {

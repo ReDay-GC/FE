@@ -20,6 +20,20 @@ class AddMemoryActivity : AppCompatActivity(),
         const val EXTRA_MONTH = "extra_month"
         const val EXTRA_DAY = "extra_day"
         const val EXTRA_GO_TO_TIMELINE = "extra_go_to_timeline"
+        // 수정 모드
+        const val EXTRA_EDIT_MODE = "extra_edit_mode"
+        const val EXTRA_EDIT_LOCAL_ID = "extra_edit_local_id"
+        const val EXTRA_EDIT_SERVER_ID = "extra_edit_server_id"
+        const val EXTRA_EDIT_FRAGMENT_TYPE = "extra_edit_fragment_type"
+        const val EXTRA_EDIT_CONTENT_TEXT = "extra_edit_content_text"
+        const val EXTRA_EDIT_PHOTO_URL = "extra_edit_photo_url"
+        const val EXTRA_EDIT_VOICE_URL = "extra_edit_voice_url"
+        const val EXTRA_EDIT_DURATION_SEC = "extra_edit_duration_sec"
+        const val EXTRA_EDIT_CREATED_AT = "extra_edit_created_at"
+        const val EXTRA_EDIT_DATE = "extra_edit_date"
+        const val EXTRA_EDIT_LOCATION_NAME = "extra_edit_location_name"
+        const val EXTRA_EDIT_LATITUDE = "extra_edit_latitude"
+        const val EXTRA_EDIT_LONGITUDE = "extra_edit_longitude"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,10 +54,13 @@ class AddMemoryActivity : AppCompatActivity(),
         })
 
         if (savedInstanceState == null) {
+            val isEditMode = intent.getBooleanExtra(EXTRA_EDIT_MODE, false)
             val year = intent.getIntExtra(EXTRA_YEAR, -1)
             val month = intent.getIntExtra(EXTRA_MONTH, -1)
             val day = intent.getIntExtra(EXTRA_DAY, -1)
-            if (year != -1 && month != -1 && day != -1) {
+            if (isEditMode && year != -1 && month != -1 && day != -1) {
+                showEditModeFragment(year, month, day)
+            } else if (year != -1 && month != -1 && day != -1) {
                 onDateSelected(year, month, day)
             } else {
                 supportFragmentManager.beginTransaction()
@@ -104,8 +121,44 @@ class AddMemoryActivity : AppCompatActivity(),
             .commit()
     }
 
+    // 수정 모드: DateSelectFragment 없이 바로 AddMemoryFragment(수정 모드)로 진입
+    private fun showEditModeFragment(year: Int, month: Int, day: Int) {
+        val cal = java.util.Calendar.getInstance()
+        cal.set(year, month - 1, day)
+        val dayOfWeekStr = arrayOf("일", "월", "화", "수", "목", "금", "토")[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1]
+
+        val tvDate = findViewById<TextView>(R.id.tv_selected_date)
+        tvDate.text = "${year}년 ${month}월 ${day}일 ${dayOfWeekStr}요일"
+        tvDate.visibility = View.VISIBLE
+        updateStepIndicator(step = 2)
+        findViewById<ImageButton>(R.id.btn_back).visibility = View.GONE
+
+        val fragment = AddMemoryFragment.newInstanceEdit(
+            year = year, month = month, day = day,
+            localId = intent.getLongExtra(EXTRA_EDIT_LOCAL_ID, -1L),
+            serverId = intent.getLongExtra(EXTRA_EDIT_SERVER_ID, -1L).takeIf { it != -1L },
+            fragmentType = intent.getStringExtra(EXTRA_EDIT_FRAGMENT_TYPE) ?: "TEXT",
+            contentText = intent.getStringExtra(EXTRA_EDIT_CONTENT_TEXT),
+            photoUrl = intent.getStringExtra(EXTRA_EDIT_PHOTO_URL),
+            voiceUrl = intent.getStringExtra(EXTRA_EDIT_VOICE_URL),
+            durationSec = intent.getIntExtra(EXTRA_EDIT_DURATION_SEC, 0),
+            createdAt = intent.getStringExtra(EXTRA_EDIT_CREATED_AT) ?: "",
+            date = intent.getStringExtra(EXTRA_EDIT_DATE) ?: "",
+            locationName = intent.getStringExtra(EXTRA_EDIT_LOCATION_NAME),
+            latitude = intent.getDoubleExtra(EXTRA_EDIT_LATITUDE, Double.NaN).takeIf { !it.isNaN() },
+            longitude = intent.getDoubleExtra(EXTRA_EDIT_LONGITUDE, Double.NaN).takeIf { !it.isNaN() }
+        )
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .commit()
+    }
+
     // AddMemoryFragment → 저장 완료
     override fun onSaved() {
+        val isEditMode = intent.getBooleanExtra(EXTRA_EDIT_MODE, false)
+        if (isEditMode) {
+            setResult(android.app.Activity.RESULT_OK)
+        }
         finish()
     }
 
