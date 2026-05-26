@@ -18,7 +18,7 @@ class MemoryRepository(
     private val api: SpringMemoryApiService = RetrofitClient.springMemoryApi
 ) {
 
-    suspend fun saveMemory(entity: MemoryEntity, recordIds: List<Long> = emptyList()): Long {
+    suspend fun saveMemory(entity: MemoryEntity, recordIds: List<Long> = emptyList(), aiProcessingTimeMs: Long? = null): Long {
         val gson = Gson()
         val tags = try { gson.fromJson(entity.tags, Array<String>::class.java).toList() } catch (e: Exception) { emptyList() }
         val people = try { gson.fromJson(entity.people, Array<String>::class.java).toList() } catch (e: Exception) { emptyList() }
@@ -34,7 +34,8 @@ class MemoryRepository(
             location = entity.representativeLocationName,
             tags = tags,
             people = people,
-            recordIds = recordIds
+            recordIds = recordIds,
+            aiProcessingTimeMs = aiProcessingTimeMs
         )
         Log.d("MemoryRepo", "저장 요청: ${Gson().toJson(request)}")
         val response = api.createMemory(request)
