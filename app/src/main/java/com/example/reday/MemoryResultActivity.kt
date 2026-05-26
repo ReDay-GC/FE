@@ -63,6 +63,7 @@ class MemoryResultActivity : AppCompatActivity() {
     private var currentRecordIds: List<Long> = emptyList()
     private var existingMemoryId: Long? = null
     private var aiProcessingTimeMs: Long? = null
+    private var isSaving = false
     private var photoFragments: List<RecordFragmentUiModel> = emptyList()
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
@@ -181,6 +182,8 @@ class MemoryResultActivity : AppCompatActivity() {
     }
 
     private fun saveMemory(representativeFragmentId: Long?, representativePhotoUrl: String?, representativeLocationName: String? = null) {
+        if (isSaving) return
+        isSaving = true
         lifecycleScope.launch {
             existingMemoryId?.let { memoryRepository.deleteMemoryById(it) }
 
