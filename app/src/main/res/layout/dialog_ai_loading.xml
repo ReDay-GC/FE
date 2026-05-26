@@ -14,18 +14,19 @@
         android:layout_marginBottom="20dp" />
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="AI가 기억을 생성하고 있어요"
         android:textColor="@color/brown_800"
         android:textSize="16sp"
         android:textStyle="bold"
+        android:gravity="center"
         android:layout_marginBottom="8dp" />
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="모든 조각을 분석해서 감성적인 제목과 요약을\n만들고 있습니다..."
+        android:text="모든 조각을 분석해서 감성적인 제목과 요약을 만들고 있습니다..."
         android:textColor="@color/brown_500"
         android:textSize="13sp"
         android:gravity="center"
