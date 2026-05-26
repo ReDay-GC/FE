@@ -1,6 +1,7 @@
 package com.example.reday
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -79,7 +80,11 @@ class NotificationSettingsFragment : Fragment() {
                         aiGenerationEnabled = switchAi.isChecked
                     )
                 )
-            } catch (_: Exception) {
+            } catch (e: java.io.EOFException) {
+                // 서버가 응답 바디 없이 처리 완료 — 정상 케이스로 무시
+                Log.d("NotificationSettings", "설정 저장 완료 (서버 빈 응답)")
+            } catch (e: Exception) {
+                Log.e("NotificationSettings", "저장 실패: ${e.javaClass.simpleName}: ${e.message}", e)
                 Toast.makeText(requireContext(), "설정 저장에 실패했습니다.", Toast.LENGTH_SHORT).show()
             }
         }

@@ -1,12 +1,17 @@
 package com.example.reday
 
 import android.app.Dialog
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -46,6 +51,14 @@ class MemoryFragmentActivity : AppCompatActivity() {
     private var existingMemoryId: Long? = null
     private var isGenerating = false
 
+    private var mediaPlayer: MediaPlayer? = null
+    private var playingFragmentId: Long? = null
+    private val progressHandler = Handler(Looper.getMainLooper())
+    private var progressRunnable: Runnable? = null
+    private var activePlayBtn: ImageView? = null
+    private var activeProgressBar: ProgressBar? = null
+    private var activeTimeText: TextView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_memory_fragment)
@@ -61,10 +74,13 @@ class MemoryFragmentActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
         findViewById<View>(R.id.btn_generate_memory).setOnClickListener {
-            if (existingMemoryId != null) {
-                showOverwriteConfirmDialog()
-            } else {
-                startAiGeneration()
+            lifecycleScope.launch {
+                existingMemoryId = memoryRepository.getMemoryByDate(currentDate)?.serverId
+                if (existingMemoryId != null) {
+                    showOverwriteConfirmDialog()
+                } else {
+                    startAiGeneration()
+                }
             }
         }
         findViewById<View>(R.id.btn_add_fragment).setOnClickListener {
@@ -330,20 +346,198 @@ class MemoryFragmentActivity : AppCompatActivity() {
                 if (!fragment.locationName.isNullOrBlank()) {
                     content.addView(createLocationText(fragment.locationName!!))
                 }
+                if (!fragment.contentText.isNullOrBlank()) {
+                    content.addView(createContentText("\"${fragment.contentText}\""))
+                }
+
                 val duration = fragment.durationSec ?: 0
-                content.addView(TextView(this).apply {
-                    text = formatDuration(duration)
-                    textSize = 13f
-                    setTextColor(ContextCompat.getColor(this@MemoryFragmentActivity, R.color.brown_500))
+                val isThisPlaying = playingFragmentId == fragment.localId && mediaPlayer?.isPlaying == true
+                val currentSec = if (playingFragmentId == fragment.localId) (mediaPlayer?.currentPosition ?: 0) / 1000 else 0
+
+                val playerRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
                     ).also { it.bottomMargin = 4.dp }
-                })
+                }
+
+                val playBtn = ImageView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(32.dp, 32.dp).also { it.marginEnd = 8.dp }
+                    setImageResource(if (isThisPlaying) R.drawable.ic_pause_bars else R.drawable.ic_play)
+                    ImageViewCompat.setImageTintList(
+                        this,
+                        android.content.res.ColorStateList.valueOf(
+                            ContextCompat.getColor(this@MemoryFragmentActivity, R.color.main_200)
+                        )
+                    )
+                }
+
+                val progressBar = ProgressBar(
+                    this, null, android.R.attr.progressBarStyleHorizontal
+                ).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).also {
+                        it.marginStart = 4.dp
+                        it.marginEnd = 8.dp
+                    }
+                    max = if (duration > 0) duration else 1
+                    progress = currentSec
+                }
+
+                val timeText = TextView(this).apply {
+                    text = formatVoiceTime(currentSec, duration)
+                    textSize = 11f
+                    setTextColor(ContextCompat.getColor(this@MemoryFragmentActivity, R.color.brown_400))
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                }
+
+                if (playingFragmentId == fragment.localId) {
+                    activePlayBtn = playBtn
+                    activeProgressBar = progressBar
+                    activeTimeText = timeText
+                    if (isThisPlaying) startProgressUpdate(progressBar, timeText, duration)
+                }
+
+                playerRow.addView(playBtn)
+                playerRow.addView(progressBar)
+                playerRow.addView(timeText)
+                content.addView(playerRow)
+
+                playBtn.setOnClickListener {
+                    toggleVoicePlayback(fragment, playBtn, progressBar, timeText)
+                }
             }
         }
 
         return content
+    }
+
+    private fun toggleVoicePlayback(
+        fragment: RecordFragmentUiModel,
+        playBtn: ImageView,
+        progressBar: ProgressBar,
+        timeText: TextView
+    ) {
+        val voiceUrl = fragment.voiceUrl
+        if (voiceUrl.isNullOrBlank()) {
+            Toast.makeText(this, "음성 파일을 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (playingFragmentId == fragment.localId) {
+            val player = mediaPlayer ?: return
+            if (player.isPlaying) {
+                player.pause()
+                playBtn.setImageResource(R.drawable.ic_play)
+                stopProgressUpdate()
+            } else {
+                player.start()
+                playBtn.setImageResource(R.drawable.ic_pause_bars)
+                startProgressUpdate(progressBar, timeText, fragment.durationSec ?: 0)
+            }
+            ImageViewCompat.setImageTintList(
+                playBtn,
+                android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.main_200))
+            )
+        } else {
+            stopVoice()
+            playingFragmentId = fragment.localId
+            activePlayBtn = playBtn
+            activeProgressBar = progressBar
+            activeTimeText = timeText
+
+            val player = MediaPlayer()
+            mediaPlayer = player
+            val duration = fragment.durationSec ?: 0
+
+            try {
+                player.setDataSource(this, Uri.parse(voiceUrl))
+                player.setOnPreparedListener { mp ->
+                    mp.start()
+                    playBtn.setImageResource(R.drawable.ic_pause_bars)
+                    ImageViewCompat.setImageTintList(
+                        playBtn,
+                        android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.main_200))
+                    )
+                    startProgressUpdate(progressBar, timeText, duration)
+                }
+                player.setOnCompletionListener {
+                    playBtn.setImageResource(R.drawable.ic_play)
+                    ImageViewCompat.setImageTintList(
+                        playBtn,
+                        android.content.res.ColorStateList.valueOf(ContextCompat.getColor(this, R.color.main_200))
+                    )
+                    progressBar.progress = 0
+                    timeText.text = formatVoiceTime(0, duration)
+                    stopProgressUpdate()
+                    playingFragmentId = null
+                    mediaPlayer = null
+                }
+                player.prepareAsync()
+            } catch (e: Exception) {
+                Toast.makeText(this, "재생 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                player.release()
+                mediaPlayer = null
+                playingFragmentId = null
+            }
+        }
+    }
+
+    private fun stopVoice() {
+        stopProgressUpdate()
+        activePlayBtn?.setImageResource(R.drawable.ic_play)
+        activePlayBtn = null
+        activeProgressBar = null
+        activeTimeText = null
+        mediaPlayer?.run {
+            if (isPlaying) stop()
+            release()
+        }
+        mediaPlayer = null
+    }
+
+    private fun startProgressUpdate(progressBar: ProgressBar, timeText: TextView, durationSec: Int) {
+        stopProgressUpdate()
+        progressRunnable = object : Runnable {
+            override fun run() {
+                val player = mediaPlayer ?: return
+                if (player.isPlaying) {
+                    val currentSec = player.currentPosition / 1000
+                    progressBar.progress = currentSec
+                    timeText.text = formatVoiceTime(currentSec, durationSec)
+                    progressHandler.postDelayed(this, 500)
+                }
+            }
+        }
+        progressHandler.post(progressRunnable!!)
+    }
+
+    private fun stopProgressUpdate() {
+        progressRunnable?.let { progressHandler.removeCallbacks(it) }
+        progressRunnable = null
+    }
+
+    private fun formatVoiceTime(currentSec: Int, totalSec: Int): String {
+        fun fmt(s: Int) = "%d:%02d".format(s / 60, s % 60)
+        return "${fmt(currentSec)} / ${fmt(totalSec)}"
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (mediaPlayer?.isPlaying == true) {
+            mediaPlayer?.pause()
+            activePlayBtn?.setImageResource(R.drawable.ic_play)
+            stopProgressUpdate()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopVoice()
     }
 
     private fun createLocationText(location: String): TextView {
