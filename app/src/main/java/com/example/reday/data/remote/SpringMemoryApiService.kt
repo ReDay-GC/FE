@@ -74,7 +74,8 @@ data class CreateMemoryRequest(
     val tags: List<String>,
     val people: List<String>,
     val recordIds: List<Long> = emptyList(),
-    val embedding: String? = null
+    val embedding: String? = null,
+    val aiProcessingTimeMs: Long? = null
 )
 
 data class CreateMemoryResponse(

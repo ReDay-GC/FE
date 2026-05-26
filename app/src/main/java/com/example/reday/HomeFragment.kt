@@ -18,6 +18,7 @@ import com.example.reday.data.remote.RetrofitClient
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.example.reday.utils.TokenManager
 import com.example.reday.utils.launchWithLoading
 import com.example.reday.utils.launchWithRefresh
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -62,7 +63,8 @@ class HomeFragment : Fragment() {
 
     private fun showDailyCommentIfNeeded() {
         if (commentShownThisSession) return
-        val prefs = requireContext().getSharedPreferences("daily_comment", Context.MODE_PRIVATE)
+        val userId = TokenManager.getUserId(requireContext()) ?: return
+        val prefs = requireContext().getSharedPreferences("daily_comment_$userId", Context.MODE_PRIVATE)
         val today = run {
             val cal = Calendar.getInstance()
             "%04d-%02d-%02d".format(

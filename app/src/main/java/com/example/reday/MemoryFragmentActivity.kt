@@ -626,9 +626,11 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     },
                     photo_data = photoData
                 )
+                val aiStartTime = System.currentTimeMillis()
                 val response = RetrofitClient.memoryApi.generateMemory(request)
+                val aiProcessingTimeMs = System.currentTimeMillis() - aiStartTime
                 loadingDialog.dismiss()
-                showCompleteDialog(response)
+                showCompleteDialog(response, aiProcessingTimeMs)
             } catch (e: Exception) {
                 loadingDialog.dismiss()
                 isGenerating = false
@@ -638,7 +640,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
         }
     }
 
-    private fun showCompleteDialog(response: GenerateMemoryResponse) {
+    private fun showCompleteDialog(response: GenerateMemoryResponse, aiProcessingTimeMs: Long = 0L) {
         val completeDialog = Dialog(this).apply {
             setContentView(R.layout.dialog_ai_complete)
             window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -681,6 +683,7 @@ class MemoryFragmentActivity : AppCompatActivity() {
                         putExtra(MemoryResultActivity.EXTRA_EMBEDDING, com.google.gson.Gson().toJson(response.embedding))
                     }
                     existingMemoryId?.let { putExtra(MemoryResultActivity.EXTRA_EXISTING_MEMORY_ID, it) }
+                    putExtra(MemoryResultActivity.EXTRA_AI_PROCESSING_TIME_MS, aiProcessingTimeMs)
                 }
                 startActivity(intent)
             }

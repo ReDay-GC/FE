@@ -62,6 +62,7 @@ class MemoryResultActivity : AppCompatActivity() {
     private var currentEmbedding: String? = null
     private var currentRecordIds: List<Long> = emptyList()
     private var existingMemoryId: Long? = null
+    private var aiProcessingTimeMs: Long? = null
     private var photoFragments: List<RecordFragmentUiModel> = emptyList()
     private lateinit var fragmentRepository: RecordFragmentRepository
     private lateinit var memoryRepository: MemoryRepository
@@ -85,6 +86,7 @@ class MemoryResultActivity : AppCompatActivity() {
         currentEmbedding = intent.getStringExtra(EXTRA_EMBEDDING)
         currentRecordIds = intent.getLongArrayExtra(EXTRA_RECORD_IDS)?.toList() ?: emptyList()
         existingMemoryId = intent.getLongExtra(EXTRA_EXISTING_MEMORY_ID, -1L).takeIf { it != -1L }
+        aiProcessingTimeMs = intent.getLongExtra(EXTRA_AI_PROCESSING_TIME_MS, -1L).takeIf { it != -1L }
 
         selectedTags.addAll(tags.filter { it in ALL_TAGS })
         locationList.addAll(locations.distinct().filter { it.isNotBlank() })
@@ -198,7 +200,7 @@ class MemoryResultActivity : AppCompatActivity() {
                 embedding = currentEmbedding,
                 createdAt = LocalDateTime.now().toString()
             )
-            memoryRepository.saveMemory(entity, currentRecordIds)
+            memoryRepository.saveMemory(entity, currentRecordIds, aiProcessingTimeMs)
             getSharedPreferences("daily_comment", MODE_PRIVATE).edit().remove("date").apply()
             val yearMonth = currentDate.substring(0, 7)
             getSharedPreferences("insight_prefs", MODE_PRIVATE).edit()
@@ -463,5 +465,6 @@ class MemoryResultActivity : AppCompatActivity() {
         const val EXTRA_EMOTION = "extra_emotion"
         const val EXTRA_RECORD_IDS = "extra_record_ids"
         const val EXTRA_EXISTING_MEMORY_ID = "extra_existing_memory_id"
+        const val EXTRA_AI_PROCESSING_TIME_MS = "extra_ai_processing_time_ms"
     }
 }
