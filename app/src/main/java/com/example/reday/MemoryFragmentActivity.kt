@@ -326,10 +326,9 @@ class MemoryFragmentActivity : AppCompatActivity() {
                     val imageView = ImageView(this).apply {
                         layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
+                            200.dp
                         ).also { it.bottomMargin = 6.dp }
-                        scaleType = ImageView.ScaleType.FIT_CENTER
-                        adjustViewBounds = true
+                        scaleType = ImageView.ScaleType.CENTER_CROP
                         setBackgroundResource(R.drawable.bg_photo_preview_rounded)
                         clipToOutline = true
                     }

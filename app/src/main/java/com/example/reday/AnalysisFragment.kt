@@ -36,7 +36,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 class AnalysisFragment : Fragment() {
 
@@ -54,9 +53,12 @@ class AnalysisFragment : Fragment() {
     private lateinit var chartRecordType: PieChart
     private lateinit var layoutPlaces: LinearLayout
     private lateinit var layoutPeople: LinearLayout
+    private lateinit var tvSelectedMonth: TextView
+    private lateinit var btnPrevMonth: View
+    private lateinit var btnNextMonth: View
 
-    private val currentYearMonth: String
-        get() = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+    private var selectedYear = LocalDate.now().year
+    private var selectedMonth = LocalDate.now().monthValue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +95,37 @@ class AnalysisFragment : Fragment() {
         view.findViewById<View>(R.id.btn_regenerate_insight).setOnClickListener {
             generateInsight()
         }
+
+        tvSelectedMonth = view.findViewById(R.id.tv_selected_month)
+        btnPrevMonth = view.findViewById(R.id.btn_prev_month)
+        btnNextMonth = view.findViewById(R.id.btn_next_month)
+
+        btnPrevMonth.setOnClickListener {
+            if (selectedMonth == 1) {
+                selectedMonth = 12
+                selectedYear--
+            } else {
+                selectedMonth--
+            }
+            updateMonthDisplay()
+            loadData()
+        }
+
+        btnNextMonth.setOnClickListener {
+            val now = LocalDate.now()
+            if (selectedYear < now.year || (selectedYear == now.year && selectedMonth < now.monthValue)) {
+                if (selectedMonth == 12) {
+                    selectedMonth = 1
+                    selectedYear++
+                } else {
+                    selectedMonth++
+                }
+                updateMonthDisplay()
+                loadData()
+            }
+        }
+
+        updateMonthDisplay()
     }
 
     override fun onResume() {
@@ -100,10 +133,17 @@ class AnalysisFragment : Fragment() {
         loadData()
     }
 
+    private fun updateMonthDisplay() {
+        tvSelectedMonth.text = "${selectedYear}년 ${selectedMonth}월"
+        val now = LocalDate.now()
+        val isCurrentMonth = selectedYear == now.year && selectedMonth == now.monthValue
+        btnNextMonth.alpha = if (isCurrentMonth) 0.3f else 1f
+        btnNextMonth.isEnabled = !isCurrentMonth
+    }
+
     private fun loadData() {
         viewLifecycleOwner.lifecycleScope.launch {
-            val today = LocalDate.now()
-            val analysisData = memoryRepository.getMonthlyAnalysis(today.year, today.monthValue)
+            val analysisData = memoryRepository.getMonthlyAnalysis(selectedYear, selectedMonth)
 
             val totalMemories = analysisData?.memoryTrend?.sumOf { it.count } ?: 0
             if (analysisData == null || totalMemories == 0) {
@@ -138,13 +178,13 @@ class AnalysisFragment : Fragment() {
             layoutInsightLoading.visibility = View.VISIBLE
 
             try {
-                val yearMonth = currentYearMonth
+                val yearMonth = "${selectedYear}-${selectedMonth.toString().padStart(2, '0')}"
                 val userId = TokenManager.getUserId(requireContext())
                 val memories = memoryRepository.getAllMemories()
                     .filter { it.date.startsWith(yearMonth) }
 
                 if (memories.isEmpty()) {
-                    Toast.makeText(requireContext(), "이번 달 기억이 없어요", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "${selectedMonth}월 기억이 없어요", Toast.LENGTH_SHORT).show()
                     layoutInsightEmpty.visibility = View.VISIBLE
                     layoutInsightLoading.visibility = View.GONE
                     return@launch
@@ -160,8 +200,7 @@ class AnalysisFragment : Fragment() {
                 showInsightContent(response.insight)
 
                 // 인사이트 생성 후 서버 데이터 갱신 (topActivities, topPeople 포함)
-                val today = LocalDate.now()
-                val updated = memoryRepository.getMonthlyAnalysis(today.year, today.monthValue)
+                val updated = memoryRepository.getMonthlyAnalysis(selectedYear, selectedMonth)
                 updated?.topActivities?.let { setupActivityChart(it) }
                 updated?.topPeople?.let { setupPeople(it) }
 
@@ -174,8 +213,7 @@ class AnalysisFragment : Fragment() {
     }
 
     private fun showInsightContent(text: String) {
-        val month = currentYearMonth.split("-").getOrNull(1)?.toIntOrNull() ?: 0
-        tvInsightTitle.text = "✦ ${month}월의 인사이트"
+        tvInsightTitle.text = "✦ ${selectedMonth}월의 인사이트"
         tvInsightText.text = text
         layoutInsightLoading.visibility = View.GONE
         layoutInsightEmpty.visibility = View.GONE

@@ -12,6 +12,44 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <!-- 월 선택 헤더 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <ImageButton
+                android:id="@+id/btn_prev_month"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_chevron_left"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="이전 달"
+                app:tint="@color/brown_600" />
+
+            <TextView
+                android:id="@+id/tv_selected_month"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textColor="@color/brown_800"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btn_next_month"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_chevron_right"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="다음 달"
+                app:tint="@color/brown_600" />
+
+        </LinearLayout>
+
         <!-- 빈 상태 -->
         <LinearLayout
             android:id="@+id/layout_empty"
