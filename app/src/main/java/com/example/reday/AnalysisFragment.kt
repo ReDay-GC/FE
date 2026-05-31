@@ -203,6 +203,7 @@ class AnalysisFragment : Fragment() {
                 val updated = memoryRepository.getMonthlyAnalysis(selectedYear, selectedMonth)
                 updated?.topActivities?.let { setupActivityChart(it) }
                 updated?.topPeople?.let { setupPeople(it) }
+                updated?.topPlaces?.let { setupPlaces(it) }
 
             } catch (e: Exception) {
                 layoutInsightLoading.visibility = View.GONE
@@ -307,8 +308,10 @@ class AnalysisFragment : Fragment() {
         val labelMap = mapOf("PHOTO" to "사진", "TEXT" to "텍스트", "VOICE" to "음성")
 
         val filtered = stats.filter { it.count > 0 }
+        val filteredTotal = filtered.sumOf { it.count }.coerceAtLeast(1)
         val entries = filtered.map { stat ->
-            PieEntry(stat.count.toFloat(), "${labelMap[stat.recordType] ?: stat.recordType} ${stat.percentage.toInt()}%")
+            val displayPct = Math.round(stat.count.toFloat() / filteredTotal * 100)
+            PieEntry(stat.count.toFloat(), "${labelMap[stat.recordType] ?: stat.recordType} ${displayPct}%")
         }
         val colors = filtered.map { colorMap[it.recordType] ?: Color.GRAY }
 
