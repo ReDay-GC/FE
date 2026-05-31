@@ -23,6 +23,7 @@ import com.example.reday.data.model.FragmentType
 import com.example.reday.data.model.RecordFragmentUiModel
 import com.example.reday.data.repository.MemoryRepository
 import com.example.reday.data.repository.RecordFragmentRepository
+import com.example.reday.utils.TokenManager
 import com.bumptech.glide.Glide
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -204,7 +205,10 @@ class MemoryResultActivity : AppCompatActivity() {
                 createdAt = LocalDateTime.now().toString()
             )
             memoryRepository.saveMemory(entity, currentRecordIds, aiProcessingTimeMs)
-            getSharedPreferences("daily_comment", MODE_PRIVATE).edit().remove("date").apply()
+            val userId = TokenManager.getUserId(this@MemoryResultActivity)
+            if (userId != null) {
+                getSharedPreferences("daily_comment_$userId", MODE_PRIVATE).edit().remove("date").apply()
+            }
             val yearMonth = currentDate.substring(0, 7)
             getSharedPreferences("insight_prefs", MODE_PRIVATE).edit()
                 .putBoolean("needs_regen", true)

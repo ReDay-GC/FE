@@ -283,8 +283,10 @@ class AnalysisFragment : Fragment() {
             ContextCompat.getColor(requireContext(), R.color.brown_300)
         )
 
+        val total = activities.sumOf { it.percentage }.coerceAtLeast(1)
         val entries = activities.map { item ->
-            PieEntry(item.percentage.toFloat(), "${item.activityType} ${item.percentage}%")
+            val displayPct = Math.round(item.percentage.toFloat() / total * 100)
+            PieEntry(item.percentage.toFloat(), "${item.activityType} ${displayPct}%")
         }
 
         setupPieChart(chartActivity, entries, colors)
@@ -382,7 +384,7 @@ class AnalysisFragment : Fragment() {
             return
         }
 
-        val maxCount = items.first().second
+        val maxCount = items.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
 
         items.forEachIndexed { index, (name, count) ->
             val itemView = layoutInflater.inflate(R.layout.item_rank, container, false)
