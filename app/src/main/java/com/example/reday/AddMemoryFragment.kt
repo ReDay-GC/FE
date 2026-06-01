@@ -545,6 +545,7 @@ class AddMemoryFragment : Fragment() {
                             repository.saveVoiceFragment(
                                 voiceUrl = file.absolutePath,
                                 durationSec = elapsedSec,
+                                createdAt = createdAt,
                                 date = date,
                                 contentText = sttText?.ifEmpty { null },
                                 locationName = locationName,

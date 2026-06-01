@@ -159,13 +159,13 @@ class RecordFragmentRepository(
     suspend fun saveVoiceFragment(
         voiceUrl: String,
         durationSec: Int,
+        createdAt: String,
         date: String,
         contentText: String? = null,
         locationName: String? = null,
         latitude: Double? = null,
         longitude: Double? = null
     ) {
-        val createdAt = LocalDateTime.now().format(apiDateFormatter)
         try {
             val file = File(voiceUrl)
             val ext = file.extension.lowercase()
@@ -179,7 +179,7 @@ class RecordFragmentRepository(
             )
             val params = mutableMapOf<String, RequestBody>(
                 "recordDate" to date.toPlainRequestBody(),
-                "recordedAt" to createdAt.toPlainRequestBody(),
+                "recordedAt" to createdAt.formatForApi().toPlainRequestBody(),
                 "voiceDurationSeconds" to durationSec.toString().toPlainRequestBody()
             )
             contentText?.let { params["textContent"] = it.toPlainRequestBody() }
