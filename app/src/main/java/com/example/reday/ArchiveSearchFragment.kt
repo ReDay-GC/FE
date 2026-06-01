@@ -105,7 +105,10 @@ class ArchiveSearchFragment : Fragment() {
         etSearch.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val query = etSearch.text?.toString()?.trim() ?: ""
-                if (query.isNotBlank()) triggerAiSearch(query)
+                if (query.isNotBlank()) {
+                    searchJob?.cancel()
+                    triggerAiSearch(query)
+                }
                 true
             } else false
         }
@@ -128,48 +131,46 @@ class ArchiveSearchFragment : Fragment() {
 
     // ── 서버 검색 ──
 
-    private fun performServerSearch(keyword: String, tags: Set<String>) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val emotion = selectedEmotion
-            if (keyword.isBlank() && tags.isEmpty() && emotion == null) {
-                showResults(emptyList(), isInitial = true)
-                return@launch
-            }
-
-            val results: List<MemoryUiModel> = when {
-                emotion != null -> {
-                    // 감정 API 호출 후 태그/키워드로 클라이언트 필터
-                    var models = MemoryMapper.fromMemoryEntityList(repository.getMemoriesByEmotion(emotionToEnum(emotion)))
-                    if (tags.isNotEmpty()) {
-                        models = models.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
-                    }
-                    if (keyword.isNotBlank()) {
-                        models = models.filter { item ->
-                            item.title.contains(keyword, ignoreCase = true) ||
-                            item.previewText?.contains(keyword, ignoreCase = true) == true
-                        }
-                    }
-                    models
-                }
-                keyword.isNotBlank() && tags.isNotEmpty() -> {
-                    val entities = repository.searchByKeyword(keyword)
-                    val uiModels = MemoryMapper.fromMemoryEntityList(entities)
-                    uiModels.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
-                }
-                keyword.isNotBlank() -> {
-                    MemoryMapper.fromMemoryEntityList(repository.searchByKeyword(keyword))
-                }
-                tags.isNotEmpty() -> {
-                    val tagResults = tags.flatMap { tag ->
-                        repository.getMemoriesByTag(tag)
-                    }.distinctBy { it.date }
-                    MemoryMapper.fromMemoryEntityList(tagResults)
-                }
-                else -> emptyList()
-            }
-
-            showResults(results)
+    private suspend fun performServerSearch(keyword: String, tags: Set<String>) {
+        val emotion = selectedEmotion
+        if (keyword.isBlank() && tags.isEmpty() && emotion == null) {
+            showResults(emptyList(), isInitial = true)
+            return
         }
+
+        val results: List<MemoryUiModel> = when {
+            emotion != null -> {
+                // 감정 API 호출 후 태그/키워드로 클라이언트 필터
+                var models = MemoryMapper.fromMemoryEntityList(repository.getMemoriesByEmotion(emotionToEnum(emotion)))
+                if (tags.isNotEmpty()) {
+                    models = models.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
+                }
+                if (keyword.isNotBlank()) {
+                    models = models.filter { item ->
+                        item.title.contains(keyword, ignoreCase = true) ||
+                        item.previewText?.contains(keyword, ignoreCase = true) == true
+                    }
+                }
+                models
+            }
+            keyword.isNotBlank() && tags.isNotEmpty() -> {
+                val entities = repository.searchByKeyword(keyword)
+                val uiModels = MemoryMapper.fromMemoryEntityList(entities)
+                uiModels.filter { item -> tags.any { tag -> item.tags.contains(tag) } }
+            }
+            keyword.isNotBlank() -> {
+                MemoryMapper.fromMemoryEntityList(repository.searchByKeyword(keyword))
+            }
+            tags.isNotEmpty() -> {
+                val tagResults = tags.flatMap { tag ->
+                    repository.getMemoriesByTag(tag)
+                }.distinctBy { it.date }
+                MemoryMapper.fromMemoryEntityList(tagResults)
+            }
+            else -> emptyList()
+        }
+
+        showResults(results)
     }
 
     // ── AI 자연어 검색 ──

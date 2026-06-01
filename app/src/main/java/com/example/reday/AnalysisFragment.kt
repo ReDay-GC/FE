@@ -229,6 +229,7 @@ class AnalysisFragment : Fragment() {
             return
         }
 
+        chartMonthly.visibility = View.VISIBLE
         val labels = trend.map { "${it.month}월" }
         val entries = trend.mapIndexed { index, item ->
             BarEntry(index.toFloat(), item.count.toFloat())
@@ -284,6 +285,7 @@ class AnalysisFragment : Fragment() {
             ContextCompat.getColor(requireContext(), R.color.brown_300)
         )
 
+        chartActivity.visibility = View.VISIBLE
         val total = activities.sumOf { it.percentage }.coerceAtLeast(1)
         val entries = activities.map { item ->
             val displayPct = Math.round(item.percentage.toFloat() / total * 100)
@@ -307,6 +309,7 @@ class AnalysisFragment : Fragment() {
         )
         val labelMap = mapOf("PHOTO" to "사진", "TEXT" to "텍스트", "VOICE" to "음성")
 
+        chartRecordType.visibility = View.VISIBLE
         val filtered = stats.filter { it.count > 0 }
         val filteredTotal = filtered.sumOf { it.count }.coerceAtLeast(1)
         val entries = filtered.map { stat ->

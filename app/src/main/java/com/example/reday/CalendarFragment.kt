@@ -288,7 +288,6 @@ class CalendarFragment : Fragment() {
                 currentDetailJob?.cancel()
                 currentDetailJob = viewLifecycleOwner.lifecycleScope.launch {
                     val hasFragments = repository.getFragmentsByDate(dateStr).isNotEmpty()
-                    if (hasFragments) loadAndRender()
                     when {
                         day in memoryDays -> loadMemoryDetail(day)
                         hasFragments -> loadRecordingDayDetail(day)

@@ -79,6 +79,10 @@ class ArchiveFragment : Fragment() {
         swipeRefresh.setOnRefreshListener { launchWithRefresh(swipeRefresh) { loadMemoriesData() } }
 
         updateMonthTitle()
+    }
+
+    override fun onResume() {
+        super.onResume()
         loadMemories()
     }
 
