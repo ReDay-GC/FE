@@ -170,7 +170,7 @@ class ArchiveSearchFragment : Fragment() {
             else -> emptyList()
         }
 
-        showResults(results)
+        showResults(results.sortedByDescending { it.date })
     }
 
     // ── AI 자연어 검색 ──
@@ -266,7 +266,9 @@ class ArchiveSearchFragment : Fragment() {
         val sorted = if (semanticRankedIds.isNotEmpty()) {
             val rankMap = semanticRankedIds.mapIndexed { idx, id -> id to idx }.toMap()
             filtered.sortedBy { rankMap[it.id] ?: Int.MAX_VALUE }
-        } else filtered
+        } else {
+            filtered.sortedByDescending { it.date }
+        }
 
         showResults(sorted)
     }

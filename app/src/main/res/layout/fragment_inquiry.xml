@@ -116,7 +116,8 @@
             android:textColor="@color/brown_50"
             android:textSize="18sp"
             android:background="@drawable/bg_btn_inquiry"
-            android:stateListAnimator="@null" />
+            android:stateListAnimator="@null"
+            app:backgroundTint="@null" />
 
     </LinearLayout>
 
